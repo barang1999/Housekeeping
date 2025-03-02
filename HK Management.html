@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Housekeeping Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .room {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .start-btn {
+            background-color: grey;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .finish-btn {
+            background-color: green;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .log-table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        .log-table th, .log-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .signup {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="signup">
+            <h2>Sign Up</h2>
+            <input type="text" placeholder="Username" id="signup-username">
+            <input type="password" placeholder="Password" id="signup-password">
+            <button onclick="signUp()">Sign Up</button>
+        </div>
+        
+        <div id="login-section" style="display: none;">
+            <h2>Login</h2>
+            <input type="text" placeholder="Username" id="login-username">
+            <input type="password" placeholder="Password" id="login-password">
+            <button onclick="login()">Login</button>
+        </div>
+
+        <div id="profile-section" style="display: none;">
+            <h2>Welcome, <span id="user-name"></span></h2>
+            <h1>Housekeeping Management</h1>
+            <div id="rooms"></div>
+            <h2>Cleaning Logs</h2>
+            <table class="log-table" id="logTable">
+                <thead>
+                    <tr>
+                        <th>Room</th>
+                        <th>Start Time</th>
+                        <th>Finish Time</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const rooms = 46;
+        const roomContainer = document.getElementById("rooms");
+        const logTable = document.querySelector("#logTable tbody");
+        let cleaningStatus = {};
+        let logs = JSON.parse(localStorage.getItem("cleaningLogs")) || [];
+
+        function updateLogs() {
+            logTable.innerHTML = "";
+            logs.forEach(log => {
+                const row = `<tr><td>${log.room}</td><td>${log.start}</td><td>${log.finish}</td></tr>`;
+                logTable.innerHTML += row;
+            });
+        }
+
+        function startCleaning(room) {
+            if (cleaningStatus[room]) return;
+            const startTime = new Date().toLocaleString();
+            cleaningStatus[room] = startTime;
+            alert(`Housekeeping Supervisor Alert: ${room} cleaning started.`);
+            document.getElementById(`btn-${room}`).className = "finish-btn";
+            document.getElementById(`btn-${room}`).innerText = "Finish Cleaning";
+            document.getElementById(`btn-${room}`).onclick = () => finishCleaning(room);
+        }
+
+        function finishCleaning(room) {
+            if (!cleaningStatus[room]) return;
+            const finishTime = new Date().toLocaleString();
+            logs.push({ room, start: cleaningStatus[room], finish: finishTime });
+            localStorage.setItem("cleaningLogs", JSON.stringify(logs));
+            alert(`Housekeeping Supervisor Alert: ${room} cleaning finished.`);
+            delete cleaningStatus[room];
+            updateLogs();
+            document.getElementById(`btn-${room}`).className = "start-btn";
+            document.getElementById(`btn-${room}`).innerText = "Start Cleaning";
+            document.getElementById(`btn-${room}`).onclick = () => startCleaning(room);
+        }
+
+        function signUp() {
+            const username = document.getElementById("signup-username").value;
+            const password = document.getElementById("signup-password").value;
+            if (username && password) {
+                localStorage.setItem("user", JSON.stringify({ username, password }));
+                alert(`User ${username} signed up successfully! Redirecting to login page.`);
+                document.querySelector(".signup").style.display = "none";
+                document.getElementById("login-section").style.display = "block";
+            } else {
+                alert("Please fill out all fields.");
+            }
+        }
+
+        function login() {
+            const username = document.getElementById("login-username").value;
+            const password = document.getElementById("login-password").value;
+            const storedUser = JSON.parse(localStorage.getItem("user"));
+            if (storedUser && storedUser.username === username && storedUser.password === password) {
+                alert("Login successful!");
+                document.getElementById("login-section").style.display = "none";
+                document.getElementById("profile-section").style.display = "block";
+                document.getElementById("user-name").innerText = username;
+                for (let i = 1; i <= rooms; i++) {
+                    roomContainer.innerHTML += `<div class="room">Room ${i} <button id="btn-Room ${i}" class="start-btn" onclick="startCleaning('Room ${i}')">Start Cleaning</button></div>`;
+                }
+                updateLogs();
+            } else {
+                alert("Invalid credentials. Please try again.");
+            }
+        }
+    </script>
+</body>
+</html>
