@@ -3,9 +3,9 @@ const cors = require("cors");
 
 const app = express();
 
-// ✅ Allow requests from multiple frontends
+// ✅ Allow requests from your Netlify frontend
 const corsOptions = {
-  origin: ["https://housekeepingmanagement.netlify.app", "http://localhost:3000"], // Add both production and local URLs
+  origin: "https://housekeepingmanagement.netlify.app", // Change this to match your frontend URL
   methods: "GET,POST",
   credentials: true
 };
@@ -13,52 +13,21 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// ✅ Simulated user database (for testing)
-const users = [];
-
-// ✅ Signup endpoint
+// Example signup endpoint
 app.post("/auth/signup", (req, res) => {
     const { username, password } = req.body;
-
     if (!username || !password) {
-        return res.status(400).json({ message: "Missing username or password" });
+        return res.status(400).json({ message: "Missing fields" });
     }
-
-    // Check if user already exists
-    const userExists = users.find(user => user.username === username);
-    if (userExists) {
-        return res.status(409).json({ message: "User already exists" });
-    }
-
-    // Store user (not secure for real apps, use a database)
-    users.push({ username, password });
     res.status(201).json({ message: "User registered successfully" });
 });
 
-// ✅ Login endpoint
-app.post("/auth/login", (req, res) => {
-    const { username, password } = req.body;
-
-    if (!username || !password) {
-        return res.status(400).json({ message: "Missing username or password" });
-    }
-
-    // Check if user exists
-    const user = users.find(user => user.username === username && user.password === password);
-    if (!user) {
-        return res.status(401).json({ message: "Invalid credentials" });
-    }
-
-    res.json({ message: "Login successful" });
-});
-
-// ✅ Test route
 app.get("/", (req, res) => {
   res.send("Backend is working!");
 });
 
-// ✅ Start server
+// ✅ Ensure correct Railway PORT usage
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {  // 🚀 Ensure it's accessible on Railway
   console.log(`Server is running on port ${PORT}`);
 });
