@@ -33,17 +33,28 @@ const readUsers = () => {
 const writeUsers = (users) => {
     try {
         fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+        console.log("✅ Users saved successfully:", users);
     } catch (error) {
-        console.error("Error writing to users.json:", error);
+        console.error("❌ Error saving users.json:", error);
     }
 };
 
+
 // ✅ Signup endpoint (stores users in JSON file)
-app.post("/auth/signup", (req, res) => {
+app.post("/auth/login", (req, res) => {
     const { username, password } = req.body;
-    if (!username || !password) {
-        return res.status(400).json({ message: "Missing fields" });
+    let users = readUsers();
+
+    const user = users.find(user => user.username === username && user.password === password);
+    if (!user) {
+        return res.status(401).json({ message: "Invalid credentials. Please try again." });
     }
+
+    res.status(200).json({ 
+        message: "Login successful", 
+        token: "fake-jwt-token"  // 🟢 Add a fake token
+    });
+});
 
     let users = readUsers();
 
