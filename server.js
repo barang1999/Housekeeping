@@ -31,7 +31,11 @@ const readUsers = () => {
 
 // Function to write users to the JSON file
 const writeUsers = (users) => {
-    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+    try {
+        fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+    } catch (error) {
+        console.error("Error writing to users.json:", error);
+    }
 };
 
 // ✅ Signup endpoint (stores users in JSON file)
@@ -51,6 +55,7 @@ app.post("/auth/signup", (req, res) => {
     // Store the user
     users.push({ username, password });
     writeUsers(users);
+    console.log("Updated users list:", readUsers());
     
     res.status(201).json({ message: "User registered successfully" });
 });
