@@ -92,53 +92,40 @@
     </div>
 
     <script>
+<<<<<<< HEAD
         const backendUrl = "https://housekeeping-production.up.railway.app";
         const rooms = 46;
         const roomContainer = document.getElementById("rooms");
         const logTable = document.querySelector("#logTable tbody");
         let cleaningStatus = {};
+=======
+        // ✅ Automatically choose Localhost or Railway backend
+const backendUrl = window.location.hostname.includes("localhost")
+    ? "http://localhost:5000"  // Local server
+    : "https://housekeeping-production.up.railway.app";  // Railway
+>>>>>>> fdb539c (Fixed server issues)
 
-        function updateLogs() {
-            fetch(`${backendUrl}/logs`)
-            .then(response => response.json())
-            .then(data => {
-                logTable.innerHTML = "";
-                data.forEach(log => {
-                    const row = `<tr><td>${log.room}</td><td>${log.start}</td><td>${log.finish}</td></tr>`;
-                    logTable.innerHTML += row;
-                });
-            });
-        }
+console.log("🚀 Using Backend:", backendUrl);
 
-        function signUp() {
-            const username = document.getElementById("signup-username").value;
-            const password = document.getElementById("signup-password").value;
-            fetch(`${backendUrl}/auth/signup`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, password })
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert(data.message);
-                if (data.message === "User registered successfully") {
-                    document.querySelector(".signup").style.display = "none";
-                    document.getElementById("login-section").style.display = "block";
-                }
-            })
-            .catch(error => console.log("Error:", error));
-        }
+function signUp() {
+    const username = document.getElementById("signup-username").value;
+    const password = document.getElementById("signup-password").value;
 
+<<<<<<< HEAD
        function login() {
     const username = document.getElementById("login-username").value;
     const password = document.getElementById("login-password").value;
     fetch(`${backendUrl}/auth/login`, {
+=======
+    fetch(`${backendUrl}/auth/signup`, {
+>>>>>>> fdb539c (Fixed server issues)
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password })
     })
     .then(response => response.json())
     .then(data => {
+<<<<<<< HEAD
         console.log("Login Response:", data); // Debugging step
         if (data.token) {  // ✅ Check if a token exists
             localStorage.setItem("token", data.token);
@@ -152,6 +139,38 @@
         }
     })
     .catch(error => console.error("Error:", error));
+=======
+        alert(data.message);
+        if (data.message === "User registered successfully") {
+            document.querySelector(".signup").style.display = "none";
+            document.getElementById("login-section").style.display = "block";
+        }
+    })
+    .catch(error => console.log("Error:", error));
+}
+
+function login() {
+    const username = document.getElementById("login-username").value;
+    const password = document.getElementById("login-password").value;
+
+    fetch(`${backendUrl}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.message === "Login successful") {
+            alert("Login successful!");
+            document.getElementById("login-section").style.display = "none";
+            document.getElementById("profile-section").style.display = "block";
+            document.getElementById("user-name").innerText = username;
+        } else {
+            alert("Invalid credentials. Please try again.");
+        }
+    })
+    .catch(error => console.log("Error:", error));
+>>>>>>> fdb539c (Fixed server issues)
 }
 
     </script>

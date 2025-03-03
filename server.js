@@ -5,9 +5,9 @@ const path = require("path");
 
 const app = express();
 
-// ✅ Setup CORS
+// ✅ Allow both Localhost and Railway
 const corsOptions = {
-    origin: "https://housekeepingmanagement.netlify.app",
+    origin: ["http://localhost:5500", "https://housekeepingmanagement.netlify.app"],
     methods: "GET,POST",
     credentials: true
 };
@@ -31,12 +31,16 @@ const readUsers = () => {
 
 // Function to write users to the JSON file
 const writeUsers = (users) => {
+<<<<<<< HEAD
     try {
         fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
         console.log("✅ Users saved successfully:", users);
     } catch (error) {
         console.error("❌ Error saving users.json:", error);
     }
+=======
+    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+>>>>>>> fdb539c (Fixed server issues)
 };
 
 
@@ -66,7 +70,6 @@ app.post("/auth/login", (req, res) => {
     // Store the user
     users.push({ username, password });
     writeUsers(users);
-    console.log("Updated users list:", readUsers());
     
     res.status(201).json({ message: "User registered successfully" });
 });
@@ -89,13 +92,13 @@ app.post("/auth/login", (req, res) => {
     res.status(200).json({ message: "Login successful" });
 });
 
-// ✅ Keep your existing GET endpoint
+// ✅ Home Route
 app.get("/", (req, res) => {
     res.send("Backend is working!");
 });
 
 // ✅ Start Server
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5500;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
