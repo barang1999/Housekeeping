@@ -7,7 +7,8 @@ const app = express();
 const corsOptions = {
   origin: "https://housekeepingmanagement.netlify.app", 
   methods: "GET,POST",
-  credentials: true
+  credentials: true,
+  allowedHeaders: ["Content-Type"]
 };
 
 app.use(cors(corsOptions));
@@ -39,18 +40,27 @@ console.log("Current users:", users); // ✅ Debugging step
 
 // ✅ Login endpoint (validates credentials)
 app.post("/auth/login", (req, res) => {
-    const { username, password } = req.body;
-    if (!username || !password) {
-        return res.status(400).json({ message: "Missing fields" });
-    }
+  const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ message: "Missing fields" });
+  }
 
-    // Check if user exists
-    const user = users.find(user => user.username === username && user.password === password);
-    if (!user) {
-        return res.status(401).json({ message: "Invalid credentials. Please try again." });
-    }
+  let users = getUsers();
+  console.log("Users in database:", users); // ✅ Debugging
 
-    res.status(200).json({ message: "Login successful" });
+  const user = users.find((user) => user.username === username);
+
+  console.log("User found:", user); // ✅ Debugging
+
+  if (!user) {
+    return res.status(401).json({ message: "Invalid credentials. Please try again." });
+  }
+
+  if (user.password !== password) {
+    return res.status(401).json({ message: "Invalid credentials. Please try again." });
+  }
+
+  res.status(200).json({ message: "Login successful" });
 });
 
 // ✅ Keep your existing GET endpoint

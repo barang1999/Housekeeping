@@ -7,7 +7,7 @@ const app = express();
 
 // ✅ Setup CORS
 const corsOptions = {
-    origin: ["http://localhost:5000", "https://housekeepingmanagement.netlify.app"],
+    origin: "https://housekeepingmanagement.netlify.app",
     methods: "GET,POST",
     credentials: true
 };
@@ -20,9 +20,11 @@ const USERS_FILE = path.join(__dirname, "users.json");
 // Function to read users from the JSON file
 const readUsers = () => {
     try {
-        const data = fs.readFileSync(USERS_FILE);
+        if (!fs.existsSync(USERS_FILE)) return [];
+        const data = fs.readFileSync(USERS_FILE, "utf-8");
         return JSON.parse(data);
     } catch (error) {
+        console.error("Error reading users.json:", error);
         return [];
     }
 };
