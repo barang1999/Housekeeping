@@ -2,28 +2,22 @@ const express = require("express");
 const cors = require("cors");
 
 const app = express();
-const PORT = process.env.PORT || 5000;
 
-app.use(cors()); // Fix CORS issues
-app.use(express.json()); // Enable JSON parsing
+// ✅ Allow requests from your Netlify frontend
+const corsOptions = {
+  origin: "https://housekeepingmanagement.netlify.app", // Change this to match your frontend URL
+  methods: "GET,POST",
+  credentials: true
+};
 
-// ✅ Test if Backend is Running
+app.use(cors(corsOptions));
+app.use(express.json());
+
 app.get("/", (req, res) => {
-    res.send("Backend is working!");
+  res.send("Backend is working!");
 });
 
-// ✅ Signup Route (Temporary User Storage)
-let users = [];
-app.post("/auth/signup", (req, res) => {
-    const { username, password } = req.body;
-    if (!username || !password) {
-        return res.status(400).json({ message: "Username and password are required" });
-    }
-    users.push({ username, password });
-    res.json({ message: "User registered successfully" });
-});
-
-// Start the Server
-app.listen(PORT, "0.0.0.0", () => {
-    console.log(`✅ Server is running on port ${PORT}`);
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
