@@ -5,7 +5,7 @@ const app = express();
 
 // ✅ Allow requests from your Netlify frontend
 const corsOptions = {
-  origin: ["https://housekeepingmanagement.netlify.app", "http://localhost:50000"], 
+  origin: "https://housekeepingmanagement.netlify.app", 
   methods: "GET,POST",
   credentials: true
 };
