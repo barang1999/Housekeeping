@@ -13,6 +13,15 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+// Example signup endpoint
+app.post("/auth/signup", (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !password) {
+        return res.status(400).json({ message: "Missing fields" });
+    }
+    res.status(201).json({ message: "User registered successfully" });
+});
+
 app.get("/", (req, res) => {
   res.send("Backend is working!");
 });
