@@ -93,7 +93,6 @@
 
     <script>
         const backendUrl = "https://housekeeping-production.up.railway.app";
-        
         const rooms = 46;
         const roomContainer = document.getElementById("rooms");
         const logTable = document.querySelector("#logTable tbody");
@@ -130,29 +129,31 @@
             .catch(error => console.log("Error:", error));
         }
 
-        function login() {
-            const username = document.getElementById("login-username").value;
-            const password = document.getElementById("login-password").value;
-            fetch(`${backendUrl}/auth/login`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, password })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.token) {
-                    localStorage.setItem("token", data.token);
-                    alert("Login successful!");
-                    document.getElementById("login-section").style.display = "none";
-                    document.getElementById("profile-section").style.display = "block";
-                    document.getElementById("user-name").innerText = username;
-                    updateLogs();
-                } else {
-                    alert("Invalid credentials. Please try again.");
-                }
-            })
-            .catch(error => console.log("Error:", error));
+       function login() {
+    const username = document.getElementById("login-username").value;
+    const password = document.getElementById("login-password").value;
+    fetch(`${backendUrl}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("Login Response:", data); // Debugging step
+        if (data.token) {  // ✅ Check if a token exists
+            localStorage.setItem("token", data.token);
+            alert("Login successful!");
+            document.getElementById("login-section").style.display = "none";
+            document.getElementById("profile-section").style.display = "block";
+            document.getElementById("user-name").innerText = username;
+            updateLogs();
+        } else {
+            alert("Invalid credentials. Please try again.");
         }
+    })
+    .catch(error => console.error("Error:", error));
+}
+
     </script>
 </body>
 </html>
