@@ -92,84 +92,66 @@
     </div>
 
     <script>
+        const backendUrl = "https://housekeeping-9vih.onrender.com";
         const rooms = 46;
         const roomContainer = document.getElementById("rooms");
         const logTable = document.querySelector("#logTable tbody");
         let cleaningStatus = {};
-        let logs = JSON.parse(localStorage.getItem("cleaningLogs")) || [];
 
         function updateLogs() {
-            logTable.innerHTML = "";
-            logs.forEach(log => {
-                const row = `<tr><td>${log.room}</td><td>${log.start}</td><td>${log.finish}</td></tr>`;
-                logTable.innerHTML += row;
+            fetch(`${backendUrl}/logs`)
+            .then(response => response.json())
+            .then(data => {
+                logTable.innerHTML = "";
+                data.forEach(log => {
+                    const row = `<tr><td>${log.room}</td><td>${log.start}</td><td>${log.finish}</td></tr>`;
+                    logTable.innerHTML += row;
+                });
             });
         }
 
-        function startCleaning(room) {
-            if (cleaningStatus[room]) return;
-            const startTime = new Date().toLocaleString();
-            cleaningStatus[room] = startTime;
-            alert(`Housekeeping Supervisor Alert: ${room} cleaning started.`);
-            document.getElementById(`btn-${room}`).className = "finish-btn";
-            document.getElementById(`btn-${room}`).innerText = "Finish Cleaning";
-            document.getElementById(`btn-${room}`).onclick = () => finishCleaning(room);
+        function signUp() {
+            const username = document.getElementById("signup-username").value;
+            const password = document.getElementById("signup-password").value;
+            fetch(`${backendUrl}/auth/signup`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                if (data.message === "User registered successfully") {
+                    document.querySelector(".signup").style.display = "none";
+                    document.getElementById("login-section").style.display = "block";
+                }
+            })
+            .catch(error => console.log("Error:", error));
         }
-
-        function finishCleaning(room) {
-            if (!cleaningStatus[room]) return;
-            const finishTime = new Date().toLocaleString();
-            logs.push({ room, start: cleaningStatus[room], finish: finishTime });
-            localStorage.setItem("cleaningLogs", JSON.stringify(logs));
-            alert(`Housekeeping Supervisor Alert: ${room} cleaning finished.`);
-            delete cleaningStatus[room];
-            updateLogs();
-            document.getElementById(`btn-${room}`).className = "start-btn";
-            document.getElementById(`btn-${room}`).innerText = "Start Cleaning";
-            document.getElementById(`btn-${room}`).onclick = () => startCleaning(room);
-        }
-
-function signUp() {
-    const username = document.getElementById("signup-username").value;
-    const password = document.getElementById("signup-password").value;
-
-    if (username && password) {
-        localStorage.setItem("user", JSON.stringify({ username, password }));
-        alert(`User ${username} signed up successfully! Redirecting to login page.`);
-
-        // Hide Sign-Up Section and Show Login Section
-        document.querySelector(".signup").style.display = "none";
-        document.getElementById("login-section").style.display = "block";
-    } else {
-        alert("Please fill out all fields.");
-    }
-}
-
 
         function login() {
-    const username = document.getElementById("login-username").value;
-    const password = document.getElementById("login-password").value;
-    const storedUser = JSON.parse(localStorage.getItem("user"));
-
-    if (storedUser && storedUser.username === username && storedUser.password === password) {
-        alert("Login successful!");
-
-        // Hide Login Section and Show Profile Section
-        document.getElementById("login-section").style.display = "none";
-        document.getElementById("profile-section").style.display = "block";
-        document.getElementById("user-name").innerText = username;
-
-        // Load Rooms for Cleaning Management
-        for (let i = 1; i <= rooms; i++) {
-            roomContainer.innerHTML += `<div class="room">Room ${i} <button id="btn-Room ${i}" class="start-btn" onclick="startCleaning('Room ${i}')">Start Cleaning</button></div>`;
+            const username = document.getElementById("login-username").value;
+            const password = document.getElementById("login-password").value;
+            fetch(`${backendUrl}/auth/login`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.token) {
+                    localStorage.setItem("token", data.token);
+                    alert("Login successful!");
+                    document.getElementById("login-section").style.display = "none";
+                    document.getElementById("profile-section").style.display = "block";
+                    document.getElementById("user-name").innerText = username;
+                    updateLogs();
+                } else {
+                    alert("Invalid credentials. Please try again.");
+                }
+            })
+            .catch(error => console.log("Error:", error));
         }
-        updateLogs();
-    } else {
-        alert("Invalid credentials. Please try again.");
-    }
-}
-
-
     </script>
 </body>
 </html>
