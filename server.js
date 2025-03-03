@@ -5,7 +5,7 @@ const app = express();
 
 // ✅ Allow requests from your Netlify frontend
 const corsOptions = {
-  origin: "https://housekeepingmanagement.netlify.app", // Ensure this matches your frontend URL
+  origin: "*", // Allows requests from anywhere
   methods: "GET,POST",
   credentials: true
 };
@@ -31,6 +31,7 @@ app.post("/auth/signup", (req, res) => {
 
     // Store the user
     users.push({ username, password });
+console.log("Current users:", users); // ✅ Debugging step
     res.status(201).json({ message: "User registered successfully" });
 });
 
