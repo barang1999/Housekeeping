@@ -1,16 +1,20 @@
 const express = require("express");
-const app = express();
+const cors = require("cors"); // Import CORS
 
-// Use the port provided by Render or default to 5000 locally
+const app = express();
 const PORT = process.env.PORT || 5000;
 
+app.use(cors()); // Enable CORS for all routes
 app.use(express.json());
 
-app.get("/", (req, res) => {
-    res.send("Backend is working!");
+app.post("/auth/signup", (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+    }
+    res.json({ message: "User registered successfully" });
 });
 
-// Bind to 0.0.0.0 to allow Render to expose the server
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server is running on port ${PORT}`);
 });
