@@ -5,100 +5,123 @@ const path = require("path");
 
 const app = express();
 
-// ✅ Allow both Localhost and Railway
-const corsOptions = {
-    origin: ["http://localhost:5500", "https://housekeepingmanagement.netlify.app"],
+// ✅ CORS Configuration
+app.use(cors({
+    origin: ["http://localhost:5500", "http://localhost:5000", "https://housekeepingmanagement.netlify.app"],
     methods: "GET,POST",
     credentials: true
-};
-app.use(cors(corsOptions));
+}));
 app.use(express.json());
 
-// ✅ JSON file as a simple database
+// ✅ Define JSON Files
 const USERS_FILE = path.join(__dirname, "users.json");
+const LOGS_FILE = path.join(__dirname, "cleaning_logs.json");
 
-// Function to read users from the JSON file
-const readUsers = () => {
+// ✅ Utility: Read JSON File
+const readFile = (filePath) => {
     try {
-        if (!fs.existsSync(USERS_FILE)) return [];
-        const data = fs.readFileSync(USERS_FILE, "utf-8");
-        return JSON.parse(data);
+        if (!fs.existsSync(filePath)) return [];
+        return JSON.parse(fs.readFileSync(filePath, "utf-8"));
     } catch (error) {
-        console.error("Error reading users.json:", error);
+        console.error(`❌ Error reading ${filePath}:`, error);
         return [];
     }
 };
 
-// Function to write users to the JSON file
-const writeUsers = (users) => {
-<<<<<<< HEAD
+// ✅ Utility: Write to JSON File
+const writeFile = (filePath, data) => {
     try {
-        fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-        console.log("✅ Users saved successfully:", users);
+        fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+        console.log(`✅ Successfully saved data to ${filePath}`);
     } catch (error) {
-        console.error("❌ Error saving users.json:", error);
+        console.error(`❌ Error writing ${filePath}:`, error);
     }
-=======
-    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
->>>>>>> fdb539c (Fixed server issues)
 };
 
+// ✅ Utility: Get Current Time in Cambodia Time Zone
+function getCambodiaTime() {
+    return new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Phnom_Penh',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+    }).format(new Date());
+}
 
-// ✅ Signup endpoint (stores users in JSON file)
-app.post("/auth/login", (req, res) => {
+// ✅ User Signup API
+app.post("/auth/signup", (req, res) => {
     const { username, password } = req.body;
-    let users = readUsers();
+    let users = readFile(USERS_FILE);
 
-    const user = users.find(user => user.username === username && user.password === password);
-    if (!user) {
-        return res.status(401).json({ message: "Invalid credentials. Please try again." });
+    if (users.some(user => user.username === username)) {
+        console.log(`🔄 User ${username} already exists.`);
+        return res.status(302).json({ message: "User already exists. Redirecting to login." });
     }
 
-    res.status(200).json({ 
-        message: "Login successful", 
-        token: "fake-jwt-token"  // 🟢 Add a fake token
-    });
-});
-
-    let users = readUsers();
-
-    // Check if user already exists
-    if (users.find(user => user.username === username)) {
-        return res.status(400).json({ message: "User already exists" });
-    }
-
-    // Store the user
+    // Add new user to JSON
     users.push({ username, password });
-    writeUsers(users);
-    
-    res.status(201).json({ message: "User registered successfully" });
+    writeFile(USERS_FILE, users);
+
+    console.log(`✅ New user registered: ${username}`);
+    res.status(201).json({ message: "User registered successfully. Please log in." });
 });
 
-// ✅ Login endpoint (validates credentials from JSON file)
+// ✅ User Login API
 app.post("/auth/login", (req, res) => {
     const { username, password } = req.body;
-    if (!username || !password) {
-        return res.status(400).json({ message: "Missing fields" });
-    }
+    let users = readFile(USERS_FILE);
 
-    let users = readUsers();
-
-    // Check if user exists
     const user = users.find(user => user.username === username && user.password === password);
     if (!user) {
         return res.status(401).json({ message: "Invalid credentials. Please try again." });
     }
 
-    res.status(200).json({ message: "Login successful" });
+    res.status(200).json({ message: "Login successful", token: `mock-token-${Date.now()}`, username });
+});
+
+// ✅ Fetch Cleaning Logs API
+app.get("/logs", (req, res) => {
+    res.json(readFile(LOGS_FILE));
+});
+
+// ✅ Start Cleaning API
+app.post("/logs/start", (req, res) => {
+    const { roomNumber, username } = req.body;
+    let logs = readFile(LOGS_FILE);
+
+    logs.push({
+        roomNumber,
+        startTime: getCambodiaTime(),
+        startedBy: username,
+        finishTime: null,
+        finishedBy: null
+    });
+
+    writeFile(LOGS_FILE, logs);
+    res.status(201).json({ message: `Room ${roomNumber} started by ${username} at ${getCambodiaTime()}` });
+});
+
+// ✅ Finish Cleaning API
+app.post("/logs/finish", (req, res) => {
+    const { roomNumber, username } = req.body;
+    let logs = readFile(LOGS_FILE);
+
+    const log = logs.find(log => log.roomNumber === roomNumber && log.finishTime === null);
+    if (log) {
+        log.finishTime = getCambodiaTime();
+        log.finishedBy = username;
+        writeFile(LOGS_FILE, logs);
+        return res.status(200).json({ message: `Room ${roomNumber} finished by ${username} at ${getCambodiaTime()}` });
+    }
+
+    res.status(400).json({ message: "Error updating log" });
 });
 
 // ✅ Home Route
 app.get("/", (req, res) => {
-    res.send("Backend is working!");
+    res.send("Housekeeping Management API is Running 🚀");
 });
 
 // ✅ Start Server
-const PORT = process.env.PORT || 5500;
+const PORT = process.env.PORT || 5050;
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+    console.log(`✅ Server running on port ${PORT}`);
 });

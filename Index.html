@@ -5,75 +5,165 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Housekeeping Management</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            background-color: #f4f4f4;
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-        .room {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            border-bottom: 1px solid #ddd;
-        }
-        .start-btn {
-            background-color: grey;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-        .finish-btn {
-            background-color: green;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-        .log-table {
-            width: 100%;
-            margin-top: 20px;
-            border-collapse: collapse;
-        }
-        .log-table th, .log-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        .signup {
-            margin-bottom: 20px;
-        }
+        /* 🌟 Global Styles */
+body, html {
+    font-family: 'Poppins', sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    overflow-y: auto; /* Enables scrolling */
+}
+
+/* 🌟 Main Container */
+.container {
+    width: 90%;
+    max-width: 800px;
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    animation: fadeIn 0.8s ease-in-out;
+    margin: 20px auto;
+}
+
+/* 🌟 Room List */
+#rooms {
+    max-height: 400px; /* Ensures scrollability */
+    overflow-y: auto;  /* Allows internal scrolling */
+    padding: 10px;
+}
+
+/* 🌟 Room Box */
+.room {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f1f1f1;
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+/* 🌟 Buttons */
+button {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+button:hover {
+    background: linear-gradient(135deg, #0056b3, #00408d);
+    transform: scale(1.05);
+}
+
+button:disabled {
+    background: gray;
+    cursor: not-allowed;
+}
+
+/* 🌟 Log Table */
+.log-table {
+    width: 100%;
+    margin-top: 20px;
+    border-collapse: collapse;
+    box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
+}
+
+.log-table th, .log-table td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: left;
+}
+
+.log-table th {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+}
+
+/* 🌟 Fix Page Cut-off Issue */
+@media (max-height: 800px) {
+    body {
+        height: auto;
+        overflow-y: auto;
+    }
+    
+    .container {
+        margin: 10px auto;
+        padding-bottom: 20px;
+    }
+}
+
+/* 🌟 Logout Button */
+.logout-btn {
+    background: linear-gradient(135deg, #dc3545, #b52a3a);
+    font-weight: bold;
+}
+
+.logout-btn:hover {
+    background: linear-gradient(135deg, #b52a3a, #8f1e2b);
+}
+
+/* 🌟 Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 🌟 Responsive Design */
+@media (max-width: 600px) {
+    .container {
+        width: 95%;
+        padding: 20px;
+    }
+
+    input {
+        width: 100%;
+    }
+
+    button {
+        width: 100%;
+        padding: 10px;
+    }
+}
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="signup">
+        <!-- ✅ Sign-Up Page (Shown First) -->
+        <div id="signup-section">
             <h2>Sign Up</h2>
             <input type="text" placeholder="Username" id="signup-username">
             <input type="password" placeholder="Password" id="signup-password">
             <button onclick="signUp()">Sign Up</button>
+            <p>Already have an account? <a href="#" onclick="showLogin()">Login</a></p>
         </div>
-        
-        <div id="login-section" style="display: none;">
+
+        <!-- ✅ Login Page (Hidden Initially) -->
+        <div id="login-section" class="hidden">
             <h2>Login</h2>
             <input type="text" placeholder="Username" id="login-username">
             <input type="password" placeholder="Password" id="login-password">
             <button onclick="login()">Login</button>
         </div>
 
-        <div id="profile-section" style="display: none;">
+        <!-- ✅ Housekeeping Dashboard (Hidden Initially) -->
+        <div id="profile-section" class="hidden">
             <h2>Welcome, <span id="user-name"></span></h2>
             <h1>Housekeeping Management</h1>
             <div id="rooms"></div>
@@ -83,96 +173,173 @@
                     <tr>
                         <th>Room</th>
                         <th>Start Time</th>
+                        <th>Started By</th>
                         <th>Finish Time</th>
+                        <th>Finished By</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
             </table>
+            <button onclick="logout()">Logout</button>
         </div>
     </div>
 
     <script>
-<<<<<<< HEAD
-        const backendUrl = "https://housekeeping-production.up.railway.app";
-        const rooms = 46;
+    const backendUrl = window.location.hostname.includes("localhost")
+        ? "http://localhost:5000"
+        : "https://housekeeping-production.up.railway.app";
+
+    function showLogin() {
+        document.getElementById("signup-section").classList.add("hidden");
+        document.getElementById("login-section").classList.remove("hidden");
+    }
+
+    function signUp() {
+        const username = document.getElementById("signup-username").value;
+        const password = document.getElementById("signup-password").value;
+
+        fetch(`${backendUrl}/auth/signup`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password })
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            if (data.message.includes("Redirecting to login")) {
+                showLogin();
+            }
+        })
+        .catch(error => console.log("Error:", error));
+    }
+
+    function login() {
+        const username = document.getElementById("login-username").value;
+        const password = document.getElementById("login-password").value;
+
+        fetch(`${backendUrl}/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.token) { 
+                alert("Login successful!");
+                localStorage.setItem("token", data.token);
+                localStorage.setItem("username", username);
+                showDashboard();
+            } else {
+                alert("Invalid credentials. Please try again.");
+            }
+        })
+        .catch(error => console.log("Error:", error));
+    }
+
+    function showDashboard() {
+        document.getElementById("signup-section").classList.add("hidden");
+        document.getElementById("login-section").classList.add("hidden");
+        document.getElementById("profile-section").classList.remove("hidden");
+        document.getElementById("user-name").textContent = localStorage.getItem("username");
+        
+        loadRooms();
+        loadLogs();
+    }
+
+    function logout() {
+        localStorage.removeItem("token");
+        localStorage.removeItem("username");
+        location.reload();
+    }
+
+    function loadRooms() {
         const roomContainer = document.getElementById("rooms");
-        const logTable = document.querySelector("#logTable tbody");
-        let cleaningStatus = {};
-=======
-        // ✅ Automatically choose Localhost or Railway backend
-const backendUrl = window.location.hostname.includes("localhost")
-    ? "http://localhost:5000"  // Local server
-    : "https://housekeeping-production.up.railway.app";  // Railway
->>>>>>> fdb539c (Fixed server issues)
-
-console.log("🚀 Using Backend:", backendUrl);
-
-function signUp() {
-    const username = document.getElementById("signup-username").value;
-    const password = document.getElementById("signup-password").value;
-
-<<<<<<< HEAD
-       function login() {
-    const username = document.getElementById("login-username").value;
-    const password = document.getElementById("login-password").value;
-    fetch(`${backendUrl}/auth/login`, {
-=======
-    fetch(`${backendUrl}/auth/signup`, {
->>>>>>> fdb539c (Fixed server issues)
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
-    })
-    .then(response => response.json())
-    .then(data => {
-<<<<<<< HEAD
-        console.log("Login Response:", data); // Debugging step
-        if (data.token) {  // ✅ Check if a token exists
-            localStorage.setItem("token", data.token);
-            alert("Login successful!");
-            document.getElementById("login-section").style.display = "none";
-            document.getElementById("profile-section").style.display = "block";
-            document.getElementById("user-name").innerText = username;
-            updateLogs();
-        } else {
-            alert("Invalid credentials. Please try again.");
+        roomContainer.innerHTML = ""; // Clear before reloading
+        for (let i = 1; i <= 10; i++) {
+            const roomDiv = document.createElement("div");
+            roomDiv.classList.add("room");
+            roomDiv.innerHTML = `
+                <span>Room ${i}</span>
+                <button class="start-btn" onclick="startCleaning(${i})">Start</button>
+                <button class="finish-btn" onclick="finishCleaning(${i})" disabled>Finish</button>
+            `;
+            roomContainer.appendChild(roomDiv);
         }
-    })
-    .catch(error => console.error("Error:", error));
-=======
-        alert(data.message);
-        if (data.message === "User registered successfully") {
-            document.querySelector(".signup").style.display = "none";
-            document.getElementById("login-section").style.display = "block";
-        }
-    })
-    .catch(error => console.log("Error:", error));
+    }
+function formatCambodiaTime() {
+    return new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Phnom_Penh',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+    }).format(new Date());
 }
 
-function login() {
-    const username = document.getElementById("login-username").value;
-    const password = document.getElementById("login-password").value;
+function startCleaning(roomNumber) {
+    const username = localStorage.getItem("username");
+    const startTime = formatCambodiaTime();
 
-    fetch(`${backendUrl}/auth/login`, {
+    fetch(`${backendUrl}/logs/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.message === "Login successful") {
-            alert("Login successful!");
-            document.getElementById("login-section").style.display = "none";
-            document.getElementById("profile-section").style.display = "block";
-            document.getElementById("user-name").innerText = username;
-        } else {
-            alert("Invalid credentials. Please try again.");
-        }
-    })
-    .catch(error => console.log("Error:", error));
->>>>>>> fdb539c (Fixed server issues)
+        body: JSON.stringify({ roomNumber, username, startTime })
+    });
+
+    const row = document.createElement("tr");
+    row.id = `log-${roomNumber}`;
+    row.innerHTML = `
+        <td>${roomNumber}</td>
+        <td>${startTime}</td>
+        <td>${username}</td>
+        <td id="finish-time-${roomNumber}">In Progress...</td>
+        <td id="finished-by-${roomNumber}">-</td>
+    `;
+    document.querySelector("#logTable tbody").appendChild(row);
+
+    document.querySelectorAll(".finish-btn")[roomNumber - 1].disabled = false;
 }
 
-    </script>
+function finishCleaning(roomNumber) {
+    const username = localStorage.getItem("username");
+    const finishTime = formatCambodiaTime();
+
+    fetch(`${backendUrl}/logs/finish`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomNumber, username, finishTime })
+    });
+
+    document.getElementById(`finish-time-${roomNumber}`).textContent = finishTime;
+    document.getElementById(`finished-by-${roomNumber}`).textContent = username;
+}
+
+    function loadLogs() {
+        fetch(`${backendUrl}/logs`)
+        .then(response => response.json())
+        .then(logs => {
+            const logTable = document.querySelector("#logTable tbody");
+            logTable.innerHTML = ""; // Clear before loading logs
+
+            logs.forEach(log => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${log.roomNumber}</td>
+                    <td>${log.startTime}</td>
+                    <td>${log.startedBy}</td>
+                    <td>${log.finishTime || "In Progress..."}</td>
+                    <td>${log.finishedBy || "-"}</td>
+                `;
+                logTable.appendChild(row);
+            });
+        })
+        .catch(error => console.log("Error fetching logs:", error));
+    }
+
+    function checkAuth() {
+        if (localStorage.getItem("token")) {
+            showDashboard();
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", checkAuth);
+</script>
 </body>
 </html>
