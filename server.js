@@ -1,10 +1,11 @@
 require("dotenv").config();
+console.log("🔍 MONGO_URI from .env:", process.env.MONGO_URI);
 const express = require("express");
+const mongoose = require("mongoose");
 const cors = require("cors");
-const fs = require("fs");
-const path = require("path");
 
 const app = express();
+app.use(express.json());
 
 // ✅ CORS Configuration
 app.use(cors({
@@ -12,113 +13,126 @@ app.use(cors({
     methods: "GET,POST",
     credentials: true
 }));
-app.use(express.json());
 
-// ✅ Define JSON Files
-const USERS_FILE = path.join(__dirname, "users.json");
-const LOGS_FILE = path.join(__dirname, "cleaning_logs.json");
+// ✅ Load MongoDB URI from .env
+const mongoURI = process.env.MONGO_URI;
 
-// ✅ Utility: Read JSON File
-const readFile = (filePath) => {
-    try {
-        if (!fs.existsSync(filePath)) return [];
-        return JSON.parse(fs.readFileSync(filePath, "utf-8"));
-    } catch (error) {
-        console.error(`❌ Error reading ${filePath}:`, error);
-        return [];
-    }
-};
-
-// ✅ Utility: Write to JSON File
-const writeFile = (filePath, data) => {
-    try {
-        fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
-        console.log(`✅ Successfully saved data to ${filePath}`);
-    } catch (error) {
-        console.error(`❌ Error writing ${filePath}:`, error);
-    }
-};
-
-// ✅ Utility: Get Current Time in Cambodia Time Zone
-function getCambodiaTime() {
-    return new Intl.DateTimeFormat('en-US', {
-        timeZone: 'Asia/Phnom_Penh',
-        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
-    }).format(new Date());
+if (!mongoURI) {
+    console.error("❌ MongoDB URI is missing! Check .env file.");
+    process.exit(1);  // Stop server if no URI
 }
 
+// ✅ Connect to MongoDB
+mongoose.connect(mongoURI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+})
+.then(() => console.log("✅ MongoDB Connected Successfully"))
+.catch(err => console.error("❌ MongoDB connection error:", err));
+
+// ✅ Define User Schema
+const userSchema = new mongoose.Schema({
+    username: { type: String, unique: true, required: true },
+    password: { type: String, required: true }  // Should use password hashing (e.g., bcrypt)
+});
+
+const User = mongoose.model("User", userSchema);
+
+// ✅ Define Cleaning Log Schema
+const logSchema = new mongoose.Schema({
+    roomNumber: Number,
+    startTime: String,
+    startedBy: String,
+    finishTime: String,
+    finishedBy: String
+});
+
+const CleaningLog = mongoose.model("CleaningLog", logSchema);
+
 // ✅ User Signup API
-app.post("/auth/signup", (req, res) => {
+app.post("/auth/signup", async (req, res) => {
     const { username, password } = req.body;
-    let users = readFile(USERS_FILE);
 
-    if (users.some(user => user.username === username)) {
-        console.log(`🔄 User ${username} already exists.`);
-        return res.status(302).json({ message: "User already exists. Redirecting to login." });
+    try {
+        const existingUser = await User.findOne({ username });
+        if (existingUser) {
+            return res.status(400).json({ message: "User already exists." });
+        }
+
+        const newUser = new User({ username, password });
+        await newUser.save();
+        res.status(201).json({ message: "User registered successfully!" });
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error });
     }
-
-    // Add new user to JSON
-    users.push({ username, password });
-    writeFile(USERS_FILE, users);
-
-    console.log(`✅ New user registered: ${username}`);
-    res.status(201).json({ message: "User registered successfully. Please log in." });
 });
 
-app.get("/auth/users", (req, res) => {
-    res.json(readFile(USERS_FILE));
+// ✅ Get Users API
+app.get("/auth/users", async (req, res) => {
+    try {
+        const users = await User.find();
+        res.json(users);
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error });
+    }
 });
-
 
 // ✅ User Login API
-app.post("/auth/login", (req, res) => {
+app.post("/auth/login", async (req, res) => {
     const { username, password } = req.body;
-    let users = readFile(USERS_FILE);
 
-    const user = users.find(user => user.username === username && user.password === password);
-    if (!user) {
-        return res.status(401).json({ message: "Invalid credentials. Please try again." });
+    try {
+        const user = await User.findOne({ username });
+        if (!user || user.password !== password) {
+            return res.status(401).json({ message: "Invalid credentials" });
+        }
+
+        res.status(200).json({ message: "Login successful", token: `mock-token-${Date.now()}`, username });
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error });
     }
-
-    res.status(200).json({ message: "Login successful", token: `mock-token-${Date.now()}`, username });
-});
-
-// ✅ Fetch Cleaning Logs API
-app.get("/logs", (req, res) => {
-    res.json(readFile(LOGS_FILE));
 });
 
 // ✅ Start Cleaning API
-app.post("/logs/start", (req, res) => {
+app.post("/logs/start", async (req, res) => {
     const { roomNumber, username } = req.body;
-    let logs = readFile(LOGS_FILE);
+    const startTime = new Date().toLocaleString("en-US", { timeZone: "Asia/Phnom_Penh" });
 
-    logs.push({
-        roomNumber,
-        startTime: getCambodiaTime(),
-        startedBy: username,
-        finishTime: null,
-        finishedBy: null
-    });
-
-    writeFile(LOGS_FILE, logs);
-    res.status(201).json({ message: `Room ${roomNumber} started by ${username} at ${getCambodiaTime()}` });
+    try {
+        const newLog = new CleaningLog({ roomNumber, startTime, startedBy: username, finishTime: null, finishedBy: null });
+        await newLog.save();
+        res.status(201).json({ message: `Room ${roomNumber} started by ${username} at ${startTime}` });
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error });
+    }
 });
 
 // ✅ Finish Cleaning API
-app.post("/logs/finish", (req, res) => {
+app.post("/logs/finish", async (req, res) => {
     const { roomNumber, username } = req.body;
-    let logs = readFile(LOGS_FILE);
+    const finishTime = new Date().toLocaleString("en-US", { timeZone: "Asia/Phnom_Penh" });
 
-    const log = logs.find(log => log.roomNumber === roomNumber && log.finishTime === null);
-    if (log) {
-        log.finishTime = getCambodiaTime();
+    try {
+        const log = await CleaningLog.findOne({ roomNumber, finishTime: null });
+        if (!log) return res.status(400).json({ message: "Log not found" });
+
+        log.finishTime = finishTime;
         log.finishedBy = username;
-        writeFile(LOGS_FILE, logs);
-        return res.status(200).json({ message: `Room ${roomNumber} finished by ${username} at ${getCambodiaTime()}` });
+        await log.save();
+        res.status(200).json({ message: `Room ${roomNumber} finished by ${username} at ${finishTime}` });
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error });
     }
+});
 
-    res.status(400).json({ message: "Error updating log" });
+// ✅ Get Cleaning Logs API
+app.get("/logs", async (req, res) => {
+    try {
+        const logs = await CleaningLog.find();
+        res.json(logs);
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error });
+    }
 });
 
 // ✅ Home Route
