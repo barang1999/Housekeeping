@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const fs = require("fs");
@@ -64,6 +65,11 @@ app.post("/auth/signup", (req, res) => {
     res.status(201).json({ message: "User registered successfully. Please log in." });
 });
 
+app.get("/auth/users", (req, res) => {
+    res.json(readFile(USERS_FILE));
+});
+
+
 // ✅ User Login API
 app.post("/auth/login", (req, res) => {
     const { username, password } = req.body;
@@ -121,7 +127,7 @@ app.get("/", (req, res) => {
 });
 
 // ✅ Start Server
-const PORT = process.env.PORT || 5050;
+const PORT = process.env.PORT || 7070;
 app.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}`);
 });
