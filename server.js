@@ -21,9 +21,13 @@ app.use(express.json()); // ✅ Fix "undefined body" issue
 
 // ✅ Proper CORS Configuration
 app.use(cors({
-    origin: ["https://housekeepingmanagement.netlify.app","http://localhost:10000"], // ✅ Allow only your frontend
+    origin: [
+        "https://housekeepingmanagement.netlify.app", 
+        "http://localhost:10000",
+        "http://localhost:3000" // ✅ Allow frontend running on different ports
+    ],
     methods: ["GET", "POST", "PUT", "DELETE"],    
-    allowedHeaders: ["Content-Type"]
+    allowedHeaders: ["Content-Type", "Authorization"] // ✅ Allow Authorization headers
 }));
 
 // ✅ Create HTTP & WebSocket Server
@@ -121,6 +125,13 @@ app.post("/auth/signup", async (req, res) => {
     }
 });
 
+app.get("/auth/validate", (req, res) => {
+    const token = req.headers.authorization?.split(" ")[1]; // Extract token
+    if (!token) {
+        return res.status(401).json({ valid: false, message: "No token provided" });
+    }
+    res.json({ valid: true });
+});
 
 // 🔄 Get Room Cleaning Status
 app.get("/logs/status", async (req, res) => {
