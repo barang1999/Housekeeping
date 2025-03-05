@@ -5,168 +5,127 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Housekeeping Management</title>
     <style>
-        /* 🌟 Global Styles */
-body, html {
-    font-family: 'Poppins', sans-serif;
-    background-color: #f8f9fa;
-    color: #333;
-    margin: 0;
-    padding: 0;
-    height: 100vh;
-    overflow-y: auto; /* Enables scrolling */
-}
+        body, html {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow-y: auto;
+        }
 
-/* 🌟 Main Container */
-.container {
-    width: 90%;
-    max-width: 800px;
-    background: white;
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.1);
-    text-align: center;
-    animation: fadeIn 0.8s ease-in-out;
-    margin: 20px auto;
-}
+        .container {
+            width: 90%;
+            max-width: 800px;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            margin: 20px auto;
+        }
 
-/* 🌟 Room List */
-#rooms {
-    max-height: 400px; /* Ensures scrollability */
-    overflow-y: auto;  /* Allows internal scrolling */
-    padding: 10px;
-}
+        .hidden { display: none; }
 
-/* 🌟 Room Box */
-.room {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #f1f1f1;
-    padding: 12px;
-    margin: 8px 0;
-    border-radius: 8px;
-    transition: all 0.3s ease;
-}
+        .floor-menu {
+            display: flex;
+            justify-content: space-around;
+            background: #007bff;
+            color: white;
+            padding: 10px;
+            cursor: pointer;
+        }
 
-/* 🌟 Buttons */
-button {
-    background: linear-gradient(135deg, #007bff, #0056b3);
-    color: white;
-    border: none;
-    padding: 10px 16px;
-    border-radius: 6px;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
+        .floor-menu div {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+        }
 
-button:hover {
-    background: linear-gradient(135deg, #0056b3, #00408d);
-    transform: scale(1.05);
-}
+        .floor-menu div:hover {
+            background: #0056b3;
+        }
 
-button:disabled {
-    background: gray;
-    cursor: not-allowed;
-}
+        .rooms {
+            display: none;
+            margin-top: 20px;
+        }
 
-/* 🌟 Log Table */
-.log-table {
-    width: 100%;
-    margin-top: 20px;
-    border-collapse: collapse;
-    box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.1);
-    overflow-y: auto;
-}
+        .room {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f1f1f1;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 8px;
+        }
 
-.log-table th, .log-table td {
-    border: 1px solid #ddd;
-    padding: 12px;
-    text-align: left;
-}
+        button {
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
 
-.log-table th {
-    background: linear-gradient(135deg, #007bff, #0056b3);
-    color: white;
-}
+        button:disabled {
+            background: gray;
+            cursor: not-allowed;
+        }
+        .log-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
 
-/* 🌟 Fix Page Cut-off Issue */
-@media (max-height: 800px) {
-    body {
-        height: auto;
-        overflow-y: auto;
-    }
-    
-    .container {
-        margin: 10px auto;
-        padding-bottom: 20px;
-    }
-}
+        .log-table th, .log-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
 
-/* 🌟 Logout Button */
-.logout-btn {
-    background: linear-gradient(135deg, #dc3545, #b52a3a);
-    font-weight: bold;
-}
-
-.logout-btn:hover {
-    background: linear-gradient(135deg, #b52a3a, #8f1e2b);
-}
-
-/* 🌟 Animations */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* 🌟 Responsive Design */
-@media (max-width: 600px) {
-    .container {
-        width: 95%;
-        padding: 20px;
-    }
-
-    input {
-        width: 100%;
-    }
-
-    button {
-        width: 100%;
-        padding: 10px;
-    }
-}
+        .log-table th {
+            background-color: #007bff;
+            color: white;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- ✅ Sign-Up Page (Shown First) -->
-        <div id="signup-section">
-            <h2>Sign Up</h2>
-            <input type="text" placeholder="Username" id="signup-username">
-            <input type="password" placeholder="Password" id="signup-password">
-            <button onclick="signUp()">Sign Up</button>
-            <p>Already have an account? <a href="#" onclick="showLogin()">Login</a></p>
-        </div>
+        <div id="auth-section">
+    <h2>Login</h2>
+    <input type="text" id="login-username" placeholder="Username">
+    <input type="password" id="login-password" placeholder="Password">
+    <button onclick="login()">Login</button>
 
-        <!-- ✅ Login Page (Hidden Initially) -->
-        <div id="login-section" class="hidden">
-            <h2>Login</h2>
-            <input type="text" placeholder="Username" id="login-username">
-            <input type="password" placeholder="Password" id="login-password">
-            <button onclick="login()">Login</button>
-        </div>
+    <p>Don't have an account? <a href="#" onclick="toggleAuth()">Sign up here</a></p>
 
-        <!-- ✅ Housekeeping Dashboard (Hidden Initially) -->
-        <div id="profile-section" class="hidden">
+    <div id="signup-form" class="hidden">
+        <h2>Sign Up</h2>
+        <input type="text" id="signup-username" placeholder="Username">
+        <input type="password" id="signup-password" placeholder="Password">
+        <button onclick="signUp()">Sign Up</button>
+    </div>
+</div>
+
+        <div id="dashboard" class="hidden">
             <h2>Welcome, <span id="user-name"></span></h2>
-            <h1>Housekeeping Management</h1>
-            <div id="rooms"></div>
+            <button onclick="logout()">Logout</button>
+            <button onclick="clearLogs()">Clear Logs</button>
+            <button onclick="exportLogs()">Export to PDF</button>
+
+            <div class="floor-menu">
+                <div onclick="toggleFloor('ground-floor')">Ground Floor</div>
+                <div onclick="toggleFloor('second-floor')">2nd Floor</div>
+                <div onclick="toggleFloor('third-floor')">3rd Floor</div>
+            </div>
+            
+            <div id="ground-floor" class="rooms"></div>
+            <div id="second-floor" class="rooms"></div>
+            <div id="third-floor" class="rooms"></div>
+
             <h2>Cleaning Logs</h2>
             <table class="log-table" id="logTable">
                 <thead>
@@ -180,20 +139,30 @@ button:disabled {
                 </thead>
                 <tbody></tbody>
             </table>
-            <button onclick="logout()">Logout</button>
         </div>
     </div>
 
     <script>
-    const backendUrl = window.location.hostname.includes("localhost")
-        ? "http://localhost:5000"
-        : "https://housekeeping-production.up.railway.app";
+    const backendUrl = "https://housekeeping-production.up.railway.app";
+    const socket = io("https://housekeeping-production.up.railway.app"); // Replace with your server URL
 
-    function showLogin() {
-        document.getElementById("signup-section").classList.add("hidden");
-        document.getElementById("login-section").classList.remove("hidden");
-    }
+    // Listen for updates
+    socket.on("update", (data) => {
+        const { roomNumber, status } = data;
+        const startButton = document.getElementById(`start-${roomNumber}`);
+        const finishButton = document.getElementById(`finish-${roomNumber}`);
 
+        if (status === "in_progress") {
+            startButton.disabled = true;
+            finishButton.disabled = false;
+        } else if (status === "finished") {
+            startButton.disabled = true;
+            finishButton.disabled = true;
+        }
+    });
+        function toggleAuth() {
+    document.getElementById("signup-form").classList.toggle("hidden");
+}
     function signUp() {
         const username = document.getElementById("signup-username").value;
         const password = document.getElementById("signup-password").value;
@@ -212,8 +181,7 @@ button:disabled {
         })
         .catch(error => console.log("Error:", error));
     }
-
-    function login() {
+function login() {
         const username = document.getElementById("login-username").value;
         const password = document.getElementById("login-password").value;
 
@@ -235,111 +203,267 @@ button:disabled {
         })
         .catch(error => console.log("Error:", error));
     }
+function showLogin() {
+    document.getElementById("auth-section").classList.remove("hidden");
+    document.getElementById("dashboard").classList.add("hidden");
+}
 
     function showDashboard() {
-        document.getElementById("signup-section").classList.add("hidden");
-        document.getElementById("login-section").classList.add("hidden");
-        document.getElementById("profile-section").classList.remove("hidden");
+        document.getElementById("auth-section").classList.add("hidden");
+        document.getElementById("dashboard").classList.remove("hidden");
         document.getElementById("user-name").textContent = localStorage.getItem("username");
-        
         loadRooms();
         loadLogs();
     }
 
     function logout() {
-        localStorage.removeItem("token");
-        localStorage.removeItem("username");
+        localStorage.clear();
         location.reload();
     }
 
     function loadRooms() {
-        const roomContainer = document.getElementById("rooms");
-        roomContainer.innerHTML = ""; // Clear before reloading
-        for (let i = 1; i <= 10; i++) {
+    const floors = {
+        "ground-floor": ["001", "002", "003", "004", "005", "006", "007", "011", "012", "013", "014", "015", "016", "017"],
+        "second-floor": ["101", "102", "103", "104", "105", "106", "107", "108", "109", "110", "111", "112", "113", "114", "115", "116", "117"],
+        "third-floor": ["201", "202", "203", "204", "205", "208", "209", "210", "211", "212", "213", "214", "215", "216", "217"]
+    };
+
+    Object.keys(floors).forEach(floor => {
+        const floorDiv = document.getElementById(floor);
+        floorDiv.innerHTML = "";
+        floors[floor].forEach(room => {
             const roomDiv = document.createElement("div");
             roomDiv.classList.add("room");
             roomDiv.innerHTML = `
-                <span>Room ${i}</span>
-                <button class="start-btn" onclick="startCleaning(${i})">Start</button>
-                <button class="finish-btn" onclick="finishCleaning(${i})" disabled>Finish</button>
+                <span>Room ${room}</span>
+                <button id="start-${room}" onclick="startCleaning('${room}')">Start Cleaning</button>
+                <button id="finish-${room}" onclick="finishCleaning('${room}')" disabled>Finish</button>
             `;
-            roomContainer.appendChild(roomDiv);
-        }
-    }
-function formatCambodiaTime() {
-    return new Intl.DateTimeFormat('en-US', {
-        timeZone: 'Asia/Phnom_Penh',
-        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
-    }).format(new Date());
+            floorDiv.appendChild(roomDiv);
+        });
+    });
+
+    // Ensure status is restored **after** rooms are loaded
+    setTimeout(restoreCleaningStatus, 100);
 }
+    function toggleFloor(floorId) {
+        document.querySelectorAll('.rooms').forEach(roomDiv => roomDiv.style.display = 'none');
+        document.getElementById(floorId).style.display = 'block';
+    }
+
+    function formatCambodiaTime() {
+        return new Intl.DateTimeFormat('en-US', {
+            timeZone: 'Asia/Phnom_Penh',
+            hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+        }).format(new Date());
+    }
 
 function startCleaning(roomNumber) {
     const username = localStorage.getItem("username");
-    const startTime = formatCambodiaTime();
+    const startTime = new Date().toLocaleString('en-CA', { timeZone: 'Asia/Phnom_Penh' });
+
+    // Disable button immediately
+    const startButton = document.getElementById(`start-${roomNumber}`);
+    const finishButton = document.getElementById(`finish-${roomNumber}`);
+    startButton.disabled = true;
+    finishButton.disabled = false;
 
     fetch(`${backendUrl}/logs/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ roomNumber, username, startTime })
+        body: JSON.stringify({ roomNumber, username, startTime, status: "in_progress" }) // ✅ Save status
+    }).then(() => {
+        // ✅ Update localStorage only for fast UI response
+        let cleaningStatus = JSON.parse(localStorage.getItem("cleaningStatus")) || {};
+        cleaningStatus[roomNumber] = { started: true, finished: false };
+        localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
+
+        // ✅ Update UI immediately
+        const logTable = document.querySelector("#logTable tbody");
+        const row = document.createElement("tr");
+        row.id = `log-${roomNumber}`;
+        row.innerHTML = `
+            <td>${roomNumber}</td>
+            <td>${startTime}</td>
+            <td>${username}</td>
+            <td id="finish-time-${roomNumber}">In Progress...</td>
+            <td id="finished-by-${roomNumber}">-</td>
+        `;
+        logTable.appendChild(row);
+    }).catch(error => {
+        console.error("Error starting cleaning:", error);
+        alert("Failed to start cleaning. Please try again.");
+        startButton.disabled = false;
+        finishButton.disabled = true;
     });
-
-    const row = document.createElement("tr");
-    row.id = `log-${roomNumber}`;
-    row.innerHTML = `
-        <td>${roomNumber}</td>
-        <td>${startTime}</td>
-        <td>${username}</td>
-        <td id="finish-time-${roomNumber}">In Progress...</td>
-        <td id="finished-by-${roomNumber}">-</td>
-    `;
-    document.querySelector("#logTable tbody").appendChild(row);
-
-    document.querySelectorAll(".finish-btn")[roomNumber - 1].disabled = false;
 }
 
 function finishCleaning(roomNumber) {
     const username = localStorage.getItem("username");
-    const finishTime = formatCambodiaTime();
+    const finishTime = new Date().toLocaleString('en-CA', { timeZone: 'Asia/Phnom_Penh' });
+
+    // Disable button immediately
+    const finishButton = document.getElementById(`finish-${roomNumber}`);
+    finishButton.disabled = true;
 
     fetch(`${backendUrl}/logs/finish`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ roomNumber, username, finishTime })
-    });
+        body: JSON.stringify({ roomNumber, username, finishTime, status: "finished" }) // ✅ Save status
+    }).then(() => {
+        // ✅ Update localStorage
+        let cleaningStatus = JSON.parse(localStorage.getItem("cleaningStatus")) || {};
+        cleaningStatus[roomNumber] = { started: true, finished: true };
+        localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
 
-    document.getElementById(`finish-time-${roomNumber}`).textContent = finishTime;
-    document.getElementById(`finished-by-${roomNumber}`).textContent = username;
+        // ✅ Update UI
+        document.getElementById(`finish-time-${roomNumber}`).textContent = finishTime;
+        document.getElementById(`finished-by-${roomNumber}`).textContent = username;
+    }).catch(error => {
+        console.error("Error finishing cleaning:", error);
+        alert("Failed to finish cleaning. Please try again.");
+        finishButton.disabled = false; // Re-enable in case of failure
+    });
 }
 
-    function loadLogs() {
-        fetch(`${backendUrl}/logs`)
+
+       function restoreCleaningStatus() {
+    fetch(`${backendUrl}/logs/status`) // ✅ Fetch latest status from backend
+        .then(response => response.json())
+        .then(cleaningStatus => {
+            Object.keys(cleaningStatus).forEach(roomNumber => {
+                const startButton = document.getElementById(`start-${roomNumber}`);
+                const finishButton = document.getElementById(`finish-${roomNumber}`);
+
+                if (startButton && finishButton) {
+                    if (cleaningStatus[roomNumber] === "in_progress") {
+                        startButton.disabled = true;
+                        finishButton.disabled = false;
+                    } else if (cleaningStatus[roomNumber] === "finished") {
+                        startButton.disabled = true;
+                        finishButton.disabled = true;
+                    }
+                }
+            });
+        })
+        .catch(error => console.log("Error fetching cleaning status:", error));
+}
+
+// Run this function when page loads
+document.addEventListener("DOMContentLoaded", restoreCleaningStatus);
+
+
+function loadLogs() {
+    fetch(`${backendUrl}/logs`)
         .then(response => response.json())
         .then(logs => {
             const logTable = document.querySelector("#logTable tbody");
-            logTable.innerHTML = ""; // Clear before loading logs
+            logTable.innerHTML = ""; // Clear existing logs
+
+            // Get today's date in "YYYY-MM-DD" format
+            const today = new Date().toISOString().split('T')[0];
 
             logs.forEach(log => {
-                const row = document.createElement("tr");
-                row.innerHTML = `
-                    <td>${log.roomNumber}</td>
-                    <td>${log.startTime}</td>
-                    <td>${log.startedBy}</td>
-                    <td>${log.finishTime || "In Progress..."}</td>
-                    <td>${log.finishedBy || "-"}</td>
-                `;
-                logTable.appendChild(row);
+                // Ensure log.startTime exists
+                if (!log.startTime) return;
+
+                // Extract only the date from the log's startTime
+                let logDate = new Date(log.startTime).toISOString().split('T')[0];
+
+                console.log(`Checking Log: ${logDate} vs Today: ${today}`); // Debugging Output
+
+                if (logDate === today) { // Only display today's logs
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td>${log.roomNumber}</td>
+                        <td>${log.startTime}</td>
+                        <td>${log.startedBy}</td>
+                        <td id="finish-time-${log.roomNumber}">${log.finishTime ? log.finishTime : "In Progress..."}</td>
+                        <td id="finished-by-${log.roomNumber}">${log.finishedBy ? log.finishedBy : "-"}</td>
+                    `;
+                    logTable.appendChild(row);
+                }
             });
+
+            // If no logs found, display a message
+            if (logTable.innerHTML === "") {
+                logTable.innerHTML = "<tr><td colspan='5'>No logs found for today.</td></tr>";
+            }
         })
         .catch(error => console.log("Error fetching logs:", error));
-    }
+}
+
+   
 
     function checkAuth() {
         if (localStorage.getItem("token")) {
             showDashboard();
         }
     }
+         function formatRoomNumber(roomNumber) {
+            return roomNumber.toString().padStart(3, '0');
+        }
 
-    document.addEventListener("DOMContentLoaded", checkAuth);
+       function clearLogs() {
+    document.querySelector("#logTable tbody").innerHTML = "";
+
+    // Remove saved cleaning status
+    localStorage.removeItem("cleaningStatus");
+
+    // Reset buttons
+    document.querySelectorAll(".room button").forEach(button => {
+        if (button.id.startsWith("start-")) {
+            button.disabled = false;
+        }
+        if (button.id.startsWith("finish-")) {
+            button.disabled = true;
+        }
+    });
+}
+
+       function exportLogs() {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF();
+    pdf.text("Cleaning Logs - Today's Records", 10, 10);
+
+    const rows = [];
+    
+    // Get today's date in "YYYY-MM-DD" format
+    const today = new Date().toISOString().split('T')[0]; // Correctly formats to "YYYY-MM-DD"
+
+    document.querySelectorAll("#logTable tbody tr").forEach(row => {
+        const rowData = Array.from(row.children).map(cell => cell.innerText);
+        rowData[0] = formatRoomNumber(rowData[0].trim()); // Ensure room number is formatted as 3 digits
+        
+        // Extract the timestamp
+        let logStartTime = rowData[1].trim(); // Example: "2024-03-04 10:30 AM"
+
+        // Convert to proper Date format if possible
+        let logDate = new Date(logStartTime).toISOString().split('T')[0];
+
+        console.log(`Checking Log: ${logDate} vs Today: ${today}`); // Debugging Output
+
+        if (logDate === today) {
+            rows.push(rowData);
+        }
+    });
+
+    if (rows.length === 0) {
+        alert("No logs found for today.");
+        return;
+    }
+
+    pdf.autoTable({
+        head: [["Room", "Start Time", "Started By", "Finish Time", "Finished By"]],
+        body: rows,
+    });
+
+    pdf.save("cleaning_logs_today.pdf");
+}
+   document.addEventListener("DOMContentLoaded", checkAuth);
 </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
 </body>
 </html>
