@@ -4,6 +4,8 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const http = require("http");
 const socketIo = require("socket.io");
+const bcrypt = require("bcryptjs");
+
 
 // ✅ Ensure MongoDB URI exists
 const mongoURI = process.env.MONGO_URI;
