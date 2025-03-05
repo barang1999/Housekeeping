@@ -237,7 +237,7 @@ window.login = function() {
             localStorage.setItem("username", username);
             
             alert("✅ Login successful! Redirecting...");
-            window.location.href = "/index.html"; // ✅ Redirect to dashboard
+            showDashboard(); // ✅ Redirect to dashboard
         } else {
             console.warn("⚠️ Invalid credentials:", data);
             alert("❌ Invalid username or password.");
