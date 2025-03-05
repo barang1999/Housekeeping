@@ -210,31 +210,45 @@ function updateButtonStatus(roomNumber, status) {
 
 // ✅ Fix API Requests
 window.login = function() {  
-    const username = document.getElementById("login-username").value;
-    const password = document.getElementById("login-password").value;
+    const username = document.getElementById("login-username").value.trim();
+    const password = document.getElementById("login-password").value.trim();
+
+    if (!username || !password) {
+        alert("⚠️ Please enter both username and password.");
+        return;
+    }
 
     fetch(`${apiUrl}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password })
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
         console.log("🟢 API Response:", data);
+        
         if (data?.token) { // ✅ Use optional chaining
-            localStorage.setItem("token", data.token);
+            localStorage.setItem("authToken", data.token); // ✅ Use "authToken" for consistency
             localStorage.setItem("username", username);
-            showDashboard();
+            
+            alert("✅ Login successful! Redirecting...");
+            window.location.href = "/dashboard.html"; // ✅ Redirect to dashboard
         } else {
             console.warn("⚠️ Invalid credentials:", data);
-            alert("Invalid credentials.");
+            alert("❌ Invalid username or password.");
         }
     })
     .catch(error => {
         console.error("❌ Login Error:", error);
-        alert("Failed to log in. Check console for details.");
+        alert("⚠️ Failed to log in. Please check your credentials and try again.");
     });
 };
+
 
 
          function signUp() {
