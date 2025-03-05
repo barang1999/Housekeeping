@@ -323,7 +323,7 @@ function showLogin() {
 
     function logout() {
     console.log("🔴 Logging out...");
-    localStorage.removeItem("token");
+    localStorage.removeItem("authToken");
     localStorage.removeItem("username");
     location.reload(); // Refresh page to reset state
 }
@@ -489,7 +489,7 @@ logs.forEach(log => {
 localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
 
    function checkAuth() {
-            if (localStorage.getItem("token")) {
+            if (localStorage.getItem("authToken")) {
                 showDashboard();
             } else {
                 showLogin();
