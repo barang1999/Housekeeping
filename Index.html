@@ -264,6 +264,30 @@ window.login = function() {
     }
 };
 
+        window.addEventListener("load", () => {
+    const token = localStorage.getItem("authToken");
+
+    if (token) {
+        fetch("https://housekeeping-production.up.railway.app/auth/validate", {  // ✅ Correct API route
+            method: "GET",
+            headers: { Authorization: `Bearer ${token}` }
+        })
+        .then(res => {
+            if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+            return res.json();
+        })
+        .then(data => {
+            if (data.valid) {
+                console.log("✅ User is still logged in");
+            } else {
+                console.log("❌ Invalid token, logging out...");
+                localStorage.removeItem("authToken"); 
+            }
+        })
+        .catch(err => console.error("❌ Auth validation failed:", err));
+    }
+});
+
 
 function showLogin() {
     document.getElementById("auth-section").classList.remove("hidden");
