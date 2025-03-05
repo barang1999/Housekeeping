@@ -1,10 +1,10 @@
-require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const http = require("http");
-const socketIo = require("socket.io");
+const { Server } = require("socket.io");  // ✅ Correct Import
 const bcrypt = require("bcryptjs");
+require("dotenv").config();
 
 
 // ✅ Ensure MongoDB URI exists
