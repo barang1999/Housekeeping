@@ -176,8 +176,7 @@ function showLogin() {
         timeZone: "Asia/Phnom_Penh",
         hour12: true 
     });
-}
-        function loadLogs() {
+}function loadLogs() {
     fetch(`${apiUrl}/logs`)
         .then(response => response.json())
         .then(logs => {
@@ -191,7 +190,8 @@ function showLogin() {
             let updatesMade = false;
             
             const today = new Date().toISOString().split('T')[0];
-             // ✅ Sort logs: First, show unfinished logs, then sort by finishTime (ascending)
+
+            // ✅ Sort logs: First, show unfinished logs, then sort by finishTime (ascending)
             logs.sort((a, b) => {
                 if (!a.finishTime && b.finishTime) return -1; // Unfinished logs come first
                 if (a.finishTime && !b.finishTime) return 1;
@@ -203,12 +203,15 @@ function showLogin() {
                 
                 let roomNumber = String(log.roomNumber).trim(); // Ensure roomNumber is always a valid string
                 let status = log.status || "not_started"; // ✅ Default to "not_started" if missing
+                
                 if (cleaningStatus[roomNumber] !== status) {
                     cleaningStatus[roomNumber] = status;
                     updateButtonStatus(roomNumber, status);
                     updatesMade = true;
                 }
+
                 let logDate = new Date(log.startTime).toISOString().split('T')[0];
+
                 if (logDate === today) {
                     const row = document.createElement("tr");
                     row.innerHTML = `
@@ -225,13 +228,16 @@ function showLogin() {
             if (updatesMade) {
                 localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
                 console.log("✅ Cleaning status updated.");
+            }
 
+            // ✅ Moved closing bracket to the correct position
             if (logTable.innerHTML === "") {
                 logTable.innerHTML = "<tr><td colspan='5'>No logs found for today.</td></tr>";
             }
-        })
+        }) // <-- Correct closing bracket placement
         .catch(error => console.error("❌ Error fetching logs:", error));
-} // <-- Move this closing bracket here
+} // <-- Function closes properly
+
 
 // ✅ Restore Button States on Page Load
 window.addEventListener("load", () => {
