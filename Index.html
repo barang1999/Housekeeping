@@ -172,12 +172,6 @@ socket.on("connected", (data) => {
     console.log("🟢 Server Says:", data.message);
 });
 
-    // ✅ Live Status Updates from Server
-socket.on("update", (data) => {
-    console.log("🔄 Live Update Received:", data);
-    updateButtonStatus(data.roomNumber, data.status);
-    loadLogs(); // ✅ Refresh logs instantly on all devices
-});
         // ✅ Ensure no duplicate event listeners
 socket.on("clearLogs", () => {
     console.log("🧹 Logs cleared remotely, resetting buttons...");
@@ -401,91 +395,11 @@ function showLogin() {
         })
         .catch(error => console.error("❌ Error fetching logs:", error));
 } // <-- Move this closing bracket here
-// ✅ Function to update buttons on all devices
-function updateButtonStatus(roomNumber, status) {
-    const startButton = document.getElementById(`start-${roomNumber}`);
-    const finishButton = document.getElementById(`finish-${roomNumber}`);
 
-    if (startButton && finishButton) {
-        startButton.disabled = (status !== "available");
-        finishButton.disabled = (status !== "in_progress");
-    }
-
-    // ✅ Store in localStorage for persistence
-    let cleaningStatus = JSON.parse(localStorage.getItem("cleaningStatus")) || {};
-    cleaningStatus[roomNumber] = { started: (status === "in_progress"), finished: (status === "finished") };
-    localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
-} // <-- This closing bracket should be here, not earlier!
-
-
-// ✅ Start Cleaning Function
- function startCleaning(roomNumber) {
-            const username = localStorage.getItem("username");
-            const startTime = new Date().toLocaleString('en-CA', { timeZone: 'Asia/Phnom_Penh' });
-
-            fetch(`${apiUrl}/logs/start`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ roomNumber, username, startTime, status: "in_progress" })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.message.includes("started")) {
-                    document.getElementById(`start-${roomNumber}`).disabled = true;
-                    document.getElementById(`finish-${roomNumber}`).disabled = false;
-
-                     let cleaningStatus = JSON.parse(localStorage.getItem("cleaningStatus")) || {};
-                    cleaningStatus[roomNumber] = "in_progress";
-                    localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
-                    
-                    loadLogs(); // ✅ Reload logs immediately
-                    
-                    // ✅ Broadcast update to all connected devices
-                socket.emit("update", { roomNumber, status: "in_progress" });
-                    
-                } else {
-                    alert("Failed to start cleaning.");
-                }
-            })
-            .catch(error => {
-                console.error("❌ Error starting cleaning:", error);
-                alert("Failed to start cleaning.");
-            });
-        }
-
-// ✅ Finish Cleaning Function
- function finishCleaning(roomNumber) {
-            const username = localStorage.getItem("username");
-            const finishTime = new Date().toLocaleString('en-CA', { timeZone: 'Asia/Phnom_Penh' });
-
-            fetch(`${apiUrl}/logs/finish`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ roomNumber, username, finishTime, status: "finished" })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.message.includes("finished")) {
-                    document.getElementById(`finish-${roomNumber}`).disabled = true;
-
-                    let cleaningStatus = JSON.parse(localStorage.getItem("cleaningStatus")) || {};
-                    cleaningStatus[roomNumber] = "finished";
-                    localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
-                    
-                    loadLogs(); // ✅ Reload logs immediately
-
-                    // ✅ Broadcast update to all connected devices
-                    socket.emit("update", { roomNumber, status: "finished" });
-                } else {
-                    alert("Failed to finish cleaning.");
-                }
-            })
-            .catch(error => {
-                console.error("❌ Error finishing cleaning:", error);
-                alert("Failed to finish cleaning.");
-            });
-        }
-
+// ✅ Restore Button States on Page Load
+window.addEventListener("load", () => {
+    restoreCleaningStatus();
+});
  // ✅ Fix Duplicate Event Listeners
 document.addEventListener("DOMContentLoaded", () => {
     socket.on("clearLogs", () => {
@@ -528,6 +442,25 @@ function formatRoomNumber(roomNumber) {
         }
 // ✅ Fix restoreCleaningStatus()
 function restoreCleaningStatus() {
+
+    let cleaningStatus = JSON.parse(localStorage.getItem("cleaningStatus")) || {};
+
+    // ✅ First, apply saved state to buttons for a faster UI update
+    Object.keys(cleaningStatus).forEach(roomNumber => {
+        const startButton = document.getElementById(`start-${roomNumber}`);
+        const finishButton = document.getElementById(`finish-${roomNumber}`);
+
+        if (startButton && finishButton) {
+            if (cleaningStatus[roomNumber] === "in_progress") {
+                startButton.disabled = true;
+                finishButton.disabled = false;
+            } else if (cleaningStatus[roomNumber] === "finished") {
+                startButton.disabled = true;
+                finishButton.disabled = true;
+            }
+        }
+    });
+    
     fetch(`${apiUrl}/logs`)
         .then(response => response.json())
         .then(logs => {
@@ -537,24 +470,111 @@ function restoreCleaningStatus() {
             }
 
             logs.forEach(log => {
+                const roomNumber = log.roomNumber;
                 const startButton = document.getElementById(`start-${log.roomNumber}`);
                 const finishButton = document.getElementById(`finish-${log.roomNumber}`);
 
                 if (startButton && finishButton) {
-                    if (log.status === "in_progress") {
+                    if (log.status === "in_progress" && cleaningStatus[roomNumber] !== "in_progress") {
                         startButton.disabled = true;
                         finishButton.disabled = false;
-                    } else if (log.status === "finished") {
+                        cleaningStatus[roomNumber] = "in_progress";
+                    } else if(log.status === "finished" && cleaningStatus[roomNumber] !== "finished") {
                         startButton.disabled = true;
                         finishButton.disabled = true;
+                        cleaningStatus[roomNumber] = "finished";
                     }
                 }
             });
+            // ✅ Store the latest status in localStorage
+            localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
         })
         .catch(error => console.error("❌ Error fetching logs:", error));
 }
+   // ✅ Live Status Updates from Server
+socket.on("update", (data) => {
+    console.log("🔄 Live Update Received:", data);
+    updateButtonStatus(data.roomNumber, data.status);
+    loadLogs(); // ✅ Refresh logs instantly on all devices
+});
+        // ✅ Function to update buttons on all devices
+function updateButtonStatus(roomNumber, status) {
+    const startButton = document.getElementById(`start-${roomNumber}`);
+    const finishButton = document.getElementById(`finish-${roomNumber}`);
 
+   if (startButton && finishButton) {
+        if (status === "in_progress") {
+            startButton.disabled = true;
+            finishButton.disabled = false;
+        } else if (status === "finished") {
+            startButton.disabled = true;
+            finishButton.disabled = true;
+        }
+    }
 
+    // ✅ Store in localStorage for persistence
+    let cleaningStatus = JSON.parse(localStorage.getItem("cleaningStatus")) || {};
+    cleaningStatus[roomNumber] = status;
+    localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
+} // <-- This closing bracket should be here, not earlier!
+// ✅ Start Cleaning Function
+ function startCleaning(roomNumber) {
+            const username = localStorage.getItem("username");
+            const startTime = new Date().toLocaleString('en-CA', { timeZone: 'Asia/Phnom_Penh' });
+
+            fetch(`${apiUrl}/logs/start`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ roomNumber, username, startTime, status: "in_progress" })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message.includes("started")) {
+                    updateButtonStatus(roomNumber, "in_progress");
+                    
+                    // ✅ Broadcast update to all connected devices
+                    socket.emit("update", { roomNumber, status: "in_progress" });
+                    
+                    loadLogs(); // ✅ Reload logs immediately
+                    
+                } else {
+                    alert("Failed to start cleaning.");
+                }
+            })
+            .catch(error => {
+                console.error("❌ Error starting cleaning:", error);
+                alert("Failed to start cleaning.");
+            });
+        }
+
+// ✅ Finish Cleaning Function
+ function finishCleaning(roomNumber) {
+            const username = localStorage.getItem("username");
+            const finishTime = new Date().toLocaleString('en-CA', { timeZone: 'Asia/Phnom_Penh' });
+
+            fetch(`${apiUrl}/logs/finish`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ roomNumber, username, finishTime, status: "finished" })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message.includes("finished")) {
+                    updateButtonStatus(roomNumber, "finished");
+                
+                    // ✅ Broadcast update to all connected devices
+                    socket.emit("update", { roomNumber, status: "finished" });
+
+                    loadLogs(); // ✅ Reload logs immediately
+                } else {
+                    alert("Failed to finish cleaning.");
+                }
+            })
+            .catch(error => {
+                console.error("❌ Error finishing cleaning:", error);
+                alert("Failed to finish cleaning.");
+            });
+        }
 // Apply statuses to buttons after fetching logs
 function applyCleaningStatus(cleaningStatus) {
     Object.keys(cleaningStatus).forEach(roomNumber => {
