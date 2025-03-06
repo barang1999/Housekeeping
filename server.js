@@ -1,10 +1,12 @@
+require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");  // ✅ Correct Import
 const bcrypt = require("bcryptjs");
-require("dotenv").config();
+const jwt = require("jsonwebtoken");
+
 
 
 // ✅ Ensure MongoDB URI exists
@@ -40,22 +42,37 @@ const io = new Server(server, {
 });
 
 /// ✅ WebSocket Connection
-io.on("connection", (socket) => {
-    console.log("⚡ New WebSocket client connected:", socket.id);
-    socket.emit("connected", { message: "WebSocket connection established" });
 
-    socket.on("disconnect", (reason) => {
-        console.log(`❌ WebSocket Disconnected: ${reason}`);
-    });
+io.use((socket, next) => {
+    const token = socket.handshake.auth?.token || socket.handshake.headers.authorization?.split(" ")[1];
 
-    socket.on("auth", (data) => {
-        console.log("🛠️ Authentication event received:", data);
-    });
+    if (!token) {
+        console.warn("❌ WebSocket Authentication Failed: No token provided.");
+        return next(new Error("Authentication error: No token"));
+    }
 
-    socket.on("update", (data) => { 
-        console.log("🔄 Live Update Received:", data);
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+        if (err) {
+            console.warn("❌ WebSocket Authentication Failed: Invalid token.");
+            return next(new Error("Authentication error: Invalid token"));
+        }
+        
+        socket.user = decoded; // Attach user info to socket
+        console.log(`✅ WebSocket Authenticated: ${decoded.username}`);
+        next();
     });
 });
+
+io.on("connection", (socket) => {
+    console.log(`⚡ New WebSocket client connected: ${socket.user.username}`);
+    socket.emit("connected", { message: "WebSocket authenticated successfully", user: socket.user });
+
+    // Handle disconnections
+    socket.on("disconnect", (reason) => {
+        console.log(`🔴 WebSocket client disconnected: ${socket.user.username}, Reason: ${reason}`);
+    });
+});
+
 
 // ✅ Connect to MongoDB
 mongoose.connect(mongoURI, {
@@ -86,7 +103,6 @@ const CleaningLog = mongoose.model("CleaningLog", logSchema);
 
 // ✅ API Routes
 
-// 🔐 User Login
 app.post("/auth/login", async (req, res) => {
     const { username, password } = req.body;
 
@@ -101,11 +117,15 @@ app.post("/auth/login", async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
 
-        res.status(200).json({ message: "Login successful", token: `mock-token-${Date.now()}`, username });
+        // ✅ Generate JWT token
+        const token = jwt.sign({ username: user.username }, process.env.JWT_SECRET, { expiresIn: "1h" });
+
+        res.status(200).json({ message: "Login successful", token, username });
     } catch (error) {
         res.status(500).json({ message: "Server error", error });
     }
 });
+
 
 
 // 🔐 User Signup
@@ -130,7 +150,13 @@ app.get("/auth/validate", (req, res) => {
     if (!token) {
         return res.status(401).json({ valid: false, message: "No token provided" });
     }
-    res.json({ valid: true });
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+        if (err) {
+            return res.status(401).json({ valid: false, message: "Invalid token" });
+        }
+        res.json({ valid: true, user: decoded });
+    });
 });
 
 // 🔄 Get Room Cleaning Status

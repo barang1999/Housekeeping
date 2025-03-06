@@ -1,706 +1,288 @@
-const apiUrl = "https://housekeeping-production.up.railway.app"; // API calls
-    const socket = io(apiUrl); // Initialize WebSocket connection
+require("dotenv").config();
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+const http = require("http");
+const { Server } = require("socket.io");  // ✅ Correct Import
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
- // ✅ WebSocket Event Handlers (Only Added Once)
-    socket.on("connect", () => {
-    console.log("✅ WebSocket connected");
-    socket.emit("client-ready", { message: "Client is ready" });
-});
 
-socket.on("connect_error", (err) => {
-    console.error("❌ WebSocket connection error:", err);
-});
 
-socket.on("disconnect", (reason) => {
-    console.warn("⚠️ WebSocket disconnected:", reason);
-    setTimeout(() => {
-        if (!socket.connected) {
-            console.log("🔄 Attempting to reconnect...");
-            socket.connect();
-        }
-    }, 5000); // ✅ Prevents excessive reconnection attempts
-});
+// ✅ Ensure MongoDB URI exists
+const mongoURI = process.env.MONGO_URI;
+if (!mongoURI) {
+    console.error("❌ MONGO_URI is missing. Check your .env file!");
+    process.exit(1);
+}
+console.log("🔍 Connecting to MongoDB...");
 
-socket.on("connected", (data) => {
-    console.log("🟢 Server Says:", data.message);
-});
+// ✅ Initialize Express
+const app = express();
+app.use(express.json()); // ✅ Fix "undefined body" issue
 
-        // ✅ Ensure no duplicate event listeners
-socket.on("clearLogs", () => {
-    console.log("🧹 Logs cleared remotely, resetting buttons...");
-    resetButtonStatus();
-});
-        // ✅ Function to send safe WebSocket events
-function safeEmit(event, data) {
-    if (!socket || !socket.connected) {
-        console.warn("⚠️ WebSocket is not connected yet. Retrying...");
-        return;
+// ✅ Proper CORS Configuration
+app.use(cors({
+    origin: [
+        "https://housekeepingmanagement.netlify.app", 
+        "http://localhost:10000",
+        "http://localhost:3000" // ✅ Allow frontend running on different ports
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE"],    
+    allowedHeaders: ["Content-Type", "Authorization"] // ✅ Allow Authorization headers
+}));
+
+// ✅ Create HTTP & WebSocket Server
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: "https://housekeepingmanagement.netlify.app",
+        methods: ["GET", "POST"]
     }
-    socket.emit(event, data);
-}
-        document.addEventListener("DOMContentLoaded", function() {
-    console.log("✅ JavaScript is loaded!");
-
-    window.login = function() {  
-        console.log("✅ Login function is now defined!");
-    };
-
-    window.toggleAuth = function() {
-        console.log("✅ toggleAuth function is now defined!");
-    };
 });
 
-// ✅ Fix API Requests
-window.login = function(event) {  
-    if (event) event.preventDefault(); // Prevents page reload
-    
-    const username = document.getElementById("login-username").value.trim();
-    const password = document.getElementById("login-password").value.trim();
+/// ✅ WebSocket Connection
 
-    if (!username || !password) {
-        alert("⚠️ Please enter both username and password.");
-        return;
-    }
-
-    fetch(`${apiUrl}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log("🔄 Login API Response:", data); // Debugging response
-        if (data?.token) { 
-            localStorage.setItem("authToken", data.token);
-            localStorage.setItem("username", username);
-            alert("✅ Login successful!");
-            console.log("🚀 Attempting to showDashboard()");
-            showDashboard(); // Ensure this function is working
-        } else {
-            alert("❌ Invalid username or password.");
-        }
-    })
-    .catch(error => {
-        console.error("❌ Login Error:", error);
-        alert("⚠️ Failed to log in.");
-    });
-};
-
-window.toggleAuth = function() {
-    const signupForm = document.getElementById("signup-form");
-    if (signupForm) {
-        signupForm.classList.toggle("hidden");
-    } else {
-        console.error("❌ Error: Signup form element not found!");
-    }
-};
-
-         function signUp() {
-    const username = document.getElementById("signup-username").value;
-    const password = document.getElementById("signup-password").value;
-
-    fetch(`${apiUrl}/auth/signup`, { // ✅ Fixed API URL
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
-    })
-    .then(response => response.json())
-    .then(data => {
-        alert(data.message);
-        if (data.message.includes("Redirecting to login")) {
-            showLogin();
-        }
-    })
-    .catch(error => console.log("Error:", error));
-}
-     
-
-function showLogin() {
-    document.getElementById("auth-section").classList.remove("hidden");
-    document.getElementById("dashboard").classList.add("hidden");
-}
-
- function showDashboard() {
-    console.log("🚀 showDashboard() was called!");
-
-    const authSection = document.getElementById("auth-section");
-    const dashboard = document.getElementById("dashboard");
-
-    if (!authSection || !dashboard) {
-        console.error("❌ Error: Missing dashboard/auth-section elements!");
-        return;
-    }
-
-    console.log("✅ Auth Section:", authSection);
-    console.log("✅ Dashboard:", dashboard);
-    
-    dashboard.classList.remove("hidden");
-    dashboard.style.display = "block"; // ✅ Force visibility
-    authSection.classList.add("hidden");
-    authSection.style.display = "none"; // ✅ Hide login form
-
-
-    const username = localStorage.getItem("username") || "User";
-    const userNameElement = document.getElementById("user-name");
-
-    if (userNameElement) {
-        userNameElement.textContent = username;
-        console.log("✅ Username updated in UI.");
-    } else {
-        console.warn("⚠️ User name element not found!");
-    }
-
-    loadRooms();
-    loadLogs();
-}
-
-
-    function logout() {
-    console.log("🔴 Logging out...");
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("username");
-    showLogin();
-}
-
-  function loadRooms() {
-    const floors = {
-        "ground-floor": ["001", "002", "003", "004", "005", "006", "007", "011", "012", "013", "014", "015", "016", "017"],
-        "second-floor": ["101", "102", "103", "104", "105", "106", "107", "108", "109", "110", "111", "112", "113", "114", "115", "116", "117"],
-        "third-floor": ["201", "202", "203", "204", "205", "208", "209", "210", "211", "212", "213", "214", "215", "216", "217"]
-    };
-
-    Object.keys(floors).forEach(floor => {
-        const floorDiv = document.getElementById(floor);
-        if (!floorDiv) {
-            console.error(`❌ Missing floor container: ${floor}`);
-            return;
-        }
-
-        floorDiv.innerHTML = ""; // Clear old rooms
-
-        floors[floor].forEach(room => {
-            const roomDiv = document.createElement("div");
-            roomDiv.classList.add("room");
-            roomDiv.innerHTML = `
-                <span>Room ${room}</span>
-                <button id="start-${room}" onclick="startCleaning('${room}')">Start Cleaning</button>
-                <button id="finish-${room}" onclick="finishCleaning('${room}')" disabled>Finish</button>
-            `;
-            floorDiv.appendChild(roomDiv);
-        });
-    });
-
-    console.log("✅ Rooms loaded successfully.");
-
-    setTimeout(restoreCleaningStatus, 100); // Ensure statuses update after room elements exist
-}
-
-    function toggleFloor(floorId) {
-        document.querySelectorAll('.rooms').forEach(roomDiv => roomDiv.style.display = 'none');
-        document.getElementById(floorId).style.display = 'block';
-    }
-
-   function formatTime(timestamp) {
-    if (!timestamp) return "N/A";
-    return new Date(timestamp).toLocaleString("en-US", { 
-        timeZone: "Asia/Phnom_Penh",
-        hour12: true 
-    });
-}
-
-function loadLogs() {
-    fetch(`${apiUrl}/logs`)
-        .then(response => response.json())
-        .then(logs => {
-            if (!Array.isArray(logs)) {
-                console.warn("⚠️ Logs response is not an array.");
-                return;
-            }
-            const logTable = document.querySelector("#logTable tbody");
-            logTable.innerHTML = ""; // Clear existing logs
-            let cleaningStatus = JSON.parse(localStorage.getItem("cleaningStatus")) || {};
-            let updatesMade = false;
-            
-            const today = new Date().toISOString().split('T')[0];
-
-            // ✅ Sort logs: First, show unfinished logs, then sort by finishTime (ascending)
-            logs.sort((a, b) => {
-                if (!a.finishTime && b.finishTime) return -1; // Unfinished logs come first
-                if (a.finishTime && !b.finishTime) return 1;
-                return new Date(b.startTime) - new Date(a.startTime); // Sort by latest startTime
-            });
-            
-            logs.forEach(log => {
-                if (!log.roomNumber) return;
-                
-                let roomNumber = String(log.roomNumber).trim(); // Ensure roomNumber is always a valid string
-                let status = log.status || "not_started"; // ✅ Default to "not_started" if missing
-                
-                if (cleaningStatus[roomNumber] !== status) {
-                    cleaningStatus[roomNumber] = status;
-                    updateButtonStatus(roomNumber, status);
-                    updatesMade = true;
-                }
-
-                let logDate = new Date(log.startTime).toISOString().split('T')[0];
-
-                if (logDate === today) {
-                    const row = document.createElement("tr");
-                    row.innerHTML = `
-                        <td>${log.roomNumber}</td>
-                        <td>${log.startTime || "N/A"}</td>
-                        <td>${log.startedBy || "-"}</td>
-                        <td>${log.finishTime ? log.finishTime : "In Progress..."}</td>
-                        <td>${log.finishedBy || "-"}</td>
-                    `;
-                    logTable.appendChild(row);
-                }
-            });
-
-            if (updatesMade) {
-                localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
-                console.log("✅ Cleaning status updated.");
-            }
-
-            // ✅ Moved closing bracket to the correct position
-            if (logTable.innerHTML === "") {
-                logTable.innerHTML = "<tr><td colspan='5'>No logs found for today.</td></tr>";
-            }
-        }) // <-- Correct closing bracket placement
-        .catch(error => console.error("❌ Error fetching logs:", error));
-} // <-- Function closes properly
-
-
-// ✅ Restore Button States on Page Load
-window.addEventListener("load", () => {
-    restoreCleaningStatus();
-});
- // ✅ Fix Duplicate Event Listeners
-document.addEventListener("DOMContentLoaded", () => {
-    socket.on("clearLogs", () => {
-        console.log("🔄 Logs cleared remotely, resetting buttons...");
-        localStorage.removeItem("cleaningStatus");
-
-        document.querySelectorAll(".room button").forEach(button => {
-            if (button.id.startsWith("start-")) {
-                button.disabled = false;
-            }
-            if (button.id.startsWith("finish-")) {
-                button.disabled = true;
-            }
-        });
-    });
-});
-
-    
-// ✅ Ensure localStorage persists after refresh
-let cleaningStatus = JSON.parse(localStorage.getItem("cleaningStatus")) || {};
-if (typeof cleaningStatus !== "object" || cleaningStatus === null) {
-    cleaningStatus = {}; // Ensure it's an object
-}
-
-
-  function checkAuth() {
-    const token = localStorage.getItem("authToken");
+io.use((socket, next) => {
+    const token = socket.handshake.auth?.token || socket.handshake.headers.authorization?.split(" ")[1];
 
     if (!token) {
-        console.warn("⚠️ No auth token found. Redirecting to login.");
-        showLogin();
-        return;
+        console.warn("❌ WebSocket Authentication Failed: No token provided.");
+        return next(new Error("Authentication error: No token"));
     }
 
-    fetch(`${apiUrl}/auth/validate`, {
-        method: "GET",
-        headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(res => {
-        if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
-        return res.json();
-    })
-    .then(data => {
-        console.log("🔄 Auth check response:", data); // ✅ Debug response
-        if (data.valid) {
-            console.log("✅ User is still logged in.");
-            showDashboard();
-        } else {
-            console.warn("❌ Invalid auth token. Logging out.");
-            logout();
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+        if (err) {
+            console.warn("❌ WebSocket Authentication Failed: Invalid token.");
+            return next(new Error("Authentication error: Invalid token"));
         }
-    })
-    .catch(err => {
-        console.error("❌ Error validating auth:", err);
-        logout();
-    });
-}
-
-function formatRoomNumber(roomNumber) {
-            return roomNumber.toString().padStart(3, '0');
-        }
-// ✅ Fix restoreCleaningStatus()
-function restoreCleaningStatus() {
-
-    let cleaningStatus = JSON.parse(localStorage.getItem("cleaningStatus")) || {};
-
-    // ✅ First, apply saved state to buttons for a faster UI update
-    Object.keys(cleaningStatus).forEach(roomNumber => {
-        const startButton = document.getElementById(`start-${roomNumber}`);
-        const finishButton = document.getElementById(`finish-${roomNumber}`);
-
-        if (!startButton || !finishButton) {
-            console.warn(`⚠️ Buttons for Room ${roomNumber} not found.`);
-            return;
-        }
-
-        if (cleaningStatus[roomNumber] === "in_progress") {
-            startButton.disabled = true;
-            finishButton.disabled = false;
-        } else if (cleaningStatus[roomNumber] === "finished") {
-            startButton.disabled = true;
-            finishButton.disabled = true;
-        }
-    });
-    
-    fetch(`${apiUrl}/logs`)
-        .then(response => response.json())
-        .then(logs => {
-            if (!logs || logs.length === 0) {
-                console.warn("⚠️ No logs found to restore.");
-                return;
-            }
-
-            logs.forEach(log => {
-                const roomNumber = log.roomNumber;
-                const startButton = document.getElementById(`start-${log.roomNumber}`);
-                const finishButton = document.getElementById(`finish-${log.roomNumber}`);
-                
-                 if (!startButton || !finishButton) return;
-                
-                if (log.status === "in_progress") {
-                    startButton.disabled = true;
-                    finishButton.disabled = false;
-                    cleaningStatus[roomNumber] = "in_progress";
-                } else if (log.status === "finished") {
-                    startButton.disabled = true;
-                    finishButton.disabled = true;
-                    cleaningStatus[roomNumber] = "finished";
-                }
-            });
-            // ✅ Store the latest status in localStorage
-            localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
-        })
-        .catch(error => console.error("❌ Error fetching logs:", error));
-}
- 
-window.addEventListener("load", () => {
-    restoreCleaningStatus();
-});
-// ✅ Live Update from Server
-socket.on("update", (data) => {
-    console.log("🔄 Live Update Received:", data);
-    updateButtonStatus(data.roomNumber, data.status);
-    loadLogs();  // Refresh logs instantly
-});
-        function checkAuth() {
-    if (localStorage.getItem("authToken")) {
-        showDashboard();
-    } else {
-        showLogin();
-    }
-}
-
-        // ✅ Function to attempt reconnection
-function attemptReconnect() {
-    const reconnectInterval = setInterval(() => {
-        if (!socket.connected) {
-            console.log("🔄 Attempting to reconnect...");
-            socket.connect();
-        } else {
-            clearInterval(reconnectInterval); // Stop retrying once reconnected
-        }
-    }, 5000);
-}
-        // ✅ Function to update buttons on all devices
-function updateButtonStatus(roomNumber, status) {
-    if (!status) {
-        console.warn(`⚠️ Status for Room ${roomNumber} is undefined.`);
-        return; // Prevents applying an invalid status
-    }
-    const startButton = document.getElementById(`start-${roomNumber}`);
-    const finishButton = document.getElementById(`finish-${roomNumber}`);
-    
-
-   if (!startButton || !finishButton) {
-        console.warn(`⚠️ Buttons for Room ${roomNumber} not found.`);
-        return;
-    }
-
-    if (status === "in_progress") {
-        startButton.disabled = true;
-        finishButton.disabled = false;
-    } else if (status === "finished") {
-        startButton.disabled = true;
-        finishButton.disabled = true;
-    }
-
-    // ✅ Store in localStorage for persistence
-    let cleaningStatus = JSON.parse(localStorage.getItem("cleaningStatus")) || {};
-    cleaningStatus[roomNumber] = status;
-    localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
-    console.log(`✅ Updated status for Room ${roomNumber}: ${status}`);
-} // <-- This closing bracket should be here, not earlier!
-
-function updateCleaningStatus(logs) {
-    if (!Array.isArray(logs)) {
-        console.warn("⚠️ Logs data is not an array:", logs);
-        return;
-    }
-
-    let cleaningStatus = JSON.parse(localStorage.getItem("cleaningStatus")) || {};
-    if (typeof cleaningStatus !== "object" || cleaningStatus === null) {
-        cleaningStatus = {}; // Ensure it's an object
-    }
-
-    logs.forEach(log => {
-        let roomNumber = log.roomNumber ? String(log.roomNumber).trim() : null;
-
-        if (!roomNumber) {
-            console.warn("⚠️ Skipping log: roomNumber is missing or invalid!", log);
-            return;
-        }
-
-        const validStatuses = ["in_progress", "finished"];
-        if (!validStatuses.includes(log.status)) {
-            console.warn(`⚠️ Skipping invalid status for Room ${roomNumber}:`, log.status);
-            return;
-        }
-
-        cleaningStatus[roomNumber] = {
-            started: log.status === "in_progress",
-            finished: log.status === "finished",
-        };
-    });
-
-    localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
-}
-
-// ✅ Call this function after fetching logs
-fetch(`${apiUrl}/logs`)
-    .then(response => response.json())
-    .then(data => updateCleaningStatus(data))
-    .catch(error => console.error("❌ Error fetching logs:", error));
-
-
-        function resetButtonStatus() {
-    console.log("🔄 Resetting button statuses...");
-
-    // Clear local storage
-    localStorage.removeItem("cleaningStatus");
-
-    // Reset all buttons
-    document.querySelectorAll(".room button").forEach(button => {
-        if (button.id.startsWith("start-")) {
-            button.disabled = false;
-        }
-        if (button.id.startsWith("finish-")) {
-            button.disabled = true;
-        }
-    });
-}
-
-// ✅ Start Cleaning Function
- function startCleaning(roomNumber) {
-            const username = localStorage.getItem("username");
-            const startTime = new Date().toLocaleString('en-CA', { timeZone: 'Asia/Phnom_Penh' });
-
-            fetch(`${apiUrl}/logs/start`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ roomNumber, username, startTime, status: "in_progress" })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.message.includes("started")) {
-                    let cleaningStatus = JSON.parse(localStorage.getItem("cleaningStatus")) || {};
-                    cleaningStatus[roomNumber] = "in_progress";
-                    localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
-                    updateButtonStatus(roomNumber, "in_progress");
-                    
-                    // ✅ Broadcast update to all connected devices
-                    socket.emit("update", { roomNumber, status: "in_progress" });
-                    
-                    loadLogs(); // ✅ Reload logs immediately
-                    
-                } else {
-                    alert("Failed to start cleaning.");
-                }
-            })
-            .catch(error => {
-                console.error("❌ Error starting cleaning:", error);
-                alert("Failed to start cleaning.");
-            });
-        }
-
-// ✅ Finish Cleaning Function
- function finishCleaning(roomNumber) {
-            const username = localStorage.getItem("username");
-            const finishTime = new Date().toLocaleString('en-CA', { timeZone: 'Asia/Phnom_Penh' });
-
-            fetch(`${apiUrl}/logs/finish`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ roomNumber, username, finishTime, status: "finished" })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.message.includes("finished")) {
-                    // ✅ Update local storage immediately
-                    let cleaningStatus = JSON.parse(localStorage.getItem("cleaningStatus")) || {};
-                    cleaningStatus[roomNumber] = "finished";
-                    localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
-                     // ✅ Disable finish button to indicate completion
-                    updateButtonStatus(roomNumber, "finished");
-                
-                    // ✅ Broadcast update to all connected devices
-                    socket.emit("update", { roomNumber, status: "finished" });
-
-                    loadLogs(); // ✅ Reload logs immediately
-                } else {
-                    alert("Failed to finish cleaning.");
-                }
-            })
-            .catch(error => {
-                console.error("❌ Error finishing cleaning:", error);
-                alert("Failed to finish cleaning.");
-            });
-        }
-// Apply statuses to buttons after fetching logs
-function applyCleaningStatus(cleaningStatus) {
-    Object.keys(cleaningStatus).forEach(roomNumber => {
-        const startButton = document.getElementById(`start-${roomNumber}`);
-        const finishButton = document.getElementById(`finish-${roomNumber}`);
-
-        if (cleaningStatus[roomNumber].started) {
-            if (startButton) startButton.disabled = true;
-            if (finishButton) finishButton.disabled = !cleaningStatus[roomNumber].finished;
-        }
-    });
-}
-
- // ✅ Function to Clear Logs and Reset Buttons
-function clearLogs() {
-    if (!confirm("Are you sure you want to clear all logs? This action cannot be undone.")) {
-        return; // Prevents accidental clearing
-    }
-
-    console.log("🧹 Clearing logs...");
-    document.querySelector("#logTable tbody").innerHTML = "";
-
-    localStorage.removeItem("cleaningStatus"); // ✅ Reset local storage
-
-    document.querySelectorAll(".room button").forEach(button => {
-        if (button.id.startsWith("start-")) {
-            button.disabled = false;
-        }
-        if (button.id.startsWith("finish-")) {
-            button.disabled = true;
-        }
-    });
-
-    // ✅ Broadcast reset event to all devices
-    socket.emit("clearLogs");
-
-    fetch(`${apiUrl}/logs/clear`, { method: "POST" })
-        .then(() => {
-            console.log("✅ Logs cleared on server");
-            loadLogs(); // ✅ Refresh logs immediately
-        })
-        .catch(error => console.error("❌ Error clearing logs:", error));
-}
-
-// ✅ Listen for Clear Logs Event from Other Devices
-socket.on("clearLogs", () => {
-    console.log("🔄 Logs cleared remotely, resetting buttons...");
-    localStorage.removeItem("cleaningStatus");
-
-    document.querySelectorAll(".room button").forEach(button => {
-        if (button.id.startsWith("start-")) {
-            button.disabled = false;
-        }
-        if (button.id.startsWith("finish-")) {
-            button.disabled = true;
-        }
-    });
-
-    loadLogs(); // ✅ Refresh logs across all devices
-});
-       function exportLogs() {
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF();
-    pdf.text("Cleaning Logs - Today's Records", 10, 10);
-
-    const rows = [];
-    
-    // Get today's date in "YYYY-MM-DD" format
-    const today = new Date().toISOString().split('T')[0]; // Correctly formats to "YYYY-MM-DD"
-
-    document.querySelectorAll("#logTable tbody tr").forEach(row => {
-        const rowData = Array.from(row.children).map(cell => cell.innerText);
-        rowData[0] = formatRoomNumber(rowData[0].trim()); // Ensure room number is formatted as 3 digits
         
-        // Extract the timestamp
-        let logStartTime = rowData[1].trim(); // Example: "2024-03-04 10:30 AM"
-
-        // Convert to proper Date format if possible
-        let logDate = new Date(logStartTime).toISOString().split('T')[0];
-
-        console.log(`Checking Log: ${logDate} vs Today: ${today}`); // Debugging Output
-
-        if (logDate === today) {
-            rows.push(rowData);
-        }
+        socket.user = decoded; // Attach user info to socket
+        console.log(`✅ WebSocket Authenticated: ${decoded.username}`);
+        next();
     });
+});
 
-    if (rows.length === 0) {
-        alert("No logs found for today.");
-        return;
+io.on("connection", (socket) => {
+    console.log(`⚡ New WebSocket client connected: ${socket.user.username}`);
+    socket.emit("connected", { message: "WebSocket authenticated successfully", user: socket.user });
+
+    // Handle disconnections
+    socket.on("disconnect", (reason) => {
+        console.log(`🔴 WebSocket client disconnected: ${socket.user.username}, Reason: ${reason}`);
+    });
+});
+
+
+// ✅ Connect to MongoDB
+mongoose.connect(mongoURI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+})
+.then(() => console.log("✅ MongoDB Connected Successfully"))
+.catch(err => {
+    console.error("❌ MongoDB connection error:", err);
+});
+
+
+// ✅ Define MongoDB Schemas
+const userSchema = new mongoose.Schema({
+    username: { type: String, unique: true, required: true },
+    password: { type: String, required: true }
+});
+const User = mongoose.model("User", userSchema);
+
+const logSchema = new mongoose.Schema({
+    roomNumber: Number,
+    startTime: String,
+    startedBy: String,
+    finishTime: String,
+    finishedBy: String
+});
+const CleaningLog = mongoose.model("CleaningLog", logSchema);
+
+// ✅ API Routes
+
+app.post("/auth/login", async (req, res) => {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+        return res.status(400).json({ message: "Missing fields" });
     }
 
-    pdf.autoTable({
-        head: [["Room", "Start Time", "Started By", "Finish Time", "Finished By"]],
-        body: rows,
-    });
+    try {
+        const user = await User.findOne({ username });
+        if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
-    pdf.save("cleaning_logs_today.pdf");
-}
-          window.addEventListener("load", () => {
-    const token = localStorage.getItem("authToken");
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
 
-    if (token) {
-        fetch(`${apiUrl}/auth/validate`, {  // Ensure this endpoint correctly validates the token
-            method: "GET",
-            headers: { Authorization: `Bearer ${token}` }
-        })
-        .then(res => {
-            if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
-            return res.json();
-        })
-        .then(data => {
-            if (data.valid) {
-                console.log("✅ User is still logged in");
-                showDashboard(); // ✅ Automatically show dashboard if authenticated
-            } else {
-                console.log("❌ Invalid token, logging out...");
-                logout(); // Logout user if token is invalid
-            }
-        })
-        .catch(err => {
-            console.error("❌ Auth validation failed:", err);
-            logout();
-        });
-    } else {
-        showLogin(); // Ensure login form is displayed if there's no token
+        // ✅ Generate JWT token
+        const token = jwt.sign({ username: user.username }, process.env.JWT_SECRET, { expiresIn: "1h" });
+
+        res.status(200).json({ message: "Login successful", token, username });
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error });
     }
 });
 
 
-       
+
+// 🔐 User Signup
+app.post("/auth/signup", async (req, res) => {
+    const { username, password } = req.body;
+    try {
+        const existingUser = await User.findOne({ username });
+        if (existingUser) return res.status(400).json({ message: "User already exists." });
+
+        const hashedPassword = await bcrypt.hash(password, 10); // ✅ Secure password storage
+        const newUser = new User({ username, password: hashedPassword });
+        await newUser.save();
+        res.status(201).json({ message: "User registered successfully!" });
+    } catch (error) {
+        console.error("❌ Signup error:", error);
+        res.status(500).json({ message: "Server error", error });
+    }
+});
+
+app.get("/auth/validate", (req, res) => {
+    const token = req.headers.authorization?.split(" ")[1]; // Extract token
+    if (!token) {
+        return res.status(401).json({ valid: false, message: "No token provided" });
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+        if (err) {
+            return res.status(401).json({ valid: false, message: "Invalid token" });
+        }
+        res.json({ valid: true, user: decoded });
+    });
+});
+
+// 🔄 Get Room Cleaning Status
+app.get("/logs/status", async (req, res) => {
+    try {
+        const logs = await CleaningLog.find();
+        let status = {};
+
+        // ✅ Process logs first
+        logs.forEach(log => {
+            status[log.roomNumber] = log.finishTime ? "finished" : "in_progress";
+        });
+
+        // ✅ Ensure all rooms have a default status (Room 1 to 20)
+        const allRooms = [...Array(20).keys()].map(i => i + 1);
+        allRooms.forEach(room => {
+            if (!status[room]) {
+                status[room] = "not_started"; // Default status
+            }
+        });
+
+        // ✅ Send response after processing all data
+        res.json(status);
+
+    } catch (error) {
+        console.error("❌ Error fetching room status:", error);
+        res.status(500).json({ message: "Server error", error });
+    }
+});
+
+
+// 🚀 Start Cleaning
+app.post("/logs/start", async (req, res) => {
+    console.log("📥 Start Cleaning Request:", req.body);
+    let { roomNumber, username } = req.body;
+    const startTime = new Date().toLocaleString("en-US", { timeZone: "Asia/Phnom_Penh" });
+
+    if (!roomNumber || !username) {
+        console.error("❌ Missing required fields:", req.body);
+        return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    roomNumber = parseInt(roomNumber, 10); // Convert to number ✅
+
+    try {
+        await CleaningLog.updateOne(
+            { roomNumber },
+            { $set: { startTime, startedBy: username, finishTime: null, finishedBy: null } },
+            { upsert: true }
+        );
+
+        io.emit("update", { roomNumber, status: "in_progress" });
+        res.status(201).json({ message: `Room ${roomNumber} started by ${username} at ${startTime}` });
+    } catch (error) {
+        console.error("❌ Start Cleaning Error:", error);
+        res.status(500).json({ message: "Server error", error });
+    }
+});
+
+// ✅ Finish Cleaning
+app.post("/logs/finish", async (req, res) => {
+    console.log("📥 Received Finish Request:", req.body);
+
+    let { roomNumber, username, finishTime, status } = req.body;
+
+    if (!roomNumber || !username || !finishTime || !status) {
+        console.error("❌ Missing required fields:", req.body);
+        return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    roomNumber = parseInt(roomNumber, 10); // Convert to number ✅
+
+    try {
+        console.log(`🔍 Checking for unfinished log for Room ${roomNumber}...`);
+        const log = await CleaningLog.findOne({ roomNumber, finishTime: null });
+        if (!log) {
+            console.warn(`⚠️ Log not found or already finished for Room ${roomNumber}`);
+            return res.status(400).json({ message: "Log not found or already finished" });
+        }
+
+        // ✅ Updating the log with finish details
+        log.finishTime = finishTime;
+        log.finishedBy = username;
+        await log.save();
+
+        console.log(`✅ Room ${roomNumber} finished by ${username} at ${finishTime}`);
+
+        // ✅ Notify other clients via WebSocket
+        io.emit("update", { roomNumber, status: "finished" });
+
+        res.status(200).json({ message: `Room ${roomNumber} finished by ${username}` });
+    } catch (error) {
+        console.error("❌ Finish Cleaning Error:", error);
+        res.status(500).json({ message: "Server error", error });
+    }
+});
+
+// 📄 Get All Cleaning Logs
+app.get("/logs", async (req, res) => {
+    try {
+        const logs = await CleaningLog.find();
+        res.json(logs);
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error });
+    }
+});
+
+app.post("/logs/clear", async (req, res) => {
+    try {
+        await CleaningLog.deleteMany({}); // Deletes all logs
+        io.emit("clearLogs"); // Notify all clients
+        res.status(200).json({ message: "All logs cleared" });
+    } catch (error) {
+        console.error("❌ Error clearing logs:", error);
+        res.status(500).json({ message: "Server error", error });
+    }
+});
+
+
+// 🏠 Home Route
+app.get("/", (req, res) => {
+    res.send("Housekeeping Management API is Running 🚀");
+});
+
+// ✅ Start Server
+const PORT = process.env.PORT || 10000;
+server.listen(PORT, () => {
+    console.log(`✅ Server running on port ${PORT}`);
+});
