@@ -187,48 +187,45 @@ function safeEmit(event, data) {
 }
 
 // ✅ Fix API Requests
-document.addEventListener("DOMContentLoaded", function() {
-    window.login = function() {  
-        const username = document.getElementById("login-username").value.trim();
-        const password = document.getElementById("login-password").value.trim();
+window.login = function() {  
+    const username = document.getElementById("login-username").value.trim();
+    const password = document.getElementById("login-password").value.trim();
 
-        if (!username || !password) {
-            alert("⚠️ Please enter both username and password.");
-            return;
-        }
+    if (!username || !password) {
+        alert("⚠️ Please enter both username and password.");
+        return;
+    }
 
-        fetch("https://housekeeping-production.up.railway.app/auth/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, password })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data?.token) { // ✅ Check if token exists
-                localStorage.setItem("authToken", data.token);
-                localStorage.setItem("username", username);
-                alert("✅ Login successful!");
-                showDashboard(); // ✅ Redirect to dashboard
-            } else {
-                alert("❌ Invalid username or password.");
-            }
-        })
-        .catch(error => {
-            console.error("❌ Login Error:", error);
-            alert("⚠️ Failed to log in.");
-        });
-    };
-
-    window.toggleAuth = function() {
-        const signupForm = document.getElementById("signup-form");
-        if (signupForm) {
-            signupForm.classList.toggle("hidden");
+    fetch("https://housekeeping-production.up.railway.app/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data?.token) { 
+            localStorage.setItem("authToken", data.token);
+            localStorage.setItem("username", username);
+            alert("✅ Login successful!");
+            showDashboard();
         } else {
-            console.error("❌ Error: Signup form element not found!");
+            alert("❌ Invalid username or password.");
         }
-    };
-});
+    })
+    .catch(error => {
+        console.error("❌ Login Error:", error);
+        alert("⚠️ Failed to log in.");
+    });
+};
 
+window.toggleAuth = function() {
+    const signupForm = document.getElementById("signup-form");
+    if (signupForm) {
+        signupForm.classList.toggle("hidden");
+    } else {
+        console.error("❌ Error: Signup form element not found!");
+    }
+};
 
          function signUp() {
     const username = document.getElementById("signup-username").value;
