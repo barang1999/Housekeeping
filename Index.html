@@ -96,22 +96,19 @@
     <div class="container">
         <div id="auth-section">
     <h2>Login</h2>
-    <form onsubmit="event.preventDefault(); login();">
-    <input type="text" id="login-username" placeholder="Username">
-    <input type="password" id="login-password" placeholder="Password">
+    <form onsubmit="return login()">
+    <input type="text" id="login-username" placeholder="Username" required>
+    <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" required>
     <button type="submit">Login</button>
 </form>
-
     <p>Don't have an account? <a href="#" onclick="toggleAuth()">Sign up here</a></p>
 
     <div id="signup-form" class="hidden">
-        <h2>Sign Up</h2>
-        <input type="text" id="signup-username" placeholder="Username">
-        <input type="password" id="signup-password" placeholder="Password">
-        <button onclick="signUp()">Sign Up</button>
-    </div>
+    <h2>Sign Up</h2>
+    <input type="text" id="signup-username" placeholder="Username">
+    <input type="password" id="signup-password" placeholder="Password" autocomplete="new-password">
+    <button onclick="signUp()">Sign Up</button>
 </div>
-
         <div id="dashboard" class="hidden">
             <h2>Welcome, <span id="user-name"></span></h2>
             <button onclick="logout()">Logout</button>
