@@ -1,10 +1,11 @@
-require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const http = require("http");
-const socketIo = require("socket.io");
-const bcrypt = require("bcrypt");
+const { Server } = require("socket.io");  // ✅ Correct Import
+const bcrypt = require("bcryptjs");
+require("dotenv").config();
+
 
 // ✅ Ensure MongoDB URI exists
 const mongoURI = process.env.MONGO_URI;
@@ -20,19 +21,24 @@ app.use(express.json()); // ✅ Fix "undefined body" issue
 
 // ✅ Proper CORS Configuration
 app.use(cors({
-    origin: ["https://housekeepingmanagement.netlify.app","http://localhost:10000"], // ✅ Allow only your frontend
+    origin: [
+        "https://housekeepingmanagement.netlify.app", 
+        "http://localhost:10000",
+        "http://localhost:3000" // ✅ Allow frontend running on different ports
+    ],
     methods: ["GET", "POST", "PUT", "DELETE"],    
-    allowedHeaders: ["Content-Type"]
+    allowedHeaders: ["Content-Type", "Authorization"] // ✅ Allow Authorization headers
 }));
 
 // ✅ Create HTTP & WebSocket Server
 const server = http.createServer(app);
-const io = socketIo(server, {
+const io = new Server(server, {
     cors: {
         origin: "https://housekeepingmanagement.netlify.app",
         methods: ["GET", "POST"]
     }
 });
+
 /// ✅ WebSocket Connection
 io.on("connection", (socket) => {
     console.log("⚡ New WebSocket client connected:", socket.id);
@@ -85,38 +91,21 @@ app.post("/auth/login", async (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password) {
-        console.error("❌ Missing login fields:", { username, password });
         return res.status(400).json({ message: "Missing fields" });
     }
 
     try {
-        console.log("🔍 Checking user in database...");
         const user = await User.findOne({ username });
+        if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
-        if (!user) {
-            console.warn(`⚠️ No user found for username: ${username}`);
-            return res.status(401).json({ message: "Invalid credentials" });
-        }
-
-        console.log("🔐 Stored password (hashed):", user.password);
         const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
 
-        if (!isMatch) {
-            console.warn("❌ Password mismatch for user:", username);
-            return res.status(401).json({ message: "Invalid credentials" });
-        }
-
-        const token = jwt.sign({ username }, SECRET_KEY, { expiresIn: "1h" });
-
-        console.log("✅ Login successful for:", username);
-        res.status(200).json({ message: "Login successful", token, username });
-
+        res.status(200).json({ message: "Login successful", token: `mock-token-${Date.now()}`, username });
     } catch (error) {
-        console.error("❌ Login Error:", error);
         res.status(500).json({ message: "Server error", error });
     }
 });
-
 
 
 // 🔐 User Signup
@@ -136,20 +125,42 @@ app.post("/auth/signup", async (req, res) => {
     }
 });
 
+app.get("/auth/validate", (req, res) => {
+    const token = req.headers.authorization?.split(" ")[1]; // Extract token
+    if (!token) {
+        return res.status(401).json({ valid: false, message: "No token provided" });
+    }
+    res.json({ valid: true });
+});
 
 // 🔄 Get Room Cleaning Status
 app.get("/logs/status", async (req, res) => {
     try {
         const logs = await CleaningLog.find();
         let status = {};
+
+        // ✅ Process logs first
         logs.forEach(log => {
             status[log.roomNumber] = log.finishTime ? "finished" : "in_progress";
         });
+
+        // ✅ Ensure all rooms have a default status (Room 1 to 20)
+        const allRooms = [...Array(20).keys()].map(i => i + 1);
+        allRooms.forEach(room => {
+            if (!status[room]) {
+                status[room] = "not_started"; // Default status
+            }
+        });
+
+        // ✅ Send response after processing all data
         res.json(status);
+
     } catch (error) {
+        console.error("❌ Error fetching room status:", error);
         res.status(500).json({ message: "Server error", error });
     }
 });
+
 
 // 🚀 Start Cleaning
 app.post("/logs/start", async (req, res) => {
@@ -226,6 +237,18 @@ app.get("/logs", async (req, res) => {
         res.status(500).json({ message: "Server error", error });
     }
 });
+
+app.post("/logs/clear", async (req, res) => {
+    try {
+        await CleaningLog.deleteMany({}); // Deletes all logs
+        io.emit("clearLogs"); // Notify all clients
+        res.status(200).json({ message: "All logs cleared" });
+    } catch (error) {
+        console.error("❌ Error clearing logs:", error);
+        res.status(500).json({ message: "Server error", error });
+    }
+});
+
 
 // 🏠 Home Route
 app.get("/", (req, res) => {
