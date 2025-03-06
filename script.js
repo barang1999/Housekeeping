@@ -123,7 +123,7 @@ function showLogin() {
     document.getElementById("dashboard").classList.add("hidden");
 }
 
-   function showDashboard() {
+  function showDashboard() {
     console.log("🚀 showDashboard() was called!");
     
     const authSection = document.getElementById("auth-section");
@@ -136,11 +136,10 @@ function showLogin() {
 
     authSection.classList.add("hidden");
     dashboard.classList.remove("hidden");
-}
 
     const username = localStorage.getItem("username") || "User";
     const userNameElement = document.getElementById("user-name");
-    
+
     if (userNameElement) {
         userNameElement.textContent = username;
     } else {
@@ -149,7 +148,8 @@ function showLogin() {
 
     loadRooms();
     loadLogs();
-}
+} // ✅ Closing bracket correctly placed here
+
 
 
     function logout() {
