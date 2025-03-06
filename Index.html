@@ -494,9 +494,13 @@ function restoreCleaningStatus() {
 }
    // ✅ Live Status Updates from Server
 socket.on("update", (data) => {
-    console.log("🔄 Live Update Received:", data);
+    console.log("📢 Live Update Received:", data);
+    
+    // Ensure the update applies to the button status
     updateButtonStatus(data.roomNumber, data.status);
-    loadLogs(); // ✅ Refresh logs instantly on all devices
+
+    // Refresh logs instantly on all devices
+    loadLogs();
 });
         // ✅ Function to update buttons on all devices
 function updateButtonStatus(roomNumber, status) {
