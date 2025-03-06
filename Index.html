@@ -219,16 +219,15 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     };
 });
-document.addEventListener("DOMContentLoaded", function() {
-    window.toggleAuth = function() {
-        const signupForm = document.getElementById("signup-form");
-        if (signupForm) {
-            signupForm.classList.toggle("hidden");
-        } else {
-            console.error("❌ Error: Signup form element not found!");
-        }
-    };
-});
+window.toggleAuth = function() {
+    const signupForm = document.getElementById("signup-form");
+    if (signupForm) {
+        signupForm.classList.toggle("hidden");
+    } else {
+        console.error("❌ Error: Signup form element not found!");
+    }
+};
+
 
          function signUp() {
     const username = document.getElementById("signup-username").value;
