@@ -1,5 +1,11 @@
 const apiUrl = "https://housekeeping-production.up.railway.app"; // API calls
-    const socket = io(apiUrl); // Initialize WebSocket connection
+const token = localStorage.getItem("token");
+
+const socket = io(apiUrl, {
+    auth: { token },
+    reconnectionAttempts: 5, // Limit reconnection attempts
+    timeout: 5000 // Set connection timeout
+});
 
  // ✅ WebSocket Event Handlers (Only Added Once)
     socket.on("connect", () => {
@@ -30,6 +36,21 @@ socket.on("update", (data) => {
     console.log("🔄 Live Update Received:", data);
     updateButtonStatus(data.roomNumber, data.status);
 });
+// ✅ Listen for events safely (prevents duplication)
+document.addEventListener("DOMContentLoaded", () => {
+    if (!socket.hasListeners("clearLogs")) {
+        socket.on("clearLogs", () => {
+            console.log("🧹 Logs cleared remotely, resetting buttons...");
+            resetButtonStatus();
+        });
+    }
+});
+
+// ✅ Log all WebSocket messages
+socket.onAny((event, data) => {
+    console.log(`📩 WebSocket Event Received: ${event}`, data);
+});
+
         // ✅ Ensure no duplicate event listeners
 socket.on("clearLogs", () => {
     console.log("🧹 Logs cleared remotely, resetting buttons...");
@@ -41,30 +62,102 @@ function safeEmit(event, data) {
         console.warn("⚠️ WebSocket is not connected yet. Retrying...");
         return;
     }
-    socket.emit(event, data);
+    
+    const token = localStorage.getItem("token"); // Ensure token is included in event emissions
+    socket.emit(event, { ...data, token });
 }
+
+async function refreshToken() {
+    const refreshToken = localStorage.getItem("refreshToken"); // Store refresh token securely
+    
+    if (!refreshToken) {
+        console.warn("❌ No refresh token found. User must log in again.");
+        logout();
+        return;
+    }
+
+    try {
+        const response = await fetch(`${apiUrl}/auth/refresh`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${refreshToken}` // Ensure auth header is included
+            },
+            body: JSON.stringify({ token: refreshToken })
+        });
+
+        if (!response.ok) {
+            console.warn(`❌ Refresh token request failed with status ${response.status}`);
+            logout();
+            return;
+        }
+
+        const data = await response.json();
+
+        if (data?.token) {
+            console.log("🔄 Token refreshed successfully.");
+            localStorage.setItem("token", data.token);
+
+            // Decode and validate new token's expiration time
+            const payload = JSON.parse(atob(data.token.split('.')[1])); 
+            const expTime = payload.exp * 1000; // Convert to milliseconds
+            const currentTime = Date.now();
+
+            if (expTime < currentTime) {
+                console.warn("❌ Refreshed token is already expired. Logging out.");
+                logout();
+                return;
+            }
+
+            checkAuth(); // Retry authentication with the new token
+        } else {
+            console.warn("❌ Failed to refresh token. Logging out.");
+            logout();
+        }
+    } catch (error) {
+        console.error("❌ Refresh token request failed:", error);
+        logout();
+    }
+}
+
+
   
 // ✅ Function to update buttons on all devices
 function updateButtonStatus(roomNumber, status) {
     const startButton = document.getElementById(`start-${roomNumber}`);
     const finishButton = document.getElementById(`finish-${roomNumber}`);
 
-    if (startButton && finishButton) {
-        startButton.disabled = (status !== "available");
-        finishButton.disabled = (status !== "in_progress");
+    if (!startButton || !finishButton) {
+        console.warn(`⚠️ Buttons for Room ${roomNumber} not found.`);
+        return;
     }
 
-    // ✅ Store in localStorage for persistence
+    if (status === "in_progress") {
+        startButton.disabled = true;
+        finishButton.disabled = false;
+    } else if (status === "finished") {
+        startButton.disabled = true;
+        finishButton.disabled = true;
+    } else {
+        startButton.disabled = false;
+        finishButton.disabled = true;
+    }
+
     let cleaningStatus = JSON.parse(localStorage.getItem("cleaningStatus")) || {};
-    cleaningStatus[roomNumber] = { started: (status === "in_progress"), finished: (status === "finished") };
+    cleaningStatus[roomNumber] = { started: status === "in_progress", finished: status === "finished" };
     localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
-} // <-- This closing bracket should be here, not earlier!
+}
 
 
-// ✅ Fix API Requests
+// ✅ Log in
 window.login = function() {  
-    const username = document.getElementById("login-username").value;
-    const password = document.getElementById("login-password").value;
+    const username = document.getElementById("login-username").value.trim();
+    const password = document.getElementById("login-password").value.trim();
+
+    if (!username || !password) {
+        alert("⚠️ Please enter both username and password.");
+        return;
+    }
 
     fetch(`${apiUrl}/auth/login`, {
         method: "POST",
@@ -73,21 +166,22 @@ window.login = function() {
     })
     .then(response => response.json())
     .then(data => {
-        console.log("🟢 API Response:", data);
-        if (data?.token) { // ✅ Use optional chaining
+        if (data?.token) { 
+            console.log("🟢 JWT Token Received:", data.token);
             localStorage.setItem("token", data.token);
             localStorage.setItem("username", username);
             showDashboard();
         } else {
-            console.warn("⚠️ Invalid credentials:", data);
-            alert("Invalid credentials.");
+            console.error("❌ Login Failed:", data);
+            alert(data.message || "Invalid credentials.");
         }
     })
     .catch(error => {
         console.error("❌ Login Error:", error);
-        alert("Failed to log in. Check console for details.");
+        alert("⚠️ Failed to log in. Please check your internet connection.");
     });
 };
+
 
 
          function signUp() {
@@ -249,7 +343,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-
 function loadLogs() {
     fetch(`${apiUrl}/logs`)
         .then(response => response.json())
@@ -258,13 +351,13 @@ function loadLogs() {
             logTable.innerHTML = ""; // Clear existing logs
 
             const today = new Date().toISOString().split('T')[0];
+            let cleaningStatus = {};
 
-            let cleaningStatus = JSON.parse(localStorage.getItem("cleaningStatus")) || {};
             logs.forEach(log => {
-                let roomNumber = log.roomNumber; // Ensure roomNumber is defined
+                let roomNumber = log.roomNumber;
                 cleaningStatus[roomNumber] = {
-                    started: (log.status === "in_progress"),
-                    finished: (log.status === "finished"),
+                    started: log.status === "in_progress",
+                    finished: log.status === "finished",
                 };
 
                 let logDate = new Date(log.startTime).toISOString().split('T')[0];
@@ -283,14 +376,12 @@ function loadLogs() {
 
             localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
 
-            if (logTable.innerHTML === "") {
+            if (!logTable.innerHTML.trim()) {
                 logTable.innerHTML = "<tr><td colspan='5'>No logs found for today.</td></tr>";
             }
         })
         .catch(error => console.error("❌ Error fetching logs:", error));
-} // <-- Move this closing bracket here
-
-    // ✅ Update localStorage so it persists after refresh
+}
     // ✅ Update localStorage so it persists after refresh
     
 let cleaningStatus = JSON.parse(localStorage.getItem("cleaningStatus")) || {};
@@ -303,13 +394,46 @@ logs.forEach(log => {
 });
 localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
 
-   function checkAuth() {
-            if (localStorage.getItem("token")) {
-                showDashboard();
-            } else {
-                showLogin();
-            }
+  function checkAuth() {
+    const token = localStorage.getItem("token");
+    
+    if (!token) {
+        console.warn("⚠️ No auth token found. Redirecting to login.");
+        showLogin();
+        return;
+    }
+
+    // Decode token and check expiration
+    const payload = JSON.parse(atob(token.split('.')[1])); // Decode JWT
+    const expTime = payload.exp * 1000; // Convert to milliseconds
+    const currentTime = Date.now();
+
+    if (expTime < currentTime) {
+        console.warn("❌ JWT Token Expired. Logging out...");
+        logout();
+        return;
+    }
+
+    fetch(`${apiUrl}/auth/validate`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.valid) {
+            console.log("✅ Valid token. User is still logged in.");
+            showDashboard();
+        } else {
+            console.warn("❌ Invalid auth token. Logging out.");
+            logout();
         }
+    })
+    .catch(err => {
+        console.error("❌ Error validating auth:", err);
+        logout();
+    });
+}
+
 function formatRoomNumber(roomNumber) {
             return roomNumber.toString().padStart(3, '0');
         }
