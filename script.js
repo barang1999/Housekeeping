@@ -118,9 +118,9 @@ function showLogin() {
     document.getElementById("dashboard").classList.add("hidden");
 }
 
-  function showDashboard() {
+ function showDashboard() {
     console.log("🚀 showDashboard() was called!");
-    
+
     const authSection = document.getElementById("auth-section");
     const dashboard = document.getElementById("dashboard");
 
@@ -129,6 +129,9 @@ function showLogin() {
         return;
     }
 
+    console.log("✅ Auth Section:", authSection);
+    console.log("✅ Dashboard:", dashboard);
+    
     authSection.classList.add("hidden");
     dashboard.classList.remove("hidden");
 
@@ -143,8 +146,7 @@ function showLogin() {
 
     loadRooms();
     loadLogs();
-} // ✅ Closing bracket correctly placed here
-
+}
 
 
     function logout() {
@@ -154,7 +156,7 @@ function showLogin() {
     showLogin();
 }
 
-    function loadRooms() {
+  function loadRooms() {
     const floors = {
         "ground-floor": ["001", "002", "003", "004", "005", "006", "007", "011", "012", "013", "014", "015", "016", "017"],
         "second-floor": ["101", "102", "103", "104", "105", "106", "107", "108", "109", "110", "111", "112", "113", "114", "115", "116", "117"],
@@ -163,7 +165,13 @@ function showLogin() {
 
     Object.keys(floors).forEach(floor => {
         const floorDiv = document.getElementById(floor);
-        floorDiv.innerHTML = "";
+        if (!floorDiv) {
+            console.error(`❌ Missing floor container: ${floor}`);
+            return;
+        }
+
+        floorDiv.innerHTML = ""; // Clear old rooms
+
         floors[floor].forEach(room => {
             const roomDiv = document.createElement("div");
             roomDiv.classList.add("room");
@@ -176,9 +184,11 @@ function showLogin() {
         });
     });
 
-    // Ensure status is restored **after** rooms are loaded
-    setTimeout(restoreCleaningStatus, 100);
+    console.log("✅ Rooms loaded successfully.");
+
+    setTimeout(restoreCleaningStatus, 100); // Ensure statuses update after room elements exist
 }
+
     function toggleFloor(floorId) {
         document.querySelectorAll('.rooms').forEach(roomDiv => roomDiv.style.display = 'none');
         document.getElementById(floorId).style.display = 'block';
@@ -190,7 +200,9 @@ function showLogin() {
         timeZone: "Asia/Phnom_Penh",
         hour12: true 
     });
-}function loadLogs() {
+}
+
+function loadLogs() {
     fetch(`${apiUrl}/logs`)
         .then(response => response.json())
         .then(logs => {
@@ -280,13 +292,37 @@ let cleaningStatus = JSON.parse(localStorage.getItem("cleaningStatus")) || {};
 if (typeof cleaningStatus !== "object" || cleaningStatus === null) {
     cleaningStatus = {}; // Ensure it's an object
 }
-   function checkAuth() {
-            if (localStorage.getItem("authToken")) {
-                showDashboard();
-            } else {
-                showLogin();
-            }
+
+
+  function checkAuth() {
+    const token = localStorage.getItem("authToken");
+
+    if (!token) {
+        console.warn("⚠️ No auth token found. Redirecting to login.");
+        showLogin();
+        return;
+    }
+
+    fetch(`${apiUrl}/auth/validate`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.valid) {
+            console.log("✅ User is still logged in.");
+            showDashboard();
+        } else {
+            console.warn("❌ Invalid auth token. Logging out.");
+            logout();
         }
+    })
+    .catch(err => {
+        console.error("❌ Error validating auth:", err);
+        logout();
+    });
+}
+
 function formatRoomNumber(roomNumber) {
             return roomNumber.toString().padStart(3, '0');
         }
