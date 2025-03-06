@@ -1,35 +1,32 @@
 const apiUrl = "https://housekeeping-production.up.railway.app"; // API calls
 const token = localStorage.getItem("token");
 
-const socket = io(apiUrl, {
-    auth: { token },
-    reconnectionAttempts: 5, // Limit reconnection attempts
-    timeout: 5000 // Set connection timeout
-});
+const token = localStorage.getItem("token"); // Retrieve token
 
- // ✅ WebSocket Event Handlers (Only Added Once)
+if (!token) {
+    console.warn("⚠️ No auth token found. Redirecting to login.");
+    showLogin();
+} else {
+    console.log("✅ Using token for WebSocket:", token);
+
+    const socket = io(apiUrl, {
+        auth: { token }, // Send token for authentication
+        reconnectionAttempts: 5,
+        timeout: 5000
+    });
+
     socket.on("connect", () => {
-    console.log("✅ WebSocket connected");
-    socket.emit("client-ready", { message: "Client is ready" });
-});
+        console.log("✅ WebSocket connected");
+    });
 
-socket.on("connect_error", (err) => {
-    console.error("❌ WebSocket connection error:", err);
-});
+    socket.on("connect_error", (err) => {
+        console.error("❌ WebSocket connection error:", err);
+    });
 
-socket.on("disconnect", (reason) => {
-    console.warn("⚠️ WebSocket disconnected:", reason);
-    setTimeout(() => {
-        if (!socket.connected) {
-            console.log("🔄 Attempting to reconnect...");
-            socket.connect();
-        }
-    }, 5000); // ✅ Prevents excessive reconnection attempts
-});
-
-socket.on("connected", (data) => {
-    console.log("🟢 Server Says:", data.message);
-});
+    socket.on("disconnect", (reason) => {
+        console.warn("⚠️ WebSocket disconnected:", reason);
+    });
+}
 
     // ✅ Live Status Updates from Server
 socket.on("update", (data) => {
@@ -67,59 +64,56 @@ function safeEmit(event, data) {
     socket.emit(event, { ...data, token });
 }
 
+async function ensureValidToken() {
+    let token = localStorage.getItem("token");
+    if (!token) {
+        console.warn("⚠️ No token found. Redirecting to login.");
+        showLogin();
+        return null;
+    }
+
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const expTime = payload.exp * 1000; // Convert to milliseconds
+    const currentTime = Date.now();
+
+    if (expTime < currentTime) {
+        console.warn("❌ JWT Token Expired. Attempting to refresh...");
+
+        return await refreshToken(); // Refresh token if expired
+    }
+    return token;
+}
+
 async function refreshToken() {
-    const refreshToken = localStorage.getItem("refreshToken"); // Store refresh token securely
-    
+    const refreshToken = localStorage.getItem("refreshToken");
     if (!refreshToken) {
-        console.warn("❌ No refresh token found. User must log in again.");
+        console.warn("⚠️ No refresh token. User must log in again.");
         logout();
-        return;
+        return null;
     }
 
     try {
         const response = await fetch(`${apiUrl}/auth/refresh`, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${refreshToken}` // Ensure auth header is included
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ token: refreshToken })
         });
 
         if (!response.ok) {
-            console.warn(`❌ Refresh token request failed with status ${response.status}`);
+            console.warn("❌ Failed to refresh token.");
             logout();
-            return;
+            return null;
         }
 
         const data = await response.json();
-
-        if (data?.token) {
-            console.log("🔄 Token refreshed successfully.");
-            localStorage.setItem("token", data.token);
-
-            // Decode and validate new token's expiration time
-            const payload = JSON.parse(atob(data.token.split('.')[1])); 
-            const expTime = payload.exp * 1000; // Convert to milliseconds
-            const currentTime = Date.now();
-
-            if (expTime < currentTime) {
-                console.warn("❌ Refreshed token is already expired. Logging out.");
-                logout();
-                return;
-            }
-
-            checkAuth(); // Retry authentication with the new token
-        } else {
-            console.warn("❌ Failed to refresh token. Logging out.");
-            logout();
-        }
+        localStorage.setItem("token", data.token);
+        return data.token;
     } catch (error) {
-        console.error("❌ Refresh token request failed:", error);
+        console.error("❌ Error refreshing token:", error);
         logout();
+        return null;
     }
 }
-
 
   
 // ✅ Function to update buttons on all devices
@@ -347,6 +341,11 @@ function loadLogs() {
     fetch(`${apiUrl}/logs`)
         .then(response => response.json())
         .then(logs => {
+            if (!logs || !Array.isArray(logs)) {
+                console.warn("⚠️ No logs found or logs is not an array.");
+                return;
+            }
+
             const logTable = document.querySelector("#logTable tbody");
             logTable.innerHTML = ""; // Clear existing logs
 
@@ -382,6 +381,7 @@ function loadLogs() {
         })
         .catch(error => console.error("❌ Error fetching logs:", error));
 }
+
     // ✅ Update localStorage so it persists after refresh
     
 let cleaningStatus = JSON.parse(localStorage.getItem("cleaningStatus")) || {};
