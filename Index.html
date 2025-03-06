@@ -570,6 +570,10 @@ function applyCleaningStatus(cleaningStatus) {
 
  // ✅ Function to Clear Logs and Reset Buttons
 function clearLogs() {
+    if (!confirm("Are you sure you want to clear all logs? This action cannot be undone.")) {
+        return; // Prevents accidental clearing
+    }
+
     console.log("🧹 Clearing logs...");
     document.querySelector("#logTable tbody").innerHTML = "";
 
@@ -584,23 +588,22 @@ function clearLogs() {
         }
     });
 
-
     // ✅ Broadcast reset event to all devices
     socket.emit("clearLogs");
 
     fetch(`${apiUrl}/logs/clear`, { method: "POST" })
-        .then(() => console.log("✅ Logs cleared on server"))
+        .then(() => {
+            console.log("✅ Logs cleared on server");
+            loadLogs(); // ✅ Refresh logs immediately
+        })
         .catch(error => console.error("❌ Error clearing logs:", error));
 }
 
-// ✅ Handle `clearLogs` event from WebSocket
+// ✅ Listen for Clear Logs Event from Other Devices
 socket.on("clearLogs", () => {
     console.log("🔄 Logs cleared remotely, resetting buttons...");
-
-    // ✅ Reset localStorage
     localStorage.removeItem("cleaningStatus");
 
-    // ✅ Reset buttons to normal state
     document.querySelectorAll(".room button").forEach(button => {
         if (button.id.startsWith("start-")) {
             button.disabled = false;
@@ -609,6 +612,8 @@ socket.on("clearLogs", () => {
             button.disabled = true;
         }
     });
+
+    loadLogs(); // ✅ Refresh logs across all devices
 });
        function exportLogs() {
     const { jsPDF } = window.jspdf;
