@@ -129,8 +129,14 @@ function showLogin() {
     const authSection = document.getElementById("auth-section");
     const dashboard = document.getElementById("dashboard");
 
-    if (authSection) authSection.classList.add("hidden");
-    if (dashboard) dashboard.classList.remove("hidden");
+    if (!authSection || !dashboard) {
+        console.error("❌ Error: Missing dashboard/auth-section elements!");
+        return;
+    }
+
+    authSection.classList.add("hidden");
+    dashboard.classList.remove("hidden");
+}
 
     const username = localStorage.getItem("username") || "User";
     const userNameElement = document.getElementById("user-name");
