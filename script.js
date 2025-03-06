@@ -13,9 +13,17 @@ if (!token) {
         timeout: 5000
     });
 
-    socket.on("connect", () => {
-        console.log("✅ WebSocket connected");
-    });
+    socket.on("connect_error", async (err) => {
+    console.error("❌ WebSocket connection error:", err);
+
+    if (err.message.includes("Invalid token")) {
+        console.warn("🔄 Attempting token refresh...");
+        await refreshToken();
+        socket.auth = { token: localStorage.getItem("token") }; // ✅ Use the new token
+        socket.connect();
+    }
+});
+
 
     socket.on("connect_error", (err) => {
         console.error("❌ WebSocket connection error:", err);
