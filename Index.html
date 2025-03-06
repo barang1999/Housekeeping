@@ -197,7 +197,7 @@ document.addEventListener("DOMContentLoaded", function() {
             return;
         }
 
-        fetch(`${apiUrl}/auth/login`, {
+        fetch("https://housekeeping-production.up.railway.app/auth/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ username, password })
@@ -218,15 +218,16 @@ document.addEventListener("DOMContentLoaded", function() {
             alert("⚠️ Failed to log in.");
         });
     };
+
+    window.toggleAuth = function() {
+        const signupForm = document.getElementById("signup-form");
+        if (signupForm) {
+            signupForm.classList.toggle("hidden");
+        } else {
+            console.error("❌ Error: Signup form element not found!");
+        }
+    };
 });
-window.toggleAuth = function() {
-    const signupForm = document.getElementById("signup-form");
-    if (signupForm) {
-        signupForm.classList.toggle("hidden");
-    } else {
-        console.error("❌ Error: Signup form element not found!");
-    }
-};
 
 
          function signUp() {
