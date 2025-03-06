@@ -39,19 +39,20 @@ const io = new Server(server, {
     }
 });
 
-/// ✅ WebSocket Connection Authentication
+/// ✅ WebSocket Connection Authentication (Fix Applied)
 io.use((socket, next) => {
-    let token = socket.handshake.auth?.token || (socket.handshake.headers.authorization ? socket.handshake.headers.authorization.split(" ")[1] : null);
+    let token = socket.handshake.auth?.token || 
+                (socket.handshake.headers.authorization ? socket.handshake.headers.authorization.split(" ")[1] : null);
 
     if (!token) {
         console.warn("❌ WebSocket Authentication Failed: No token provided.");
-        return next(new Error("Authentication error: No token"));
+        return next(new Error("Authentication error: No token provided"));
     }
 
     jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
         if (err) {
             console.warn("❌ WebSocket Authentication Failed:", err.message);
-            return next(new Error("Authentication error: Invalid token"));
+            return next(new Error("Authentication error: Invalid or expired token"));
         }
         
         socket.user = decoded;
@@ -59,6 +60,7 @@ io.use((socket, next) => {
         next();
     });
 });
+
 
 io.on("connection", (socket) => {
     console.log(`⚡ New WebSocket client connected: ${socket.user.username}`);
