@@ -492,16 +492,27 @@ function restoreCleaningStatus() {
         })
         .catch(error => console.error("❌ Error fetching logs:", error));
 }
-   // ✅ Live Status Updates from Server
-socket.on("update", (data) => {
-    console.log("📢 Live Update Received:", data);
-    
-    // Ensure the update applies to the button status
-    updateButtonStatus(data.roomNumber, data.status);
+ 
 
-    // Refresh logs instantly on all devices
-    loadLogs();
+// ✅ Live Update from Server
+socket.on("update", (data) => {
+    console.log("🔄 Live Update Received:", data);
+    updateButtonStatus(data.roomNumber, data.status);
+    io.emit("update", data);  // Broadcast update to all clients
+    loadLogs();  // Refresh logs instantly
 });
+
+        // ✅ Function to attempt reconnection
+function attemptReconnect() {
+    const reconnectInterval = setInterval(() => {
+        if (!socket.connected) {
+            console.log("🔄 Attempting to reconnect...");
+            socket.connect();
+        } else {
+            clearInterval(reconnectInterval); // Stop retrying once reconnected
+        }
+    }, 5000);
+}
         // ✅ Function to update buttons on all devices
 function updateButtonStatus(roomNumber, status) {
     if (!status) {
