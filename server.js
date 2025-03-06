@@ -223,6 +223,18 @@ app.get("/logs", async (req, res) => {
     }
 });
 
+app.post("/logs/clear", async (req, res) => {
+    try {
+        await CleaningLog.deleteMany({}); // Deletes all logs
+        io.emit("clearLogs"); // Notify all clients
+        res.status(200).json({ message: "All logs cleared" });
+    } catch (error) {
+        console.error("❌ Error clearing logs:", error);
+        res.status(500).json({ message: "Server error", error });
+    }
+});
+
+
 // 🏠 Home Route
 app.get("/", (req, res) => {
     res.send("Housekeeping Management API is Running 🚀");
