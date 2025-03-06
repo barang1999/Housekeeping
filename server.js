@@ -138,20 +138,29 @@ app.get("/logs/status", async (req, res) => {
     try {
         const logs = await CleaningLog.find();
         let status = {};
+
+        // ✅ Process logs first
         logs.forEach(log => {
             status[log.roomNumber] = log.finishTime ? "finished" : "in_progress";
-            // ✅ Ensure all rooms have a status
-        const allRooms = [...Array(20).keys()].map(i => i + 1); // Example: Room 1 to 20
+        });
+
+        // ✅ Ensure all rooms have a default status (Room 1 to 20)
+        const allRooms = [...Array(20).keys()].map(i => i + 1);
         allRooms.forEach(room => {
             if (!status[room]) {
                 status[room] = "not_started"; // Default status
             }
         });
+
+        // ✅ Send response after processing all data
         res.json(status);
+
     } catch (error) {
+        console.error("❌ Error fetching room status:", error);
         res.status(500).json({ message: "Server error", error });
     }
 });
+
 
 // 🚀 Start Cleaning
 app.post("/logs/start", async (req, res) => {
