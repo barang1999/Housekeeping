@@ -69,10 +69,12 @@ window.login = function(event) {
     })
     .then(response => response.json())
     .then(data => {
+        console.log("🔄 Login API Response:", data); // Debugging response
         if (data?.token) { 
             localStorage.setItem("authToken", data.token);
             localStorage.setItem("username", username);
             alert("✅ Login successful!");
+            console.log("🚀 Attempting to showDashboard()");
             showDashboard(); // Ensure this function is working
         } else {
             alert("❌ Invalid username or password.");
@@ -140,6 +142,7 @@ function showLogin() {
 
     if (userNameElement) {
         userNameElement.textContent = username;
+        console.log("✅ Username updated in UI.");
     } else {
         console.warn("⚠️ User name element not found!");
     }
