@@ -3,11 +3,9 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const http = require("http");
-const { Server } = require("socket.io");  // ✅ Correct Import
+const { Server } = require("socket.io");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-
-
 
 // ✅ Ensure MongoDB URI exists
 const mongoURI = process.env.MONGO_URI;
@@ -19,17 +17,17 @@ console.log("🔍 Connecting to MongoDB...");
 
 // ✅ Initialize Express
 const app = express();
-app.use(express.json()); // ✅ Fix "undefined body" issue
+app.use(express.json());
 
 // ✅ Proper CORS Configuration
 app.use(cors({
     origin: [
         "https://housekeepingmanagement.netlify.app", 
         "http://localhost:10000",
-        "http://localhost:3000" // ✅ Allow frontend running on different ports
+        "http://localhost:3000"
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],    
-    allowedHeaders: ["Content-Type", "Authorization"] // ✅ Allow Authorization headers
+    allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
 // ✅ Create HTTP & WebSocket Server
@@ -41,10 +39,9 @@ const io = new Server(server, {
     }
 });
 
-/// ✅ WebSocket Connection
-
+/// ✅ WebSocket Connection Authentication
 io.use((socket, next) => {
-    const token = socket.handshake.auth?.token || socket.handshake.headers.authorization?.split(" ")[1];
+    let token = socket.handshake.auth?.token || (socket.handshake.headers.authorization ? socket.handshake.headers.authorization.split(" ")[1] : null);
 
     if (!token) {
         console.warn("❌ WebSocket Authentication Failed: No token provided.");
@@ -53,11 +50,11 @@ io.use((socket, next) => {
 
     jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
         if (err) {
-            console.warn("❌ WebSocket Authentication Failed: Invalid token.");
+            console.warn("❌ WebSocket Authentication Failed:", err.message);
             return next(new Error("Authentication error: Invalid token"));
         }
         
-        socket.user = decoded; // Attach user info to socket
+        socket.user = decoded;
         console.log(`✅ WebSocket Authenticated: ${decoded.username}`);
         next();
     });
@@ -67,32 +64,18 @@ io.on("connection", (socket) => {
     console.log(`⚡ New WebSocket client connected: ${socket.user.username}`);
     socket.emit("connected", { message: "WebSocket authenticated successfully", user: socket.user });
 
-    // Handle disconnections
     socket.on("disconnect", (reason) => {
         console.log(`🔴 WebSocket client disconnected: ${socket.user.username}, Reason: ${reason}`);
     });
 });
 
-
-// ✅ Connect to MongoDB
-mongoose.connect(mongoURI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-})
-.then(() => console.log("✅ MongoDB Connected Successfully"))
-.catch(err => {
-    console.error("❌ MongoDB connection error:", err);
-    process.exit(1);
-});
-
-// Graceful shutdown on process exit
-process.on("SIGINT", async () => {
-    console.log("🔴 Closing MongoDB connection...");
-    await mongoose.connection.close();
-    process.exit(0);
-});
-
-
+// ✅ Connect to MongoDB (Updated - No deprecated options)
+mongoose.connect(mongoURI)
+    .then(() => console.log("✅ MongoDB Connected Successfully"))
+    .catch(err => {
+        console.error("❌ MongoDB connection error:", err);
+        process.exit(1);
+    });
 
 // ✅ Define MongoDB Schemas
 const userSchema = new mongoose.Schema({
@@ -110,14 +93,12 @@ const logSchema = new mongoose.Schema({
 });
 const CleaningLog = mongoose.model("CleaningLog", logSchema);
 
-// ✅ API Routes
+// ✅ Authentication Routes
 
+// 🔐 Login
 app.post("/auth/login", async (req, res) => {
     const { username, password } = req.body;
-
-    if (!username || !password) {
-        return res.status(400).json({ message: "Missing fields" });
-    }
+    if (!username || !password) return res.status(400).json({ message: "Missing fields" });
 
     try {
         const user = await User.findOne({ username });
@@ -126,7 +107,6 @@ app.post("/auth/login", async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
 
-        // ✅ Generate JWT token
         const token = jwt.sign({ username: user.username }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
         res.status(200).json({ message: "Login successful", token, username });
@@ -135,8 +115,6 @@ app.post("/auth/login", async (req, res) => {
     }
 });
 
-
-
 // 🔐 User Signup
 app.post("/auth/signup", async (req, res) => {
     const { username, password } = req.body;
@@ -144,7 +122,7 @@ app.post("/auth/signup", async (req, res) => {
         const existingUser = await User.findOne({ username });
         if (existingUser) return res.status(400).json({ message: "User already exists." });
 
-        const hashedPassword = await bcrypt.hash(password, 10); // ✅ Secure password storage
+        const hashedPassword = await bcrypt.hash(password, 10);
         const newUser = new User({ username, password: hashedPassword });
         await newUser.save();
         res.status(201).json({ message: "User registered successfully!" });
@@ -154,16 +132,13 @@ app.post("/auth/signup", async (req, res) => {
     }
 });
 
+// ✅ Validate Token Route
 app.get("/auth/validate", (req, res) => {
-    const token = req.headers.authorization?.split(" ")[1]; // Extract token
-    if (!token) {
-        return res.status(401).json({ valid: false, message: "No token provided" });
-    }
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ valid: false, message: "No token provided" });
 
     jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-        if (err) {
-            return res.status(401).json({ valid: false, message: "Invalid token" });
-        }
+        if (err) return res.status(401).json({ valid: false, message: "Invalid token" });
         res.json({ valid: true, user: decoded });
     });
 });
