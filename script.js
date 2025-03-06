@@ -280,17 +280,37 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
     // ✅ Update localStorage so it persists after refresh
-    // ✅ Update localStorage so it persists after refresh
     
+// ✅ Ensure localStorage persists after refresh
 let cleaningStatus = JSON.parse(localStorage.getItem("cleaningStatus")) || {};
+if (typeof cleaningStatus !== "object" || cleaningStatus === null) {
+    cleaningStatus = {}; // Ensure it's an object
+}
+
 logs.forEach(log => {
-    let roomNumber = log.roomNumber; // Ensure roomNumber is defined
+    let roomNumber = log.roomNumber ? String(log.roomNumber).trim() : null;
+
+    if (!roomNumber) {
+        console.warn("⚠️ Skipping log: roomNumber is missing or invalid!", log);
+        return;
+    }
+
+    const validStatuses = ["in_progress", "finished"];
+    if (!validStatuses.includes(log.status)) {
+        console.warn(`⚠️ Skipping invalid status for Room ${roomNumber}:`, log.status);
+        return;
+    }
+
     cleaningStatus[roomNumber] = {
-        started: (log.status === "in_progress"),
-        finished: (log.status === "finished"),
+        started: log.status === "in_progress",
+        finished: log.status === "finished",
     };
 });
+
+// ✅ Store the cleaned data back into localStorage
 localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
+
+
 
    function checkAuth() {
             if (localStorage.getItem("authToken")) {
