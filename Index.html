@@ -365,12 +365,11 @@ function showLogin() {
             });
             
             logs.forEach(log => {
-                let roomNumber = log.roomNumber; // Ensure roomNumber is defined
-                cleaningStatus[roomNumber] = {
-                    started: (log.status === "in_progress"),
-                    finished: (log.status === "finished"),
-                };
-
+                 if (!log.roomNumber || !Number.isInteger(log.roomNumber)) return; // Prevents undefined/invalid room errors
+                let roomNumber = String(log.roomNumber).trim(); // Ensure roomNumber is always a valid string
+                let status = log.status || "not_started"; // ✅ Default to "not_started" if missing
+                cleaningStatus[roomNumber] = status;
+                updateButtonStatus(roomNumber, status); // ✅ Update UI
                 let logDate = new Date(log.startTime).toISOString().split('T')[0];
                 if (logDate === today) {
                     const row = document.createElement("tr");
@@ -382,8 +381,6 @@ function showLogin() {
                         <td>${log.finishedBy || "-"}</td>
                     `;
                     logTable.appendChild(row);
-                    // ✅ Update button states on all devices
-                updateButtonStatus(log.roomNumber, log.status);
                 }
             });
 
