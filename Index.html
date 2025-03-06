@@ -278,11 +278,11 @@ window.login = function() {
     }
 };
 
-        window.addEventListener("load", () => {
+       window.addEventListener("load", () => {
     const token = localStorage.getItem("authToken");
 
     if (token) {
-        fetch("https://housekeeping-production.up.railway.app/auth/validate", {  // ✅ Correct API route
+        fetch(`${apiUrl}/auth/validate`, {  // Ensure this endpoint correctly validates the token
             method: "GET",
             headers: { Authorization: `Bearer ${token}` }
         })
@@ -293,14 +293,21 @@ window.login = function() {
         .then(data => {
             if (data.valid) {
                 console.log("✅ User is still logged in");
+                showDashboard(); // ✅ Automatically show dashboard if authenticated
             } else {
                 console.log("❌ Invalid token, logging out...");
-                localStorage.removeItem("authToken"); 
+                logout(); // Logout user if token is invalid
             }
         })
-        .catch(err => console.error("❌ Auth validation failed:", err));
+        .catch(err => {
+            console.error("❌ Auth validation failed:", err);
+            logout();
+        });
+    } else {
+        showLogin(); // Ensure login form is displayed if there's no token
     }
 });
+
 
 
 function showLogin() {
@@ -312,7 +319,6 @@ function showLogin() {
     document.getElementById("auth-section").classList.add("hidden");
     document.getElementById("dashboard").classList.remove("hidden");
 
-    // ✅ Ensure username is retrieved from localStorage so it persists after refresh
     const username = localStorage.getItem("username") || "User";
     document.getElementById("user-name").textContent = username;
 
@@ -325,8 +331,9 @@ function showLogin() {
     console.log("🔴 Logging out...");
     localStorage.removeItem("authToken");
     localStorage.removeItem("username");
-    location.reload(); // Refresh page to reset state
+    showLogin(); // Redirect to login instead of reloading
 }
+
         
 
 
