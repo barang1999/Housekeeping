@@ -1,8 +1,6 @@
 const apiUrl = "https://housekeeping-production.up.railway.app"; // API calls
 const token = localStorage.getItem("token");
 
-const token = localStorage.getItem("token"); // Retrieve token
-
 if (!token) {
     console.warn("⚠️ No auth token found. Redirecting to login.");
     showLogin();
