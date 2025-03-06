@@ -337,6 +337,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
+// ✅ Ensure `logs` is defined before using it
 function loadLogs() {
     fetch(`${apiUrl}/logs`)
         .then(response => response.json())
@@ -381,19 +382,14 @@ function loadLogs() {
         })
         .catch(error => console.error("❌ Error fetching logs:", error));
 }
-
-    // ✅ Update localStorage so it persists after refresh
-    
-let cleaningStatus = JSON.parse(localStorage.getItem("cleaningStatus")) || {};
-logs.forEach(log => {
-    let roomNumber = log.roomNumber; // Ensure roomNumber is defined
-    cleaningStatus[roomNumber] = {
-        started: (log.status === "in_progress"),
-        finished: (log.status === "finished"),
-    };
+// ✅ Fix `logs` undefined issue
+document.addEventListener("DOMContentLoaded", () => {
+    if (typeof logs !== "undefined" && Array.isArray(logs)) {
+        console.log("✅ Logs found:", logs);
+    } else {
+        console.warn("⚠️ Logs variable is not defined or is not an array. Skipping...");
+    }
 });
-localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
-
   function checkAuth() {
     const token = localStorage.getItem("token");
     
@@ -497,14 +493,11 @@ function clearLogs() {
         .catch(error => console.error("❌ Error clearing logs:", error));
 }
 
-// ✅ Handle `clearLogs` event from WebSocket
+// ✅ Fix duplicate event listeners
 socket.on("clearLogs", () => {
     console.log("🔄 Logs cleared remotely, resetting buttons...");
-
-    // ✅ Reset localStorage
     localStorage.removeItem("cleaningStatus");
 
-    // ✅ Reset buttons to normal state
     document.querySelectorAll(".room button").forEach(button => {
         if (button.id.startsWith("start-")) {
             button.disabled = false;
