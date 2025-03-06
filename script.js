@@ -49,11 +49,6 @@ function safeEmit(event, data) {
         console.log("✅ toggleAuth function is now defined!");
     };
 });
-document.addEventListener("DOMContentLoaded", function() {
-    console.log("✅ JavaScript is loaded!");
-    window.login = function() { console.log("✅ Login function is now defined!"); };
-    window.toggleAuth = function() { console.log("✅ toggleAuth function is now defined!"); };
-});
 
 // ✅ Fix API Requests
 window.login = function(event) {  
