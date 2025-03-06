@@ -82,7 +82,16 @@ mongoose.connect(mongoURI, {
 .then(() => console.log("✅ MongoDB Connected Successfully"))
 .catch(err => {
     console.error("❌ MongoDB connection error:", err);
+    process.exit(1);
 });
+
+// Graceful shutdown on process exit
+process.on("SIGINT", async () => {
+    console.log("🔴 Closing MongoDB connection...");
+    await mongoose.connection.close();
+    process.exit(0);
+});
+
 
 
 // ✅ Define MongoDB Schemas
