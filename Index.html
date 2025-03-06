@@ -222,7 +222,7 @@ window.login = function() {
     .then(data => {
         console.log("🟢 API Response:", data);
         if (data?.token) { // ✅ Use optional chaining
-            localStorage.setItem("token", data.token);
+            localStorage.setItem("authToken", data.token);
             localStorage.setItem("username", username);
             showDashboard();
         } else {

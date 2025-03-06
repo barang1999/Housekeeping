@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const http = require("http");
 const socketIo = require("socket.io");
+const bcrypt = require("bcrypt");
 
 // ✅ Ensure MongoDB URI exists
 const mongoURI = process.env.MONGO_URI;
@@ -26,13 +27,12 @@ app.use(cors({
 
 // ✅ Create HTTP & WebSocket Server
 const server = http.createServer(app);
-const io = new Server(server, {
+const io = socketIo(server, {
     cors: {
         origin: "https://housekeepingmanagement.netlify.app",
         methods: ["GET", "POST"]
     }
 });
-
 /// ✅ WebSocket Connection
 io.on("connection", (socket) => {
     console.log("⚡ New WebSocket client connected:", socket.id);
@@ -85,21 +85,38 @@ app.post("/auth/login", async (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password) {
+        console.error("❌ Missing login fields:", { username, password });
         return res.status(400).json({ message: "Missing fields" });
     }
 
     try {
+        console.log("🔍 Checking user in database...");
         const user = await User.findOne({ username });
-        if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
+        if (!user) {
+            console.warn(`⚠️ No user found for username: ${username}`);
+            return res.status(401).json({ message: "Invalid credentials" });
+        }
+
+        console.log("🔐 Stored password (hashed):", user.password);
         const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
 
-        res.status(200).json({ message: "Login successful", token: `mock-token-${Date.now()}`, username });
+        if (!isMatch) {
+            console.warn("❌ Password mismatch for user:", username);
+            return res.status(401).json({ message: "Invalid credentials" });
+        }
+
+        const token = jwt.sign({ username }, SECRET_KEY, { expiresIn: "1h" });
+
+        console.log("✅ Login successful for:", username);
+        res.status(200).json({ message: "Login successful", token, username });
+
     } catch (error) {
+        console.error("❌ Login Error:", error);
         res.status(500).json({ message: "Server error", error });
     }
 });
+
 
 
 // 🔐 User Signup
