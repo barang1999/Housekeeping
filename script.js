@@ -134,8 +134,11 @@ function showLogin() {
     console.log("✅ Auth Section:", authSection);
     console.log("✅ Dashboard:", dashboard);
     
-    authSection.classList.add("hidden");
     dashboard.classList.remove("hidden");
+    dashboard.style.display = "block"; // ✅ Force visibility
+    authSection.classList.add("hidden");
+    authSection.style.display = "none"; // ✅ Hide login form
+
 
     const username = localStorage.getItem("username") || "User";
     const userNameElement = document.getElementById("user-name");
@@ -310,8 +313,12 @@ if (typeof cleaningStatus !== "object" || cleaningStatus === null) {
         method: "GET",
         headers: { Authorization: `Bearer ${token}` }
     })
-    .then(res => res.json())
+    .then(res => {
+        if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+        return res.json();
+    })
     .then(data => {
+        console.log("🔄 Auth check response:", data); // ✅ Debug response
         if (data.valid) {
             console.log("✅ User is still logged in.");
             showDashboard();
