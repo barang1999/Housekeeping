@@ -140,6 +140,12 @@ app.get("/logs/status", async (req, res) => {
         let status = {};
         logs.forEach(log => {
             status[log.roomNumber] = log.finishTime ? "finished" : "in_progress";
+            // ✅ Ensure all rooms have a status
+        const allRooms = [...Array(20).keys()].map(i => i + 1); // Example: Room 1 to 20
+        allRooms.forEach(room => {
+            if (!status[room]) {
+                status[room] = "not_started"; // Default status
+            }
         });
         res.json(status);
     } catch (error) {
