@@ -187,7 +187,8 @@ function safeEmit(event, data) {
 }
 
 // ✅ Fix API Requests
-window.login = function() {  
+document.addEventListener("DOMContentLoaded", function() {
+    window.login = function() {  
     const username = document.getElementById("login-username").value.trim();
     const password = document.getElementById("login-password").value.trim();
 
@@ -229,6 +230,18 @@ window.login = function() {
 
 
 
+  window.toggleAuth = function() {
+    const signupForm = document.getElementById("signup-form");
+    if (signupForm) {
+        signupForm.classList.toggle("hidden");
+    } else {
+        console.error("❌ Error: Signup form element not found!");
+    }
+};
+});
+
+
+
          function signUp() {
     const username = document.getElementById("signup-username").value;
     const password = document.getElementById("signup-password").value;
@@ -247,46 +260,7 @@ window.login = function() {
     })
     .catch(error => console.log("Error:", error));
 }
-       window.toggleAuth = function() {
-    const signupForm = document.getElementById("signup-form");
-    if (signupForm) {
-        signupForm.classList.toggle("hidden");
-    } else {
-        console.error("❌ Error: Signup form element not found!");
-    }
-};
-
-       window.addEventListener("load", () => {
-    const token = localStorage.getItem("authToken");
-
-    if (token) {
-        fetch(`${apiUrl}/auth/validate`, {  // Ensure this endpoint correctly validates the token
-            method: "GET",
-            headers: { Authorization: `Bearer ${token}` }
-        })
-        .then(res => {
-            if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
-            return res.json();
-        })
-        .then(data => {
-            if (data.valid) {
-                console.log("✅ User is still logged in");
-                showDashboard(); // ✅ Automatically show dashboard if authenticated
-            } else {
-                console.log("❌ Invalid token, logging out...");
-                logout(); // Logout user if token is invalid
-            }
-        })
-        .catch(err => {
-            console.error("❌ Auth validation failed:", err);
-            logout();
-        });
-    } else {
-        showLogin(); // Ensure login form is displayed if there's no token
-    }
-});
-
-
+     
 
 function showLogin() {
     document.getElementById("auth-section").classList.remove("hidden");
@@ -309,7 +283,12 @@ function showLogin() {
     console.log("🔴 Logging out...");
     localStorage.removeItem("authToken");
     localStorage.removeItem("username");
-    showLogin(); // Redirect to login instead of reloading
+    showLogin();
+}
+
+function showLogin() {
+    document.getElementById("auth-section").classList.remove("hidden");
+    document.getElementById("dashboard").classList.add("hidden");
 }
 
     function loadRooms() {
@@ -735,6 +714,37 @@ socket.on("clearLogs", () => {
 
     pdf.save("cleaning_logs_today.pdf");
 }
+          window.addEventListener("load", () => {
+    const token = localStorage.getItem("authToken");
+
+    if (token) {
+        fetch(`${apiUrl}/auth/validate`, {  // Ensure this endpoint correctly validates the token
+            method: "GET",
+            headers: { Authorization: `Bearer ${token}` }
+        })
+        .then(res => {
+            if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+            return res.json();
+        })
+        .then(data => {
+            if (data.valid) {
+                console.log("✅ User is still logged in");
+                showDashboard(); // ✅ Automatically show dashboard if authenticated
+            } else {
+                console.log("❌ Invalid token, logging out...");
+                logout(); // Logout user if token is invalid
+            }
+        })
+        .catch(err => {
+            console.error("❌ Auth validation failed:", err);
+            logout();
+        });
+    } else {
+        showLogin(); // Ensure login form is displayed if there's no token
+    }
+});
+
+
        
 </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
