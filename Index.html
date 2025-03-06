@@ -353,9 +353,15 @@ function showLogin() {
     fetch(`${apiUrl}/logs`)
         .then(response => response.json())
         .then(logs => {
+            if (!Array.isArray(logs)) {
+                console.warn("⚠️ Logs response is not an array.");
+                return;
+            }
             const logTable = document.querySelector("#logTable tbody");
             logTable.innerHTML = ""; // Clear existing logs
             let cleaningStatus = JSON.parse(localStorage.getItem("cleaningStatus")) || {};
+            let updatesMade = false;
+            
             const today = new Date().toISOString().split('T')[0];
              // ✅ Sort logs: First, show unfinished logs, then sort by finishTime (ascending)
             logs.sort((a, b) => {
@@ -365,11 +371,15 @@ function showLogin() {
             });
             
             logs.forEach(log => {
-                 if (!log.roomNumber || !Number.isInteger(log.roomNumber)) return; // Prevents undefined/invalid room errors
+                if (!log.roomNumber) return;
+                
                 let roomNumber = String(log.roomNumber).trim(); // Ensure roomNumber is always a valid string
                 let status = log.status || "not_started"; // ✅ Default to "not_started" if missing
-                cleaningStatus[roomNumber] = status;
-                updateButtonStatus(roomNumber, status); // ✅ Update UI
+                if (cleaningStatus[roomNumber] !== status) {
+                    cleaningStatus[roomNumber] = status;
+                    updateButtonStatus(roomNumber, status);
+                    updatesMade = true;
+                }
                 let logDate = new Date(log.startTime).toISOString().split('T')[0];
                 if (logDate === today) {
                     const row = document.createElement("tr");
@@ -384,7 +394,9 @@ function showLogin() {
                 }
             });
 
-            localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
+            if (updatesMade) {
+                localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
+                console.log("✅ Cleaning status updated.");
 
             if (logTable.innerHTML === "") {
                 logTable.innerHTML = "<tr><td colspan='5'>No logs found for today.</td></tr>";
@@ -447,21 +459,23 @@ function restoreCleaningStatus() {
         const startButton = document.getElementById(`start-${roomNumber}`);
         const finishButton = document.getElementById(`finish-${roomNumber}`);
 
-        if (startButton && finishButton) {
-            if (cleaningStatus[roomNumber] === "in_progress") {
-                startButton.disabled = true;
-                finishButton.disabled = false;
-            } else if (cleaningStatus[roomNumber] === "finished") {
-                startButton.disabled = true;
-                finishButton.disabled = true;
-            }
+        if (!startButton || !finishButton) {
+            console.warn(`⚠️ Buttons for Room ${roomNumber} not found.`);
+            return;
+        }
+
+        if (cleaningStatus[roomNumber] === "in_progress") {
+            startButton.disabled = true;
+            finishButton.disabled = false;
+        } else if (cleaningStatus[roomNumber] === "finished") {
+            startButton.disabled = true;
+            finishButton.disabled = true;
         }
     });
     
     fetch(`${apiUrl}/logs`)
         .then(response => response.json())
         .then(logs => {
-            console.log("Retrieved logs:", logs);  // Add this line
             if (!logs || logs.length === 0) {
                 console.warn("⚠️ No logs found to restore.");
                 return;
@@ -471,17 +485,17 @@ function restoreCleaningStatus() {
                 const roomNumber = log.roomNumber;
                 const startButton = document.getElementById(`start-${log.roomNumber}`);
                 const finishButton = document.getElementById(`finish-${log.roomNumber}`);
-
-                if (startButton && finishButton) {
-                    if (log.status === "in_progress" && cleaningStatus[roomNumber] !== "in_progress") {
-                        startButton.disabled = true;
-                        finishButton.disabled = false;
-                        cleaningStatus[roomNumber] = "in_progress";
-                    } else if(log.status === "finished" && cleaningStatus[roomNumber] !== "finished") {
-                        startButton.disabled = true;
-                        finishButton.disabled = true;
-                        cleaningStatus[roomNumber] = "finished";
-                    }
+                
+                 if (!startButton || !finishButton) return;
+                
+                if (log.status === "in_progress") {
+                    startButton.disabled = true;
+                    finishButton.disabled = false;
+                    cleaningStatus[roomNumber] = "in_progress";
+                } else if (log.status === "finished") {
+                    startButton.disabled = true;
+                    finishButton.disabled = true;
+                    cleaningStatus[roomNumber] = "finished";
                 }
             });
             // ✅ Store the latest status in localStorage
@@ -495,7 +509,6 @@ function restoreCleaningStatus() {
 socket.on("update", (data) => {
     console.log("🔄 Live Update Received:", data);
     updateButtonStatus(data.roomNumber, data.status);
-    io.emit("update", data);  // Broadcast update to all clients
     loadLogs();  // Refresh logs instantly
 });
 
@@ -518,15 +531,19 @@ function updateButtonStatus(roomNumber, status) {
     }
     const startButton = document.getElementById(`start-${roomNumber}`);
     const finishButton = document.getElementById(`finish-${roomNumber}`);
+    
 
-   if (startButton && finishButton) {
-        if (status === "in_progress") {
-            startButton.disabled = true;
-            finishButton.disabled = false;
-        } else if (status === "finished") {
-            startButton.disabled = true;
-            finishButton.disabled = true;
-        }
+   if (!startButton || !finishButton) {
+        console.warn(`⚠️ Buttons for Room ${roomNumber} not found.`);
+        return;
+    }
+
+    if (status === "in_progress") {
+        startButton.disabled = true;
+        finishButton.disabled = false;
+    } else if (status === "finished") {
+        startButton.disabled = true;
+        finishButton.disabled = true;
     }
 
     // ✅ Store in localStorage for persistence
