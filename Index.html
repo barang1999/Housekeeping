@@ -456,9 +456,9 @@ function loadLogs() {
             const today = new Date().toISOString().split('T')[0];
              // ✅ Sort logs: First, show unfinished logs, then sort by finishTime (ascending)
             logs.sort((a, b) => {
-                if (!a.finishTime) return -1; // Unfinished logs come first
-                if (!b.finishTime) return 1;
-                return new Date(a.finishTime) - new Date(b.finishTime); // Sort by finishTime
+                if (!a.finishTime && b.finishTime) return -1; // Unfinished logs come first
+                if (a.finishTime && !b.finishTime) return 1;
+                return new Date(b.startTime) - new Date(a.startTime); // Sort by latest startTime
             });
             let cleaningStatus = JSON.parse(localStorage.getItem("cleaningStatus")) || {};
             logs.forEach(log => {
