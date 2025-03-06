@@ -56,7 +56,9 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 // ✅ Fix API Requests
-window.login = function() {  
+window.login = function(event) {  
+    if (event) event.preventDefault(); // Prevents page reload
+    
     const username = document.getElementById("login-username").value.trim();
     const password = document.getElementById("login-password").value.trim();
 
@@ -65,7 +67,7 @@ window.login = function() {
         return;
     }
 
-    fetch("https://housekeeping-production.up.railway.app/auth/login", {
+    fetch(`${apiUrl}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password })
@@ -76,7 +78,7 @@ window.login = function() {
             localStorage.setItem("authToken", data.token);
             localStorage.setItem("username", username);
             alert("✅ Login successful!");
-            showDashboard();
+            showDashboard(); // Ensure this function is working
         } else {
             alert("❌ Invalid username or password.");
         }
@@ -122,11 +124,22 @@ function showLogin() {
 }
 
    function showDashboard() {
-    document.getElementById("auth-section").classList.add("hidden");
-    document.getElementById("dashboard").classList.remove("hidden");
+    console.log("🚀 showDashboard() was called!");
+    
+    const authSection = document.getElementById("auth-section");
+    const dashboard = document.getElementById("dashboard");
+
+    if (authSection) authSection.classList.add("hidden");
+    if (dashboard) dashboard.classList.remove("hidden");
 
     const username = localStorage.getItem("username") || "User";
-    document.getElementById("user-name").textContent = username;
+    const userNameElement = document.getElementById("user-name");
+    
+    if (userNameElement) {
+        userNameElement.textContent = username;
+    } else {
+        console.warn("⚠️ User name element not found!");
+    }
 
     loadRooms();
     loadLogs();
