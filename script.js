@@ -279,39 +279,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-    // ✅ Update localStorage so it persists after refresh
     
 // ✅ Ensure localStorage persists after refresh
 let cleaningStatus = JSON.parse(localStorage.getItem("cleaningStatus")) || {};
 if (typeof cleaningStatus !== "object" || cleaningStatus === null) {
     cleaningStatus = {}; // Ensure it's an object
 }
-
-logs.forEach(log => {
-    let roomNumber = log.roomNumber ? String(log.roomNumber).trim() : null;
-
-    if (!roomNumber) {
-        console.warn("⚠️ Skipping log: roomNumber is missing or invalid!", log);
-        return;
-    }
-
-    const validStatuses = ["in_progress", "finished"];
-    if (!validStatuses.includes(log.status)) {
-        console.warn(`⚠️ Skipping invalid status for Room ${roomNumber}:`, log.status);
-        return;
-    }
-
-    cleaningStatus[roomNumber] = {
-        started: log.status === "in_progress",
-        finished: log.status === "finished",
-    };
-});
-
-// ✅ Store the cleaned data back into localStorage
-localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
-
-
-
    function checkAuth() {
             if (localStorage.getItem("authToken")) {
                 showDashboard();
@@ -434,6 +407,47 @@ function updateButtonStatus(roomNumber, status) {
     localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
     console.log(`✅ Updated status for Room ${roomNumber}: ${status}`);
 } // <-- This closing bracket should be here, not earlier!
+
+function updateCleaningStatus(logs) {
+    if (!Array.isArray(logs)) {
+        console.warn("⚠️ Logs data is not an array:", logs);
+        return;
+    }
+
+    let cleaningStatus = JSON.parse(localStorage.getItem("cleaningStatus")) || {};
+    if (typeof cleaningStatus !== "object" || cleaningStatus === null) {
+        cleaningStatus = {}; // Ensure it's an object
+    }
+
+    logs.forEach(log => {
+        let roomNumber = log.roomNumber ? String(log.roomNumber).trim() : null;
+
+        if (!roomNumber) {
+            console.warn("⚠️ Skipping log: roomNumber is missing or invalid!", log);
+            return;
+        }
+
+        const validStatuses = ["in_progress", "finished"];
+        if (!validStatuses.includes(log.status)) {
+            console.warn(`⚠️ Skipping invalid status for Room ${roomNumber}:`, log.status);
+            return;
+        }
+
+        cleaningStatus[roomNumber] = {
+            started: log.status === "in_progress",
+            finished: log.status === "finished",
+        };
+    });
+
+    localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
+}
+
+// ✅ Call this function after fetching logs
+fetch(`${apiUrl}/logs`)
+    .then(response => response.json())
+    .then(data => updateCleaningStatus(data))
+    .catch(error => console.error("❌ Error fetching logs:", error));
+
 
         function resetButtonStatus() {
     console.log("🔄 Resetting button statuses...");
