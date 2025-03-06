@@ -196,7 +196,11 @@ function safeEmit(event, data) {
         console.log("✅ toggleAuth function is now defined!");
     };
 });
-
+document.addEventListener("DOMContentLoaded", function() {
+    console.log("✅ JavaScript is loaded!");
+    window.login = function() { console.log("✅ Login function is now defined!"); };
+    window.toggleAuth = function() { console.log("✅ toggleAuth function is now defined!"); };
+});
 
 // ✅ Fix API Requests
 window.login = function() {  
@@ -281,11 +285,6 @@ function showLogin() {
     localStorage.removeItem("authToken");
     localStorage.removeItem("username");
     showLogin();
-}
-
-function showLogin() {
-    document.getElementById("auth-section").classList.remove("hidden");
-    document.getElementById("dashboard").classList.add("hidden");
 }
 
     function loadRooms() {
@@ -480,13 +479,22 @@ function restoreCleaningStatus() {
         .catch(error => console.error("❌ Error fetching logs:", error));
 }
  
-
+window.addEventListener("load", () => {
+    restoreCleaningStatus();
+});
 // ✅ Live Update from Server
 socket.on("update", (data) => {
     console.log("🔄 Live Update Received:", data);
     updateButtonStatus(data.roomNumber, data.status);
     loadLogs();  // Refresh logs instantly
 });
+        function checkAuth() {
+    if (localStorage.getItem("authToken")) {
+        showDashboard();
+    } else {
+        showLogin();
+    }
+}
 
         // ✅ Function to attempt reconnection
 function attemptReconnect() {
