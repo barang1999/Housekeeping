@@ -464,6 +464,7 @@ function restoreCleaningStatus() {
     fetch(`${apiUrl}/logs`)
         .then(response => response.json())
         .then(logs => {
+            console.log("Retrieved logs:", logs);  // Add this line
             if (!logs || logs.length === 0) {
                 console.warn("⚠️ No logs found to restore.");
                 return;
@@ -499,6 +500,10 @@ socket.on("update", (data) => {
 });
         // ✅ Function to update buttons on all devices
 function updateButtonStatus(roomNumber, status) {
+    if (!status) {
+        console.warn(`⚠️ Status for Room ${roomNumber} is undefined.`);
+        return; // Prevents applying an invalid status
+    }
     const startButton = document.getElementById(`start-${roomNumber}`);
     const finishButton = document.getElementById(`finish-${roomNumber}`);
 
