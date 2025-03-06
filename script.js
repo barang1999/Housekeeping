@@ -8,9 +8,13 @@ if (!token) {
     console.log("✅ Using token for WebSocket:", token);
 
     const socket = io(apiUrl, {
-        auth: { token }, // Send token for authentication
+        auth: { token }, // ✅ Token sent for authentication
         reconnectionAttempts: 5,
         timeout: 5000
+    });
+
+    socket.on("connect", () => {
+        console.log("✅ WebSocket connected");
     });
 
     socket.on("connect_error", async (err) => {
@@ -23,6 +27,13 @@ if (!token) {
         socket.connect();
     }
 });
+
+
+    socket.on("disconnect", (reason) => {
+        console.warn("⚠️ WebSocket disconnected:", reason);
+    });
+}
+
 
 
     socket.on("connect_error", (err) => {
@@ -84,11 +95,11 @@ async function ensureValidToken() {
 
     if (expTime < currentTime) {
         console.warn("❌ JWT Token Expired. Attempting to refresh...");
-
-        return await refreshToken(); // Refresh token if expired
+        return await refreshToken(); // ✅ Refresh token if expired
     }
     return token;
 }
+
 
 async function refreshToken() {
     const refreshToken = localStorage.getItem("refreshToken");
