@@ -43,7 +43,6 @@ if (!token) {
     socket.on("disconnect", (reason) => {
         console.warn("⚠️ WebSocket disconnected:", reason);
     });
-}
 
     // ✅ Live Status Updates from Server
 socket.on("update", (data) => {
