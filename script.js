@@ -15,31 +15,34 @@ async function ensureValidToken() {
     if (!token) {
         token = await refreshToken();
         if (!token) {
-            logout();
-            return null;
+            console.warn("Failed to refresh token. Preventing infinite refresh.");
+            return null; // 🚀 Avoid calling `logout()` here to prevent refresh loop
         }
     }
+
     try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         if (payload.exp * 1000 < Date.now()) {
             token = await refreshToken();
-            if (!token) {
-                logout();
-                return null;
-            }
-            localStorage.setItem("token", token); // ✅ Ensure new token is saved
+            if (!token) return null; // 🚀 Do not call `logout()` here
+            localStorage.setItem("token", token);
         }
         return token;
-    } catch {
+    } catch (error) {
+        console.error("Invalid token structure. Logging out.");
         logout();
         return null;
     }
 }
 
 
+
 async function refreshToken() {
     const refreshToken = localStorage.getItem("refreshToken");
-    if (!refreshToken) return null;
+    if (!refreshToken) {
+        console.warn("No refresh token found. Logging out.");
+        return null;
+    }
 
     try {
         const res = await fetch(`${apiUrl}/auth/refresh`, {
@@ -48,10 +51,16 @@ async function refreshToken() {
             body: JSON.stringify({ token: refreshToken })
         });
 
-        if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+        if (!res.ok) {
+            console.error(`Refresh token failed: ${res.status}`);
+            return null;
+        }
 
         const data = await res.json();
-        if (!data.token) throw new Error("Invalid token received.");
+        if (!data.token) {
+            console.error("Invalid token received.");
+            return null;
+        }
 
         localStorage.setItem("token", data.token);
         return data.token;
@@ -60,6 +69,7 @@ async function refreshToken() {
         return null;
     }
 }
+
 
 
 let reconnectAttempts = 0;
@@ -217,22 +227,32 @@ function logout() {
     location.reload();
 }
 
-function checkAuth() {
+async function checkAuth() {
     const token = localStorage.getItem("token");
-    if (!token) return logout();
+    if (!token) {
+        console.warn("No token found. Trying to refresh...");
+        await ensureValidToken(); // 🚀 Attempt to refresh before logging out
+        if (!localStorage.getItem("token")) {
+            logout();
+        }
+        return;
+    }
+
     try {
         const payload = JSON.parse(atob(token.split('.')[1]));
-        if (payload.exp * 1000 < Date.now()) return logout();
-        fetch(`${apiUrl}/auth/validate`, {
-            method: "GET",
-            headers: { Authorization: `Bearer ${token}` }
-        }).then(res => res.json()).then(data => {
-            if (!data.valid) logout();
-        }).catch(() => logout());
+        if (payload.exp * 1000 < Date.now()) {
+            console.warn("Token expired. Attempting refresh...");
+            await ensureValidToken();
+            if (!localStorage.getItem("token")) {
+                logout();
+            }
+        }
     } catch {
+        console.error("Invalid token detected. Logging out.");
         logout();
     }
 }
+
 // ✅ Ensure `logs` is defined before using it
 function loadLogs() {
     fetch(`${apiUrl}/logs`)
