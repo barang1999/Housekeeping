@@ -51,11 +51,12 @@ async function ensureValidToken() {
 async function refreshToken() {
     const refreshToken = localStorage.getItem("refreshToken");
 
+    async function refreshToken() {
+    const refreshToken = localStorage.getItem("refreshToken");
+
     if (!refreshToken) {
-        console.warn("⚠ No refresh token found. Logging out.");
-        alert("Session expired. Please log in again.");
-        logout();
-        return null;
+        console.warn("⚠ No refresh token found. Login required.");
+        return null; // 🔄 Prevents logout loop
     }
 
     try {
@@ -67,8 +68,7 @@ async function refreshToken() {
 
         if (!res.ok) {
             console.error("❌ Refresh failed with status:", res.status);
-            alert("Session expired. Please log in again.");
-            logout();
+            logout(); // ✅ Logout only when needed
             return null;
         }
 
@@ -91,6 +91,7 @@ async function refreshToken() {
         return null;
     }
 }
+
 
 
 async function connectWebSocket() {
