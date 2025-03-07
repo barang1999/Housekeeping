@@ -63,20 +63,23 @@ async function refreshToken() {
         });
 
         const data = await res.json();
-        if (!data.token) {
-            console.error("❌ Refresh failed. No new token received.");
+        if (!data.token || !data.refreshToken) {
+            console.error("❌ Refresh failed. No new tokens received.");
             return null;
         }
 
-        // ✅ Store new token
+        // ✅ Store new tokens
         localStorage.setItem("token", data.token);
-        console.log("✅ Token refreshed successfully:", data.token);
+        localStorage.setItem("refreshToken", data.refreshToken);
+
+        console.log("✅ Tokens refreshed successfully.");
         return data.token;
     } catch (error) {
         console.error("❌ Error refreshing token:", error);
         return null;
     }
 }
+
 
 
 async function connectWebSocket() {
