@@ -146,13 +146,13 @@ app.post("/auth/refresh", async (req, res) => {
         return res.status(403).json({ message: "Invalid refresh token" });
     }
 
-    // ✅ Generate a new access token
+    // ✅ Generate a new access token and refresh token
     const newAccessToken = generateToken(user); 
     const newRefreshToken = generateRefreshToken(user);
 
-    // ✅ Send both tokens back
     res.json({ token: newAccessToken, refreshToken: newRefreshToken });
 });
+
 
 // ✅ Validate Token Route
 app.get("/auth/validate", (req, res) => {
