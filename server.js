@@ -21,7 +21,7 @@ app.use(express.json());
 
 // ✅ Proper CORS Configuration
 app.use(cors({
-    origin: "*", // Allow all origins (Use specific domains in production)
+    origin: ["https://housekeepingmanagement.netlify.app"], // Allow requests from Netlify
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"]
 }));
