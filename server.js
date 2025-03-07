@@ -170,13 +170,6 @@ app.post("/auth/logout", async (req, res) => {
     }
 });
 
-// ✅ Start Server
-const PORT = process.env.PORT || 10000;
-server.listen(PORT, () => {
-    console.log(`✅ Server running on port ${PORT}`);
-});
-
-
 
 // ✅ Validate Token Route
 app.get("/auth/validate", (req, res) => {
