@@ -99,7 +99,7 @@ const CleaningLog = mongoose.model("CleaningLog", logSchema);
 
 app.post("/auth/login", async (req, res) => {
     const { username, password } = req.body;
-
+    
     const user = await User.findOne({ username });
     if (!user || !(await bcrypt.compare(password, user.password))) {
         return res.status(401).json({ message: "Invalid username or password" });
@@ -113,8 +113,11 @@ app.post("/auth/login", async (req, res) => {
     user.refreshToken = refreshToken;
     await user.save();
 
+    console.log("✅ Tokens generated:", { token, refreshToken }); // Debugging
+
     res.json({ message: "Login successful", token, refreshToken, username: user.username });
 });
+
 
 // 🔐 User Signup
 app.post("/auth/signup", async (req, res) => {
