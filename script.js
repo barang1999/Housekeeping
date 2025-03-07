@@ -1,328 +1,91 @@
-const apiUrl = "https://housekeeping-production.up.railway.app"; // API calls
+const apiUrl = "https://housekeeping-production.up.railway.app";
 const token = localStorage.getItem("token");
 
-window.socket = null; // ✅ Ensure global scope
+window.socket = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
     const validToken = await ensureValidToken();
-    if (validToken) {
-        connectWebSocket(); // ✅ Fix: No argument needed
-    }
+    if (validToken) connectWebSocket();
+    checkAuth();
+    loadRooms();
 });
-
-// ✅ Fix `logs` undefined issue
-document.addEventListener("DOMContentLoaded", () => {
-    if (typeof logs !== "undefined" && Array.isArray(logs)) {
-        console.log("✅ Logs found:", logs);
-    } else {
-        console.warn("⚠️ Logs variable is not defined or is not an array. Skipping...");
-    }
-});
-
-document.addEventListener("DOMContentLoaded", async () => {
-    await checkAuth();
-});
-
-// ✅ Listen for events safely (prevents duplication)
-document.addEventListener("DOMContentLoaded", () => {
-    if (window.socket && window.socket.hasListeners && !window.socket.hasListeners("clearLogs")) {
-        window.socket.on("clearLogs", () => {
-            console.log("🧹 Logs cleared remotely, resetting buttons...");
-            resetButtonStatus();
-        });
-    }
-});
-// ✅ Ensure WebSocket only initializes after token verification
-document.addEventListener("DOMContentLoaded", async () => {
-    const validToken = await ensureValidToken();
-    if (validToken) {
-        connectWebSocket(validToken); // ✅ Ensure WebSocket connects only when token is valid
-    }
-});
-
-// ✅ Updated connectWebSocket function
-async function connectWebSocket() {
-    let token = await ensureValidToken(); // Ensure token is valid
-
-    if (!token) {
-        console.error("❌ No valid token found. WebSocket will not connect.");
-        return;
-    }
-
-    console.log("✅ Using token for WebSocket:", token);
-
-    window.socket = io(apiUrl, { // ✅ Ensure socket is initialized globally
-        auth: { token },
-        reconnectionAttempts: 5,
-        timeout: 5000
-    });
-
-    // ✅ Ensure `socket` is defined before using `socket.on`
-    if (window.socket) {
-        window.socke("connect", () => {
-            console.log("✅ WebSocket connected");
-        });
-
-                window.socket("connect_error", async (err) => {
-            console.error("❌ WebSocket connection error:", err);
-            
-            if (err.message.includes("Invalid token")) {
-                console.warn("🔄 Attempting token refresh...");
-                const newToken = await refreshToken();
-                if (newToken) {
-                    window.socket.auth = { token: newToken };  // ✅ Properly update token
-                    window.socket.disconnect();
-                    setTimeout(() => {
-                        window.socket = io(apiUrl, { auth: { token: newToken } });
-                        connectWebSocket();
-                    }, 1000);
-                    window.socket.connect();
-                } else {
-                    console.error("❌ Token refresh failed. Logging out.");
-                    logout();
-                }
-            }
-        });
-
-
-        window.socket("disconnect", (reason) => {
-            console.warn("⚠️ WebSocket disconnected:", reason);
-        });
-
-        window.socket.onAny((event, data) => {
-            console.log(`📩 WebSocket Event Received: ${event}`, data);
-        });
-    } else {
-        console.error("❌ WebSocket is not initialized before setting up event listeners.");
-    }
-    // ✅ Ensure socket is initialized before adding event listeners
-if (window.socket && window.socket.connected) {
-    window.socket.on("update", (data) => {
-        console.log("🔄 Live Update Received:", data);
-        updateButtonStatus(data.roomNumber, data.status);
-    });
-} else {
-    console.warn("⚠️ WebSocket is not initialized yet. Event listeners will be set after connection.");
-}
-}
-
-        // ✅ Function to send safe WebSocket events
-function safeEmit(event, data) {
-    if (!window.socket || !window.socket.connected) {
-        console.warn("⚠️ WebSocket is not connected yet. Retrying...");
-        return;
-    }
-    
-    const token = localStorage.getItem("token"); // Ensure token is included in event emissions
-    window.socket.emit(event, { ...data, token });
-}
 
 async function ensureValidToken() {
     let token = localStorage.getItem("token");
-
     if (!token) {
-        console.warn("⚠️ No token found. Attempting to refresh.");
         token = await refreshToken();
-
-        if (!token || typeof token !== "string" || !token.includes(".")) {
-            console.error("❌ Invalid token format. Clearing token storage.");
-            localStorage.removeItem("token");
-            showLogin();
-            return null;
-        }
-    }
-
-    try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        if (!payload || !payload.exp || isNaN(payload.exp)) {
-            console.error("❌ Invalid token payload. Logging out.");
+        if (!token) {
             logout();
             return null;
         }
-
-        const expTime = payload.exp * 1000;
-        if (expTime < Date.now()) {
-            console.warn("❌ JWT Token Expired. Attempting to refresh...");
-            const refreshedToken = await refreshToken();
-            if (refreshedToken) {
-                console.log("✅ Token successfully refreshed.");
-                localStorage.setItem("token", refreshedToken);
-                return refreshedToken;
-            } else {
-                console.error("❌ Token refresh failed. Logging out.");
-                logout();
-                return null;
-            }
+    }
+    try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.exp * 1000 < Date.now()) {
+            token = await refreshToken();
+            if (!token) logout();
         }
-
         return token;
-    } catch (error) {
-        console.error("❌ Error decoding token:", error);
-        localStorage.removeItem("token");
-        showLogin();
+    } catch {
+        logout();
         return null;
     }
 }
 
 async function refreshToken() {
     const refreshToken = localStorage.getItem("refreshToken");
-    if (!refreshToken) {
-        console.warn("⚠️ No refresh token. User must log in again.");
-        logout();
-        return null;
-    }
-
+    if (!refreshToken) return null;
     try {
-        const response = await fetch(`${apiUrl}/auth/refresh`, {
+        const res = await fetch(`${apiUrl}/auth/refresh`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ token: refreshToken })
         });
-
-        if (!response.ok) {
-            console.warn("❌ Failed to refresh token.");
-            logout();
-            return null;
-        }
-
-        const data = await response.json();
+        const data = await res.json();
         localStorage.setItem("token", data.token);
         return data.token;
-    } catch (error) {
-        console.error("❌ Error refreshing token:", error);
-        logout();
+    } catch {
         return null;
     }
 }
 
-  
-// ✅ Function to update buttons on all devices
+async function connectWebSocket() {
+    let token = await ensureValidToken();
+    if (!token) return;
+    
+    window.socket = io(apiUrl, { auth: { token }, reconnectionAttempts: 5, timeout: 5000 });
+    
+    window.socket.on("connect", () => console.log("WebSocket connected"));
+    window.socket.on("connect_error", async (err) => {
+        if (err.message.includes("Invalid token")) {
+            const newToken = await refreshToken();
+            if (newToken) connectWebSocket();
+            else logout();
+        }
+    });
+    window.socket.on("disconnect", (reason) => console.warn("WebSocket disconnected:", reason));
+    window.socket.on("update", ({ roomNumber, status }) => updateButtonStatus(roomNumber, status));
+}
+
 function updateButtonStatus(roomNumber, status) {
     const startButton = document.getElementById(`start-${roomNumber}`);
     const finishButton = document.getElementById(`finish-${roomNumber}`);
-
-    if (!startButton || !finishButton) {
-        console.warn(`⚠️ Buttons for Room ${roomNumber} not found.`);
-        return;
-    }
-
-    if (status === "in_progress") {
-        startButton.disabled = true;
-        finishButton.disabled = false;
-    } else if (status === "finished") {
-        startButton.disabled = true;
-        finishButton.disabled = true;
-    } else {
-        startButton.disabled = false;
-        finishButton.disabled = true;
-    }
-
-    let cleaningStatus = JSON.parse(localStorage.getItem("cleaningStatus")) || {};
-    cleaningStatus[roomNumber] = { started: status === "in_progress", finished: status === "finished" };
-    localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
+    if (!startButton || !finishButton) return;
+    
+    startButton.disabled = status !== "pending";
+    finishButton.disabled = status !== "in_progress";
 }
 
-
-// ✅ Log in
-window.login = function() {  
-    const username = document.getElementById("login-username").value.trim();
-    const password = document.getElementById("login-password").value.trim();
-
-    if (!username || !password) {
-        alert("⚠️ Please enter both username and password.");
-        return;
-    }
-
-    fetch(`${apiUrl}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data?.token) { 
-            console.log("🟢 JWT Token Received:", data.token);
-            localStorage.setItem("token", data.token);
-            localStorage.setItem("username", username);
-            showDashboard();
-        } else {
-            console.error("❌ Login Failed:", data);
-            alert(data.message || "Invalid credentials.");
-        }
-    })
-    .catch(error => {
-        console.error("❌ Login Error:", error);
-        alert("⚠️ Failed to log in. Please check your internet connection.");
-    });
-};
-
-
-
-         function signUp() {
-    const username = document.getElementById("signup-username").value;
-    const password = document.getElementById("signup-password").value;
-
-    fetch(`${apiUrl}/auth/signup`, { // ✅ Fixed API URL
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
-    })
-    .then(response => response.json())
-    .then(data => {
-        alert(data.message);
-        if (data.message.includes("Redirecting to login")) {
-            showLogin();
-        }
-    })
-    .catch(error => console.log("Error:", error));
-}
-       window.toggleAuth = function() {
-    const signupForm = document.getElementById("signup-form");
-    if (signupForm) {
-        signupForm.classList.toggle("hidden");
-    } else {
-        console.error("❌ Error: Signup form element not found!");
-    }
-};
-
-
-function showLogin() {
-    document.getElementById("auth-section").classList.remove("hidden");
-    document.getElementById("dashboard").classList.add("hidden");
-}
-
-   function showDashboard() {
-    document.getElementById("auth-section").classList.add("hidden");
-    document.getElementById("dashboard").classList.remove("hidden");
-
-    // ✅ Ensure username is retrieved from localStorage so it persists after refresh
-    const username = localStorage.getItem("username") || "User";
-    document.getElementById("user-name").textContent = username;
-
-    loadRooms();
-    loadLogs();
-}
-
-
-    function logout() {
-    console.log("🔴 Logging out...");
-    localStorage.clear(); // ✅ Clears all local storage
-    if (window.socket) {
-        window.socket.disconnect(); // ✅ Disconnect WebSocket
-    }
-    location.reload(); // ✅ Refresh page to reset state
-} 
-
-
-  async function loadRooms() {
+async function loadRooms() {
     const floors = {
-        "ground-floor": ["001", "002", "003", "004", "005", "006", "007", "011", "012", "013", "014", "015", "016", "017"],
+       "ground-floor": ["001", "002", "003", "004", "005", "006", "007", "011", "012", "013", "014", "015", "016", "017"],
         "second-floor": ["101", "102", "103", "104", "105", "106", "107", "108", "109", "110", "111", "112", "113", "114", "115", "116", "117"],
         "third-floor": ["201", "202", "203", "204", "205", "208", "209", "210", "211", "212", "213", "214", "215", "216", "217"]
     };
 
     Object.keys(floors).forEach(floor => {
         const floorDiv = document.getElementById(floor);
+        if (!floorDiv) return;
         floorDiv.innerHTML = "";
         floors[floor].forEach(room => {
             const roomDiv = document.createElement("div");
@@ -335,16 +98,13 @@ function showLogin() {
             floorDiv.appendChild(roomDiv);
         });
     });
-
-    await restoreCleaningStatus(); // ✅ Fix: Ensure status is restored after rooms are loaded
+    await restoreCleaningStatus();
 }
-
-// Ensure loadRooms() is properly called in an async context
-(async () => {
-    await loadRooms();
-})();
-
-    function toggleFloor(floorId) {
+function formatRoomNumber(roomNumber) {
+            return roomNumber.toString().padStart(3, '0');
+        }
+// ✅ Fix restoreCleaningStatus()
+  function toggleFloor(floorId) {
         document.querySelectorAll('.rooms').forEach(roomDiv => roomDiv.style.display = 'none');
         document.getElementById(floorId).style.display = 'block';
     }
@@ -356,55 +116,84 @@ function showLogin() {
         }).format(new Date());
     }
 
-// ✅ Start Cleaning Function
- function startCleaning(roomNumber) {
-            const username = localStorage.getItem("username");
-            const startTime = new Date().toLocaleString('en-CA', { timeZone: 'Asia/Phnom_Penh' });
+async function restoreCleaningStatus() {
+    try {
+        const res = await fetch(`${apiUrl}/logs`);
+        const logs = await res.json();
+        logs.forEach(log => updateButtonStatus(log.roomNumber, log.status));
+    } catch (error) {
+        console.error("Error fetching logs:", error);
+    }
+}
 
-            fetch(`${apiUrl}/logs/start`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ roomNumber, username, startTime, status: "in_progress" })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.message.includes("started")) {
-                    document.getElementById(`start-${roomNumber}`).disabled = true;
-                    document.getElementById(`finish-${roomNumber}`).disabled = false;
-                    window.socket.emit("update", { roomNumber, status: "in_progress" });
-                } else {
-                    alert("Failed to start cleaning.");
-                }
-            })
-            .catch(error => {
-                console.error("❌ Error starting cleaning:", error);
-                alert("Failed to start cleaning.");
-            });
+// Apply statuses to buttons after fetching logs
+function applyCleaningStatus(cleaningStatus) {
+    Object.keys(cleaningStatus).forEach(roomNumber => {
+        const startButton = document.getElementById(`start-${roomNumber}`);
+        const finishButton = document.getElementById(`finish-${roomNumber}`);
+
+        if (cleaningStatus[roomNumber].started) {
+            if (startButton) startButton.disabled = true;
+            if (finishButton) finishButton.disabled = !cleaningStatus[roomNumber].finished;
         }
+    });
+}
 
-// ✅ Finish Cleaning Function
- function finishCleaning(roomNumber) {
-            const username = localStorage.getItem("username");
-            const finishTime = new Date().toLocaleString('en-CA', { timeZone: 'Asia/Phnom_Penh' });
-
-            fetch(`${apiUrl}/logs/finish`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ roomNumber, username, finishTime, status: "finished" })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.message.includes("finished")) {
-                    document.getElementById(`finish-${roomNumber}`).disabled = true;
-                } else {
-                    alert("Failed to finish cleaning.");
-                }
-            })
-            .catch(error => {
-                console.error("❌ Error finishing cleaning:", error);
-                alert("Failed to finish cleaning.");
-            });
+async function startCleaning(roomNumber) {
+    const username = localStorage.getItem("username");
+    try {
+        const res = await fetch(`${apiUrl}/logs/start`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ roomNumber, username, status: "in_progress" })
+        });
+        const data = await res.json();
+        if (data.message.includes("started")) {
+            updateButtonStatus(roomNumber, "in_progress");
+            window.socket.emit("update", { roomNumber, status: "in_progress" });
         }
+    } catch (error) {
+        console.error("Error starting cleaning:", error);
+    }
+}
+
+async function finishCleaning(roomNumber) {
+    const username = localStorage.getItem("username");
+    try {
+        const res = await fetch(`${apiUrl}/logs/finish`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ roomNumber, username, status: "finished" })
+        });
+        const data = await res.json();
+        if (data.message.includes("finished")) updateButtonStatus(roomNumber, "finished");
+    } catch (error) {
+        console.error("Error finishing cleaning:", error);
+    }
+}
+
+function logout() {
+    localStorage.clear();
+    if (window.socket) window.socket.disconnect();
+    location.reload();
+}
+
+function checkAuth() {
+    const token = localStorage.getItem("token");
+    if (!token) return logout();
+    try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.exp * 1000 < Date.now()) return logout();
+        fetch(`${apiUrl}/auth/validate`, {
+            method: "GET",
+            headers: { Authorization: `Bearer ${token}` }
+        }).then(res => res.json()).then(data => {
+            if (!data.valid) logout();
+        }).catch(() => logout());
+    } catch {
+        logout();
+    }
+}
 // ✅ Ensure `logs` is defined before using it
 function loadLogs() {
     fetch(`${apiUrl}/logs`)
@@ -450,92 +239,6 @@ function loadLogs() {
         })
         .catch(error => console.error("❌ Error fetching logs:", error));
 }
-
-  function checkAuth() {
-    const token = localStorage.getItem("token");
-    
-    if (!token) {
-        console.warn("⚠️ No auth token found. Redirecting to login.");
-        showLogin();
-        return;
-    }
-
-    // Decode token and check expiration
-    const payload = JSON.parse(atob(token.split('.')[1])); // Decode JWT
-    const expTime = payload.exp * 1000; // Convert to milliseconds
-    const currentTime = Date.now();
-
-    if (expTime < currentTime) {
-        console.warn("❌ JWT Token Expired. Logging out...");
-        logout();
-        return;
-    }
-
-    fetch(`${apiUrl}/auth/validate`, {
-        method: "GET",
-        headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.valid) {
-            console.log("✅ Valid token. User is still logged in.");
-            showDashboard();
-        } else {
-            console.warn("❌ Invalid auth token. Logging out.");
-            logout();
-        }
-    })
-    .catch(err => {
-        console.error("❌ Error validating auth:", err);
-        logout();
-    });
-}
-
-function formatRoomNumber(roomNumber) {
-            return roomNumber.toString().padStart(3, '0');
-        }
-// ✅ Fix restoreCleaningStatus()
-async function restoreCleaningStatus() {
-    fetch(`${apiUrl}/logs`)
-        .then(response => response.json())
-        .then(logs => {
-            if (!logs || logs.length === 0) {
-                console.warn("⚠️ No logs found to restore.");
-                return;
-            }
-
-            logs.forEach(log => {
-                const startButton = document.getElementById(`start-${log.roomNumber}`);
-                const finishButton = document.getElementById(`finish-${log.roomNumber}`);
-
-                if (startButton && finishButton) {
-                    if (log.status === "in_progress") {
-                        startButton.disabled = true;
-                        finishButton.disabled = false;
-                    } else if (log.status === "finished") {
-                        startButton.disabled = true;
-                        finishButton.disabled = true;
-                    }
-                }
-            });
-        })
-        .catch(error => console.error("❌ Error fetching logs:", error));
-}
-
-
-// Apply statuses to buttons after fetching logs
-function applyCleaningStatus(cleaningStatus) {
-    Object.keys(cleaningStatus).forEach(roomNumber => {
-        const startButton = document.getElementById(`start-${roomNumber}`);
-        const finishButton = document.getElementById(`finish-${roomNumber}`);
-
-        if (cleaningStatus[roomNumber].started) {
-            if (startButton) startButton.disabled = true;
-            if (finishButton) finishButton.disabled = !cleaningStatus[roomNumber].finished;
-        }
-    });
-}
-
  // ✅ Function to Clear Logs and Reset Buttons
 function clearLogs() {
     console.log("🧹 Clearing logs...");
