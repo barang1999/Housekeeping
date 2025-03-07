@@ -125,6 +125,79 @@ function safeEmit(event, data = {}) {
         console.warn(`WebSocket is not connected. Cannot emit ${event}`);
     }
 }
+
+async function login(username, password) {
+    try {
+        const res = await fetch(`${apiUrl}/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password })
+        });
+
+        if (!res.ok) {
+            console.error("❌ Login failed with status:", res.status);
+            return;
+        }
+
+        const data = await res.json();
+        console.log("🔍 Login API Response:", data); // 🚀 Check if token is present
+
+        if (!data.token || !data.refreshToken) {
+            console.error("❌ Login response does not contain tokens!");
+            return;
+        }
+
+        // Store tokens in localStorage
+        storeTokens(data.token, data.refreshToken);
+        console.log("✅ Tokens stored successfully.");
+        
+        // Redirect to dashboard or reload
+        window.location.href = "/dashboard.html";
+    } catch (error) {
+        console.error("❌ Login request failed:", error);
+    }
+}
+
+ function signUp() {
+    const username = document.getElementById("signup-username").value;
+    const password = document.getElementById("signup-password").value;
+
+    fetch(`${apiUrl}/auth/signup`, { // ✅ Fixed API URL
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message);
+        if (data.message.includes("Redirecting to login")) {
+            showLogin();
+        }
+    })
+    .catch(error => console.log("Error:", error));
+}
+       window.toggleAuth = function() {
+    const signupForm = document.getElementById("signup-form");
+    if (signupForm) {
+        signupForm.classList.toggle("hidden");
+    } else {
+        console.error("❌ Error: Signup form element not found!");
+    }
+};
+
+
+
+function storeTokens(accessToken, refreshToken) {
+    if (!accessToken || !refreshToken) {
+        console.error("❌ Missing tokens! Cannot store.");
+        return;
+    }
+    console.log("✅ Storing tokens...");
+    localStorage.setItem("token", accessToken);
+    localStorage.setItem("refreshToken", refreshToken);
+}
+
+
 function updateButtonStatus(roomNumber, status) {
     const startButton = document.getElementById(`start-${roomNumber}`);
     const finishButton = document.getElementById(`finish-${roomNumber}`);
