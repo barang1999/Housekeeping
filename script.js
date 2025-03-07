@@ -95,12 +95,6 @@ async function ensureValidToken() {
      if (!token) return await refreshToken();
         return token;
     }
-    if (!token) {
-        console.warn("⚠️ No token found. Redirecting to login.");
-        showLogin();
-        return null;
-    }
-
     try {
         // ✅ Validate if token is correctly formatted before decoding
         if (!token.includes(".")) {
