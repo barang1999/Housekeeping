@@ -91,7 +91,18 @@ function handleLogin(event) {
     login(username, password); // Ensure login function is correctly called
 }
 
-async function login(username, password) {
+// ✅ Improved Login Function
+async function login(event) {
+    event.preventDefault(); // Prevents page reload
+
+    const username = document.getElementById("login-username").value.trim();
+    const password = document.getElementById("login-password").value.trim();
+
+    if (!username || !password) {
+        alert("⚠ Please enter both username and password.");
+        return;
+    }
+
     try {
         const res = await fetch(`${apiUrl}/auth/login`, {
             method: "POST",
@@ -99,32 +110,33 @@ async function login(username, password) {
             body: JSON.stringify({ username, password })
         });
 
+        if (!res.ok) {
+            throw new Error(`Login failed with status ${res.status}`);
+        }
+
         const data = await res.json();
-        console.log("🔍 Login API Response:", data);
 
         if (!data.token || !data.refreshToken) {
-            console.error("❌ Missing token or refreshToken in login response!");
-            alert("Login failed. Please try again.");
+            alert("❌ Login failed. Please check your credentials.");
             return;
         }
 
-        // ✅ Store tokens correctly
+        // ✅ Store tokens securely
         localStorage.setItem("token", data.token);
         localStorage.setItem("refreshToken", data.refreshToken);
-        localStorage.setItem("username", username);  // ✅ Store username properly
+        localStorage.setItem("username", username);
 
-        console.log("✅ Tokens stored successfully:", {
-            token: localStorage.getItem("token"),
-            refreshToken: localStorage.getItem("refreshToken"),
-            username: localStorage.getItem("username")
-        });
+        console.log("✅ Login successful:", { username, token: data.token });
 
         connectWebSocket(); // ✅ Ensure WebSocket connects after login
-        dashboard(); // ✅ Navigate after login
+        dashboard(); // ✅ Navigate to dashboard after login
+
     } catch (error) {
         console.error("❌ Login request failed:", error);
+        alert("❌ Error logging in. Please try again later.");
     }
 }
+
 
 async function checkAuth() {
     const token = localStorage.getItem("token");
@@ -173,14 +185,12 @@ async function checkAuth() {
     .catch(error => console.log("Error:", error));
 }
    
-window.toggleAuth = function() {
+function toggleAuth() {
     const signupForm = document.getElementById("signup-form");
     if (signupForm) {
         signupForm.classList.toggle("hidden");
-    } else {
-        console.error("❌ Error: Signup form element not found!");
     }
-};
+}
 
 
 async function refreshToken() {
@@ -399,17 +409,16 @@ async function finishCleaning(roomNumber) {
 }
 
 
-function logout() {
+ffunction logout() {
     console.log("🔴 Logging out...");
     if (window.socket) {
-        window.socket.off(); // ✅ Unbind all socket events
-        window.socket.disconnect(); // ✅ Disconnect WebSocket
+        window.socket.disconnect();
     }
     localStorage.clear();
-    sessionStorage.clear(); // ✅ Clears session storage too
+    sessionStorage.clear();
+    alert("✅ You have been logged out.");
     location.reload();
 }
-
 
 // ✅ Ensure `logs` is defined before using it
 function loadLogs() {
