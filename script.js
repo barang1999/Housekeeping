@@ -96,6 +96,19 @@ async function refreshToken() {
     }
 }
 
+
+        // ✅ Store new tokens
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("refreshToken", data.refreshToken);
+
+        console.log("✅ Tokens refreshed successfully.");
+        return data.token;
+    } catch (error) {
+        console.error("❌ Error refreshing token:", error);
+        return null; // 🔄 Don't force logout on network errors
+    }
+}
+
 async function connectWebSocket() {
     let token = await ensureValidToken();
     if (!token) return;
