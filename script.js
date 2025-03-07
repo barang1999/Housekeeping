@@ -94,9 +94,15 @@ async function ensureValidToken() {
     let token = localStorage.getItem("token");
 
     if (!token) {
-        console.warn("⚠️ No token found. Redirecting to login.");
-        showLogin();
-        return null;
+        console.warn("⚠️ No token found. Attempting to refresh.");
+        token = await refreshToken();
+
+        if (!token) {
+            console.error("❌ Token refresh failed. Redirecting to login.");
+            localStorage.removeItem("token");
+            showLogin();
+            return null;
+        }
     }
 
     try {
@@ -108,7 +114,8 @@ async function ensureValidToken() {
         }
 
         const payload = JSON.parse(atob(token.split('.')[1]));
-        if (!payload.exp || isNaN(payload.exp)) {
+
+        if (!payload || !payload.exp || isNaN(payload.exp)) {
             console.error("❌ Invalid token payload. Logging out.");
             logout();
             return null;
@@ -120,6 +127,7 @@ async function ensureValidToken() {
         if (expTime < currentTime) {
             console.warn("❌ JWT Token Expired. Attempting to refresh...");
             const refreshedToken = await refreshToken();
+
             if (refreshedToken) {
                 console.log("✅ Token successfully refreshed.");
                 localStorage.setItem("token", refreshedToken);
@@ -140,6 +148,15 @@ async function ensureValidToken() {
         return null;
     }
 }
+
+// ✅ Ensure WebSocket only initializes after token verification
+document.addEventListener("DOMContentLoaded", async () => {
+    const validToken = await ensureValidToken();
+    if (validToken) {
+        connectWebSocket(validToken); // Ensure WebSocket connects only when token is ready
+    }
+});
+
 async function refreshToken() {
     const refreshToken = localStorage.getItem("refreshToken");
     if (!refreshToken) {
