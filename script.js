@@ -314,7 +314,7 @@ function showLogin() {
 } 
 
 
-    function loadRooms() {
+  async function loadRooms() {
     const floors = {
         "ground-floor": ["001", "002", "003", "004", "005", "006", "007", "011", "012", "013", "014", "015", "016", "017"],
         "second-floor": ["101", "102", "103", "104", "105", "106", "107", "108", "109", "110", "111", "112", "113", "114", "115", "116", "117"],
@@ -336,9 +336,14 @@ function showLogin() {
         });
     });
 
-    // Ensure status is restored **after** rooms are loaded
     await restoreCleaningStatus(); // ✅ Fix: Ensure status is restored after rooms are loaded
 }
+
+// Ensure loadRooms() is properly called in an async context
+(async () => {
+    await loadRooms();
+})();
+
     function toggleFloor(floorId) {
         document.querySelectorAll('.rooms').forEach(roomDiv => roomDiv.style.display = 'none');
         document.getElementById(floorId).style.display = 'block';
@@ -490,7 +495,7 @@ function formatRoomNumber(roomNumber) {
             return roomNumber.toString().padStart(3, '0');
         }
 // ✅ Fix restoreCleaningStatus()
-function restoreCleaningStatus() {
+async function restoreCleaningStatus() {
     fetch(`${apiUrl}/logs`)
         .then(response => response.json())
         .then(logs => {
