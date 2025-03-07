@@ -18,43 +18,46 @@ async function connectWebSocket() {
 
     console.log("✅ Using token for WebSocket:", token);
 
-    window.socket = io(apiUrl, { // ✅ Assign `socket` globally
+    window.socket = io(apiUrl, { // ✅ Ensure socket is initialized globally
         auth: { token },
         reconnectionAttempts: 5,
         timeout: 5000
     });
 
-    socket.on("connect", () => {
-        console.log("✅ WebSocket connected");
-    });
+    // ✅ Ensure `socket` is defined before using `socket.on`
+    if (window.socket) {
+        socket.on("connect", () => {
+            console.log("✅ WebSocket connected");
+        });
 
-    socket.on("connect_error", async (err) => {
-        console.error("❌ WebSocket connection error:", err);
+        socket.on("connect_error", async (err) => {
+            console.error("❌ WebSocket connection error:", err);
 
-        if (err.message.includes("Invalid token")) {
-            console.warn("🔄 Attempting token refresh...");
-            token = await refreshToken();
-            if (token) {
-                socket.auth = { token };
-                socket.disconnect();
-                socket.connect();
-            } else {
-                console.error("❌ Token refresh failed. Logging out.");
-                logout();
+            if (err.message.includes("Invalid token")) {
+                console.warn("🔄 Attempting token refresh...");
+                token = await refreshToken();
+                if (token) {
+                    socket.auth = { token };
+                    socket.disconnect();
+                    socket.connect();
+                } else {
+                    console.error("❌ Token refresh failed. Logging out.");
+                    logout();
+                }
             }
-        }
-    });
+        });
 
-    socket.on("disconnect", (reason) => {
-        console.warn("⚠️ WebSocket disconnected:", reason);
-    });
+        socket.on("disconnect", (reason) => {
+            console.warn("⚠️ WebSocket disconnected:", reason);
+        });
 
-    // ✅ Log all WebSocket messages AFTER socket is initialized
-    socket.onAny((event, data) => {
-        console.log(`📩 WebSocket Event Received: ${event}`, data);
-    });
+        socket.onAny((event, data) => {
+            console.log(`📩 WebSocket Event Received: ${event}`, data);
+        });
+    } else {
+        console.error("❌ WebSocket is not initialized before setting up event listeners.");
+    }
 }
-
     // ✅ Live Status Updates from Server
 socket.on("update", (data) => {
     console.log("🔄 Live Update Received:", data);
@@ -88,22 +91,40 @@ function safeEmit(event, data) {
 
 async function ensureValidToken() {
     let token = localStorage.getItem("token");
+
     if (!token) {
         console.warn("⚠️ No token found. Redirecting to login.");
         showLogin();
         return null;
     }
 
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const expTime = payload.exp * 1000; // Convert to milliseconds
-    const currentTime = Date.now();
+    try {
+        // ✅ Validate if token is correctly formatted before decoding
+        if (!token.includes(".")) {
+            console.error("❌ Invalid token format. Clearing token storage.");
+            localStorage.removeItem("token");
+            showLogin();
+            return null;
+        }
 
-    if (expTime < currentTime) {
-        console.warn("❌ JWT Token Expired. Attempting to refresh...");
-        return await refreshToken(); // ✅ Refresh token if expired
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const expTime = payload.exp * 1000; // Convert to milliseconds
+        const currentTime = Date.now();
+
+        if (expTime < currentTime) {
+            console.warn("❌ JWT Token Expired. Attempting to refresh...");
+            return await refreshToken(); // ✅ Refresh token if expired
+        }
+
+        return token;
+    } catch (error) {
+        console.error("❌ Error decoding token:", error);
+        localStorage.removeItem("token"); // ✅ Clear invalid token
+        showLogin();
+        return null;
     }
-    return token;
 }
+
 
 
 async function refreshToken() {
