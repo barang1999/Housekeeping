@@ -92,11 +92,14 @@ function safeEmit(event, data) {
 
 async function ensureValidToken() {
     let token = localStorage.getItem("token");
-     if (!token) return await refreshToken();
-        return token;
+
+    if (!token) {
+        console.warn("⚠️ No token found. Redirecting to login.");
+        showLogin();
+        return null;
     }
+
     try {
-        // ✅ Validate if token is correctly formatted before decoding
         if (!token.includes(".")) {
             console.error("❌ Invalid token format. Clearing token storage.");
             localStorage.removeItem("token");
@@ -105,13 +108,17 @@ async function ensureValidToken() {
         }
 
         const payload = JSON.parse(atob(token.split('.')[1]));
-        const expTime = payload.exp * 1000; // Convert to milliseconds
+        if (!payload.exp || isNaN(payload.exp)) {
+            console.error("❌ Invalid token payload. Logging out.");
+            logout();
+            return null;
+        }
+
+        const expTime = payload.exp * 1000;
         const currentTime = Date.now();
 
         if (expTime < currentTime) {
             console.warn("❌ JWT Token Expired. Attempting to refresh...");
-
-            // ✅ Refresh the token properly
             const refreshedToken = await refreshToken();
             if (refreshedToken) {
                 console.log("✅ Token successfully refreshed.");
@@ -128,13 +135,11 @@ async function ensureValidToken() {
         return token;
     } catch (error) {
         console.error("❌ Error decoding token:", error);
-        localStorage.removeItem("token"); // ✅ Clear invalid token
+        localStorage.removeItem("token");
         showLogin();
         return null;
     }
 }
-
-
 async function refreshToken() {
     const refreshToken = localStorage.getItem("refreshToken");
     if (!refreshToken) {
