@@ -88,6 +88,8 @@ async function fetchWithErrorHandling(url, options = {}) {
 
 // ✅ Improved Login Function
 async function login(event) {
+    event.preventDefault();
+
     const username = document.getElementById("login-username").value.trim();
     const password = document.getElementById("login-password").value.trim();
 
@@ -114,21 +116,25 @@ async function login(event) {
             return;
         }
 
-        // ✅ Store tokens securely
         localStorage.setItem("token", data.token);
         localStorage.setItem("refreshToken", data.refreshToken);
         localStorage.setItem("username", username);
 
         console.log("✅ Login successful:", { username, token: data.token });
 
-        connectWebSocket(); // ✅ Ensure WebSocket connects after login
-        dashboard(); // ✅ Navigate to dashboard after login
+        document.getElementById("auth-section").classList.add("hidden");
+        document.getElementById("dashboard").classList.remove("hidden");
+        document.getElementById("user-name").innerText = username;
+
+        connectWebSocket();
+        loadRooms();
 
     } catch (error) {
         console.error("❌ Login request failed:", error);
         alert("❌ Error logging in. Please try again later.");
     }
 }
+
 
 
 async function checkAuth() {
@@ -159,23 +165,33 @@ async function checkAuth() {
 
 
 
- function signUp() {
-    const username = document.getElementById("signup-username").value;
-    const password = document.getElementById("signup-password").value;
+ async function signUp() {
+    const username = document.getElementById("signup-username").value.trim();
+    const password = document.getElementById("signup-password").value.trim();
 
-    fetch(`${apiUrl}/auth/signup`, { // ✅ Fixed API URL
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
-    })
-    .then(response => response.json())
-    .then(data => {
+    if (!username || !password) {
+        alert("⚠ Please enter both username and password.");
+        return;
+    }
+
+    try {
+        const res = await fetch(`${apiUrl}/auth/signup`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
         alert(data.message);
-        if (data.message.includes("Redirecting to login")) {
-            showLogin();
+
+        if (res.ok) {
+            document.getElementById("signup-form").classList.add("hidden");
+            document.getElementById("auth-section").classList.remove("hidden");
         }
-    })
-    .catch(error => console.log("Error:", error));
+    } catch (error) {
+        console.error("❌ Signup request failed:", error);
+        alert("❌ Error signing up. Please try again later.");
+    }
 }
    
 function toggleAuth() {
@@ -334,11 +350,13 @@ function formatRoomNumber(roomNumber) {
             return roomNumber.toString().padStart(3, '0');
         }
 // ✅ Fix restoreCleaningStatus()
- function toggleFloor(floorId) {
-    document.querySelectorAll('.rooms').forEach(roomDiv => roomDiv.style.display = 'none');
+function toggleFloor(floorId) {
     const floorDiv = document.getElementById(floorId);
-    if (floorDiv) floorDiv.style.display = 'block';
+    if (floorDiv) {
+        floorDiv.style.display = floorDiv.style.display === "block" ? "none" : "block";
+    }
 }
+
 
     function formatCambodiaTime() {
         return new Intl.DateTimeFormat('en-US', {
@@ -410,20 +428,18 @@ async function finishCleaning(roomNumber) {
 }
 
 
-function logout(manual = false) {
+function logout() {
     console.log("🔴 Logging out...");
-
     if (window.socket) {
         window.socket.disconnect();
     }
 
-    if (manual) {
-        localStorage.clear();
-    }
-
+    localStorage.clear();
     sessionStorage.clear();
     alert("✅ You have been logged out.");
-    location.reload();
+
+    document.getElementById("dashboard").classList.add("hidden");
+    document.getElementById("auth-section").classList.remove("hidden");
 }
 
 
