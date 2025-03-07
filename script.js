@@ -547,21 +547,6 @@ function clearLogs() {
         .then(() => console.log("✅ Logs cleared on server"))
         .catch(error => console.error("❌ Error clearing logs:", error));
 }
-
-// ✅ Fix duplicate event listeners
-socket.on("clearLogs", () => {
-    console.log("🔄 Logs cleared remotely, resetting buttons...");
-    localStorage.removeItem("cleaningStatus");
-
-    document.querySelectorAll(".room button").forEach(button => {
-        if (button.id.startsWith("start-")) {
-            button.disabled = false;
-        }
-        if (button.id.startsWith("finish-")) {
-            button.disabled = true;
-        }
-    });
-});
        function exportLogs() {
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF();
