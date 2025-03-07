@@ -86,7 +86,7 @@ async function fetchWithErrorHandling(url, options = {}) {
 }
 
 // ✅ Improved Login Function
-async function login(event) {
+window.login = async function(event)  {
     event.preventDefault();
 
     const username = document.getElementById("login-username").value.trim();
