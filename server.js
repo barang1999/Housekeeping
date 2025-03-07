@@ -99,7 +99,7 @@ const CleaningLog = mongoose.model("CleaningLog", logSchema);
 
 app.post("/auth/login", async (req, res) => {
     const { username, password } = req.body;
-    
+
     const user = await User.findOne({ username });
     if (!user || !(await bcrypt.compare(password, user.password))) {
         return res.status(401).json({ message: "Invalid username or password" });
@@ -109,7 +109,7 @@ app.post("/auth/login", async (req, res) => {
     const token = jwt.sign({ username: user.username }, process.env.JWT_SECRET, { expiresIn: "1h" });
     const refreshToken = jwt.sign({ username: user.username }, process.env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
 
-    // ✅ Store refresh token in the database (optional for revocation)
+    // ✅ Store refresh token in DB
     user.refreshToken = refreshToken;
     await user.save();
 
@@ -134,23 +134,37 @@ app.post("/auth/signup", async (req, res) => {
 });
 
 app.post("/auth/refresh", async (req, res) => {
-    const { refreshToken } = req.body; // ✅ Changed key from `token` to `refreshToken`
+    const { refreshToken } = req.body;
 
     if (!refreshToken) {
         return res.status(401).json({ message: "No refresh token provided" });
     }
 
-    const user = await findUserByRefreshToken(refreshToken);
-    if (!user) {
-        return res.status(403).json({ message: "Invalid refresh token" });
+    try {
+        // ✅ Verify refresh token
+        const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+
+        // ✅ Find user in DB
+        const user = await User.findOne({ username: decoded.username, refreshToken });
+        if (!user) {
+            return res.status(403).json({ message: "Invalid or expired refresh token" });
+        }
+
+        // ✅ Generate new access & refresh tokens
+        const newAccessToken = jwt.sign({ username: user.username }, process.env.JWT_SECRET, { expiresIn: "1h" });
+        const newRefreshToken = jwt.sign({ username: user.username }, process.env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
+
+        // ✅ Update refresh token in DB (prevents reuse of old tokens)
+        user.refreshToken = newRefreshToken;
+        await user.save();
+
+        res.json({ token: newAccessToken, refreshToken: newRefreshToken });
+    } catch (error) {
+        console.error("❌ Refresh token verification failed:", error.message);
+        return res.status(403).json({ message: "Invalid or expired refresh token" });
     }
-
-    // ✅ Generate new tokens
-    const newAccessToken = generateToken(user);
-    const newRefreshToken = generateRefreshToken(user);
-
-    res.json({ token: newAccessToken, refreshToken: newRefreshToken });
 });
+
 // ✅ Validate Token Route
 app.get("/auth/validate", (req, res) => {
     const token = req.headers.authorization?.split(" ")[1];
