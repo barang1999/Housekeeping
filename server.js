@@ -135,7 +135,7 @@ app.post("/auth/signup", async (req, res) => {
 });
 
 app.post("/auth/refresh", async (req, res) => {
-    const { token: refreshToken } = req.body;
+    const { refreshToken } = req.body; // ✅ Changed key from `token` to `refreshToken`
 
     if (!refreshToken) {
         return res.status(401).json({ message: "No refresh token provided" });
@@ -146,14 +146,12 @@ app.post("/auth/refresh", async (req, res) => {
         return res.status(403).json({ message: "Invalid refresh token" });
     }
 
-    // ✅ Generate a new access token and refresh token
-    const newAccessToken = generateToken(user); 
+    // ✅ Generate new tokens
+    const newAccessToken = generateToken(user);
     const newRefreshToken = generateRefreshToken(user);
 
     res.json({ token: newAccessToken, refreshToken: newRefreshToken });
 });
-
-
 // ✅ Validate Token Route
 app.get("/auth/validate", (req, res) => {
     const token = req.headers.authorization?.split(" ")[1];
