@@ -12,30 +12,39 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 async function ensureValidToken() {
     let token = localStorage.getItem("token");
+
+    // 🚀 If no token, attempt refresh first
     if (!token) {
+        console.warn("⚠ No token found. Attempting to refresh...");
         token = await refreshToken();
         if (!token) {
-            console.warn("Failed to refresh token. Preventing infinite refresh.");
-            return null; // 🚀 Avoid calling `logout()` here to prevent refresh loop
+            console.error("❌ Token refresh failed. Preventing infinite logout loop.");
+            return null; // ❗ Prevents calling `logout()` directly
         }
     }
 
     try {
         const payload = JSON.parse(atob(token.split('.')[1]));
+        
+        // 🚀 Check if token is expired
         if (payload.exp * 1000 < Date.now()) {
+            console.warn("⚠ Token expired. Attempting to refresh...");
             token = await refreshToken();
-            if (!token) return null; // 🚀 Do not call `logout()` here
-            localStorage.setItem("token", token);
+            if (!token) {
+                console.error("❌ Token refresh unsuccessful. Avoiding logout loop.");
+                return null;
+            }
+            localStorage.setItem("token", token); // ✅ Ensure new token is stored
         }
+
+        console.log("✅ Token is valid.");
         return token;
     } catch (error) {
-        console.error("Invalid token structure. Logging out.");
+        console.error("❌ Invalid token structure. Logging out...");
         logout();
         return null;
     }
 }
-
-
 
 async function refreshToken() {
     const refreshToken = localStorage.getItem("refreshToken");
