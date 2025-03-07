@@ -134,6 +134,26 @@ app.post("/auth/signup", async (req, res) => {
     }
 });
 
+app.post("/auth/refresh", async (req, res) => {
+    const { token: refreshToken } = req.body;
+
+    if (!refreshToken) {
+        return res.status(401).json({ message: "No refresh token provided" });
+    }
+
+    const user = await findUserByRefreshToken(refreshToken);
+    if (!user) {
+        return res.status(403).json({ message: "Invalid refresh token" });
+    }
+
+    // ✅ Generate a new access token
+    const newAccessToken = generateToken(user); 
+    const newRefreshToken = generateRefreshToken(user);
+
+    // ✅ Send both tokens back
+    res.json({ token: newAccessToken, refreshToken: newRefreshToken });
+});
+
 // ✅ Validate Token Route
 app.get("/auth/validate", (req, res) => {
     const token = req.headers.authorization?.split(" ")[1];
