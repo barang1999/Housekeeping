@@ -62,18 +62,26 @@
             border-radius: 8px;
         }
 
-        button {
+                button {
             padding: 10px 16px;
             border-radius: 6px;
             font-size: 14px;
             cursor: pointer;
             transition: all 0.3s ease;
+            background-color: #007bff;
+            color: white;
+            border: none;
         }
-
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
         button:disabled {
             background: gray;
             cursor: not-allowed;
         }
+
         .log-table {
             width: 100%;
             border-collapse: collapse;
@@ -96,7 +104,7 @@
     <div class="container">
         <div id="auth-section">
     <h2>Login</h2>
-    <form onsubmit="login(event)">
+   <form onsubmit="login(event)" onkeyup="if(event.keyCode===13) login(event)">
     <input type="text" id="login-username" placeholder="Username" required>
     <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" required>
     <button type="submit">Login</button>
@@ -106,7 +114,7 @@
     <div id="signup-form" class="hidden">
     <h2>Sign Up</h2>
     <input type="text" id="signup-username" placeholder="Username">
-    <input type="password" id="signup-password" placeholder="Password" autocomplete="new-password">
+    <input type="password" id="signup-password" placeholder="Password" onkeyup="if(event.keyCode===13) signUp()">
     <button onclick="signUp()">Sign Up</button>
 </div>
         <div id="dashboard" class="hidden">
