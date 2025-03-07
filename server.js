@@ -40,7 +40,7 @@ const io = new Server(server, {
 });
 
 /// ✅ WebSocket Connection Authentication (Fix Applied)
-io.use((socket, next) => {
+io.use(async (socket, next) => {
     let token = socket.handshake.auth?.token || 
                 (socket.handshake.headers.authorization ? socket.handshake.headers.authorization.split(" ")[1] : null);
 
@@ -49,16 +49,32 @@ io.use((socket, next) => {
         return next(new Error("Authentication error: No token provided"));
     }
 
-    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-        if (err) {
-            console.warn("❌ WebSocket Authentication Failed:", err.message);
-            return next(new Error("Authentication error: Invalid or expired token"));
-        }
-        
+    try {
+        let decoded = jwt.verify(token, process.env.JWT_SECRET);
         socket.user = decoded;
         console.log(`✅ WebSocket Authenticated: ${decoded.username}`);
         next();
-    });
+    } catch (err) {
+        if (err.name === "TokenExpiredError") {
+            console.warn("⚠ Token expired, attempting refresh...");
+            const refreshToken = await User.findOne({ username: decoded.username }).select("refreshToken");
+            if (!refreshToken) {
+                return next(new Error("Authentication error: No valid refresh token"));
+            }
+            try {
+                const newToken = jwt.sign({ username: decoded.username }, process.env.JWT_SECRET, { expiresIn: "1h" });
+                socket.handshake.auth.token = newToken; // ✅ Update token for reconnection
+                console.log("✅ WebSocket Token Refreshed");
+                next();
+            } catch (refreshError) {
+                console.error("❌ WebSocket Token Refresh Failed:", refreshError);
+                return next(new Error("Authentication error: Token refresh failed"));
+            }
+        } else {
+            console.warn("❌ WebSocket Authentication Failed:", err.message);
+            return next(new Error("Authentication error: Invalid or expired token"));
+        }
+    }
 });
 
 
@@ -79,11 +95,16 @@ mongoose.connect(mongoURI)
         process.exit(1);
     });
 
+mongoose.connection.on("disconnected", () => {
+    console.warn("⚠ MongoDB Disconnected. Attempting to reconnect...");
+    mongoose.connect(mongoURI).catch(err => console.error("❌ MongoDB Reconnection Failed:", err));
+});
+
 // ✅ Define MongoDB Schemas
 const userSchema = new mongoose.Schema({
     username: { type: String, unique: true, required: true },
-    password: { type: String, required: true }
-    refreshToken: { type: String } // ✅ Add this field
+    password: { type: String, required: true },
+    refreshToken: { type: String }
 });
 const User = mongoose.model("User", userSchema);
 
@@ -186,27 +207,24 @@ app.get("/logs/status", async (req, res) => {
         const logs = await CleaningLog.find();
         let status = {};
 
-        // ✅ Process logs first
         logs.forEach(log => {
             status[log.roomNumber] = log.finishTime ? "finished" : "in_progress";
         });
 
-        // ✅ Ensure all rooms have a default status (Room 1 to 20)
-        const allRooms = [...Array(20).keys()].map(i => i + 1);
-        allRooms.forEach(room => {
+        // ✅ Ensure all rooms are included (1 to 20)
+        for (let room = 1; room <= 20; room++) {
             if (!status[room]) {
-                status[room] = "not_started"; // Default status
+                status[room] = "not_started";
             }
-        });
+        }
 
-        // ✅ Send response after processing all data
         res.json(status);
-
     } catch (error) {
         console.error("❌ Error fetching room status:", error);
         res.status(500).json({ message: "Server error", error });
     }
 });
+
 
 
 // 🚀 Start Cleaning
@@ -243,12 +261,14 @@ app.post("/logs/finish", async (req, res) => {
 
     let { roomNumber, username, finishTime, status } = req.body;
 
-    if (!roomNumber || !username || !finishTime || !status) {
+    if (!roomNumber || !username) {
         console.error("❌ Missing required fields:", req.body);
         return res.status(400).json({ message: "Missing required fields" });
     }
 
     roomNumber = parseInt(roomNumber, 10); // Convert to number ✅
+    finishTime = finishTime || new Date().toLocaleString("en-US", { timeZone: "Asia/Phnom_Penh" });
+    status = status || "finished";
 
     try {
         console.log(`🔍 Checking for unfinished log for Room ${roomNumber}...`);
@@ -266,7 +286,7 @@ app.post("/logs/finish", async (req, res) => {
         console.log(`✅ Room ${roomNumber} finished by ${username} at ${finishTime}`);
 
         // ✅ Notify other clients via WebSocket
-        io.emit("update", { roomNumber, status: "finished" });
+        io.emit("update", { roomNumber, status });
 
         res.status(200).json({ message: `Room ${roomNumber} finished by ${username}` });
     } catch (error) {
@@ -274,7 +294,6 @@ app.post("/logs/finish", async (req, res) => {
         res.status(500).json({ message: "Server error", error });
     }
 });
-
 // 📄 Get All Cleaning Logs
 app.get("/logs", async (req, res) => {
     try {
