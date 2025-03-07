@@ -87,45 +87,51 @@ async function fetchWithErrorHandling(url, options = {}) {
 
 // ✅ Improved Login Function
 async function login(event) {
-    event.preventDefault();
+    event.preventDefault();  // Prevent form from reloading the page
 
-    const username = document.getElementById("login-username").value.trim();
-    const password = document.getElementById("login-password").value.trim();
-
-    if (!username || !password) {
-        alert("⚠ Please enter both username and password.");
-        return;
-    }
+    const username = document.getElementById("login-username").value;
+    const password = document.getElementById("login-password").value;
 
     try {
-        const res = await fetch(`${apiUrl}/auth/login`, {
+        const response = await fetch("https://housekeeping-production.up.railway.app/auth/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ username, password }),
-            credentials: "include"  // ✅ Required for cookies/JWT tokens
         });
 
-        const data = await res.json();
+        const data = await response.json();
 
-        if (!res.ok) {
+        if (response.ok) {
+            console.log("✅ Login successful:", data);
+
+            // Store token and refresh token in localStorage
+            localStorage.setItem("token", data.token);
+            localStorage.setItem("refreshToken", data.refreshToken);
+
+            // Update UI to show dashboard
+            document.getElementById("auth-section").classList.add("hidden"); // Hide login form
+            document.getElementById("dashboard").classList.remove("hidden"); // Show dashboard
+            document.getElementById("user-name").textContent = data.username; // Update username display
+
+            alert("Login successful!");  // Notify user
+        } else {
             console.error("❌ Login failed:", data.message);
-            throw new Error(data.message);
+            alert("Login failed: " + data.message);
         }
-
-        console.log("✅ Login successful:", data);
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("refreshToken", data.refreshToken);
-
-        document.getElementById("auth-section").classList.add("hidden");
-        document.getElementById("dashboard").classList.remove("hidden");
-        document.getElementById("user-name").innerText = username;
     } catch (error) {
-        console.error("❌ Login error:", error);
-        alert("❌ Error logging in. Please try again later.");
+        console.error("❌ Error logging in:", error);
+        alert("An error occurred. Please try again.");
     }
 }
 
-
+window.onload = function () {
+    const token = localStorage.getItem("token");
+    if (token) {
+        document.getElementById("auth-section").classList.add("hidden"); // Hide login form
+        document.getElementById("dashboard").classList.remove("hidden"); // Show dashboard
+        document.getElementById("user-name").textContent = localStorage.getItem("username") || "User"; // Update UI
+    }
+};
 
 
 async function checkAuth() {
