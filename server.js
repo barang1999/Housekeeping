@@ -7,14 +7,6 @@ const { Server } = require("socket.io");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-// ✅ Ensure MongoDB URI exists
-const mongoURI = process.env.MONGO_URI;
-if (!mongoURI) {
-    console.error("❌ MONGO_URI is missing. Check your .env file!");
-    process.exit(1);
-}
-console.log("🔍 Connecting to MongoDB...");
-
 // ✅ Initialize Express
 const app = express();
 app.use(express.json());
@@ -35,6 +27,27 @@ const io = new Server(server, {
         methods: ["GET", "POST"]
     }
 });
+
+// ✅ Ensure MongoDB URI exists
+const mongoURI = process.env.MONGO_URI;
+if (!mongoURI) {
+    console.error("❌ MONGO_URI is missing. Check your .env file!");
+    process.exit(1);
+}
+console.log("🔍 Connecting to MongoDB...");
+
+// ✅ Connect to MongoDB (Updated - No deprecated options)
+const connectWithRetry = () => {
+    mongoose.connect(mongoURI)
+        .then(() => console.log("✅ MongoDB Connected Successfully"))
+        .catch(err => {
+            console.error("❌ MongoDB connection error:", err);
+            console.log("Retrying in 5 seconds...");
+            setTimeout(connectWithRetry, 5000);
+        });
+};
+connectWithRetry();
+
 
 // ✅ Ensure Express handles preflight requests properly
 app.options("*", cors());
@@ -106,17 +119,6 @@ io.on("connection", (socket) => {
     });
 });
 
-// ✅ Connect to MongoDB (Updated - No deprecated options)
-const connectWithRetry = () => {
-    mongoose.connect(mongoURI)
-        .then(() => console.log("✅ MongoDB Connected Successfully"))
-        .catch(err => {
-            console.error("❌ MongoDB connection error:", err);
-            console.log("Retrying in 5 seconds...");
-            setTimeout(connectWithRetry, 5000);
-        });
-};
-connectWithRetry();
 
 mongoose.connection.on("disconnected", async () => {
     console.warn("⚠ MongoDB Disconnected. Retrying in 5 seconds...");
@@ -129,7 +131,22 @@ mongoose.connection.on("disconnected", async () => {
     }
 });
 
+// 🔐 User Signup
+app.post("/auth/signup", async (req, res) => {
+    const { username, password } = req.body;
+    try {
+        const existingUser = await User.findOne({ username });
+        if (existingUser) return res.status(400).json({ message: "User already exists." });
 
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = new User({ username, password: hashedPassword });
+        await newUser.save();
+        res.status(201).json({ message: "User registered successfully!" });
+    } catch (error) {
+        console.error("❌ Signup error:", error);
+        res.status(500).json({ message: "Server error", error });
+    }
+});
 // ✅ Authentication Routes
 
 app.post("/auth/login", async (req, res) => {
@@ -201,23 +218,6 @@ app.post("/auth/refresh", async (req, res) => {
     }
 });
 
-
-// 🔐 User Signup
-app.post("/auth/signup", async (req, res) => {
-    const { username, password } = req.body;
-    try {
-        const existingUser = await User.findOne({ username });
-        if (existingUser) return res.status(400).json({ message: "User already exists." });
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = new User({ username, password: hashedPassword });
-        await newUser.save();
-        res.status(201).json({ message: "User registered successfully!" });
-    } catch (error) {
-        console.error("❌ Signup error:", error);
-        res.status(500).json({ message: "Server error", error });
-    }
-});
 
 app.post("/auth/logout", async (req, res) => {
     try {
