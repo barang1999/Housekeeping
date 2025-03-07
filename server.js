@@ -36,6 +36,24 @@ const io = new Server(server, {
     }
 });
 
+// ✅ Ensure Express handles preflight requests properly
+app.options("*", cors());
+
+// ✅ Middleware to handle headers for CORS manually (optional)
+app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Credentials", "true");
+    next();
+});
+
+// ✅ Create HTTP & WebSocket Server
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: "https://housekeepingmanagement.netlify.app",
+        methods: ["GET", "POST"]
+    }
+});
+
 // ✅ Define MongoDB Schemas
 const userSchema = new mongoose.Schema({
     username: { type: String, unique: true, required: true },
@@ -144,40 +162,6 @@ app.post("/auth/login", async (req, res) => {
     res.json({ message: "Login successful", token, refreshToken, username: user.username });
 });
 
-
-// 🔐 User Signup
-app.post("/auth/signup", async (req, res) => {
-    const { username, password } = req.body;
-    try {
-        const existingUser = await User.findOne({ username });
-        if (existingUser) return res.status(400).json({ message: "User already exists." });
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = new User({ username, password: hashedPassword });
-        await newUser.save();
-        res.status(201).json({ message: "User registered successfully!" });
-    } catch (error) {
-        console.error("❌ Signup error:", error);
-        res.status(500).json({ message: "Server error", error });
-    }
-});
-
-app.post("/auth/logout", async (req, res) => {
-    try {
-        const { username } = req.body;
-        if (!username) return res.status(400).json({ message: "Username required for logout." });
-
-        await User.updateOne({ username }, { $unset: { refreshToken: "" } });
-
-        res.json({ message: "✅ Logged out successfully." });
-    } catch (error) {
-        console.error("❌ Logout error:", error);
-        res.status(500).json({ message: "Server error", error });
-    }
-});
-
-
-
 let isRefreshing = false;  // ✅ Prevent multiple refresh calls
 
 app.post("/auth/refresh", async (req, res) => {
@@ -216,6 +200,39 @@ app.post("/auth/refresh", async (req, res) => {
         res.status(403).json({ message: "Invalid or expired refresh token" });
     }
 });
+
+
+// 🔐 User Signup
+app.post("/auth/signup", async (req, res) => {
+    const { username, password } = req.body;
+    try {
+        const existingUser = await User.findOne({ username });
+        if (existingUser) return res.status(400).json({ message: "User already exists." });
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = new User({ username, password: hashedPassword });
+        await newUser.save();
+        res.status(201).json({ message: "User registered successfully!" });
+    } catch (error) {
+        console.error("❌ Signup error:", error);
+        res.status(500).json({ message: "Server error", error });
+    }
+});
+
+app.post("/auth/logout", async (req, res) => {
+    try {
+        const { username } = req.body;
+        if (!username) return res.status(400).json({ message: "Username required for logout." });
+
+        await User.updateOne({ username }, { $unset: { refreshToken: "" } });
+
+        res.json({ message: "✅ Logged out successfully." });
+    } catch (error) {
+        console.error("❌ Logout error:", error);
+        res.status(500).json({ message: "Server error", error });
+    }
+});
+
 
 // ✅ Validate Token Route
 app.get("/auth/validate", (req, res) => {
