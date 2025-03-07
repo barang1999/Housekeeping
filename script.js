@@ -58,25 +58,26 @@ async function connectWebSocket() {
         console.error("❌ WebSocket is not initialized before setting up event listeners.");
     }
 }
-    // ✅ Live Status Updates from Server
-socket.on("update", (data) => {
-    console.log("🔄 Live Update Received:", data);
-    updateButtonStatus(data.roomNumber, data.status);
-});
+    // ✅ Ensure socket is initialized before adding event listeners
+if (window.socket && window.socket.connected) {
+    socket.on("update", (data) => {
+        console.log("🔄 Live Update Received:", data);
+        updateButtonStatus(data.roomNumber, data.status);
+    });
+} else {
+    console.warn("⚠️ WebSocket is not initialized yet. Event listeners will be set after connection.");
+}
+
 // ✅ Listen for events safely (prevents duplication)
 document.addEventListener("DOMContentLoaded", () => {
-    if (!socket.hasListeners("clearLogs")) {
+    if (window.socket && socket.hasListeners && !socket.hasListeners("clearLogs")) {
         socket.on("clearLogs", () => {
             console.log("🧹 Logs cleared remotely, resetting buttons...");
             resetButtonStatus();
         });
+    } else {
+        console.warn("⚠️ WebSocket is not ready. Delaying event binding...");
     }
-});
-
-        // ✅ Ensure no duplicate event listeners
-socket.on("clearLogs", () => {
-    console.log("🧹 Logs cleared remotely, resetting buttons...");
-    resetButtonStatus();
 });
         // ✅ Function to send safe WebSocket events
 function safeEmit(event, data) {
@@ -113,7 +114,19 @@ async function ensureValidToken() {
 
         if (expTime < currentTime) {
             console.warn("❌ JWT Token Expired. Attempting to refresh...");
-            return await refreshToken(); // ✅ Refresh token if expired
+
+            // ✅ Refresh the token properly
+            const refreshedToken = await refreshToken();
+            if (refreshedToken) {
+                console.log("✅ Token successfully refreshed.");
+                localStorage.setItem("token", refreshedToken);
+                return refreshedToken;
+            } else {
+                console.error("❌ Token refresh failed. Logging out.");
+                localStorage.removeItem("token");
+                showLogin();
+                return null;
+            }
         }
 
         return token;
@@ -124,7 +137,6 @@ async function ensureValidToken() {
         return null;
     }
 }
-
 
 
 async function refreshToken() {
