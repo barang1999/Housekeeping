@@ -126,27 +126,23 @@ function showDashboard(username) {
     const dashboard = document.getElementById("dashboard");
     const usernameDisplay = document.getElementById("user-name");
 
-    if (!authSection) {
-        console.error("❌ `auth-section` not found in DOM!");
-    }
-    if (!dashboard) {
-        console.error("❌ `dashboard` not found in DOM!");
-    }
-    if (!usernameDisplay) {
-        console.error("❌ `user-name` span not found in DOM!");
-    }
-
     if (!authSection || !dashboard || !usernameDisplay) {
-        return; // Stop execution if elements are missing
+        console.error("❌ One or more required elements not found!");
+        return;
     }
 
-    authSection.classList.add("hidden");
+    // ✅ Hide the authentication section (Login & Signup)
+    authSection.style.display = "none";
+
+    // ✅ Show the dashboard
     dashboard.classList.remove("hidden");
+    dashboard.style.display = "block"; 
+
+    // ✅ Display the username
     usernameDisplay.textContent = username;
 
-    console.log("✅ Dashboard should now be visible.");
+    console.log("✅ Authentication section hidden, Dashboard displayed.");
 }
-
 
 document.addEventListener("DOMContentLoaded", function () {
     console.log("DOM fully loaded");
