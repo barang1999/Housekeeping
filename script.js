@@ -112,20 +112,21 @@ async function connectWebSocket() {
     });
 
     window.socket.on("connect_error", async (err) => {
-        console.warn("WebSocket connection error:", err.message);
-        if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-            reconnectAttempts++;
-            const newToken = await refreshToken();
-            if (newToken) {
-                connectWebSocket();
-            } else {
-                logout();
-            }
+    console.warn("WebSocket connection error:", err.message);
+    if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+        reconnectAttempts++;
+        const newToken = await refreshToken();
+        if (newToken) {
+            window.socket.auth.token = newToken; // ✅ Assign new token before reconnecting
+            window.socket.connect(); // ✅ Attempt reconnection without infinite loop
         } else {
-            console.error("Maximum WebSocket reconnect attempts reached.");
-            logout();
+            logout(); // Prevents infinite attempts
         }
-    });
+    } else {
+        console.error("Maximum WebSocket reconnect attempts reached.");
+        logout();
+    }
+});
 
     window.socket.on("disconnect", (reason) => console.warn("WebSocket disconnected:", reason));
     window.socket.on("update", ({ roomNumber, status }) => updateButtonStatus(roomNumber, status));
@@ -136,6 +137,17 @@ function safeEmit(event, data = {}) {
         window.socket.emit(event, data);
     } else {
         console.warn(`WebSocket is not connected. Cannot emit ${event}`);
+    }
+}
+
+async function fetchWithErrorHandling(url, options = {}) {
+    try {
+        const res = await fetch(url, options);
+        if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
+        return await res.json();
+    } catch (error) {
+        console.error("API Request Error:", error);
+        return null; // Ensures failure is handled gracefully
     }
 }
 async function login(username, password) {
@@ -295,7 +307,7 @@ function formatRoomNumber(roomNumber) {
 
 async function restoreCleaningStatus() {
     try {
-        const res = await fetch(`${apiUrl}/logs`);
+        const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
         const logs = await res.json();
         logs.forEach(log => updateButtonStatus(log.roomNumber, log.status));
     } catch (error) {
@@ -350,10 +362,16 @@ async function finishCleaning(roomNumber) {
 }
 
 function logout() {
+    console.log("🔴 Logging out...");
+    if (window.socket) {
+        window.socket.off(); // ✅ Unbind all socket events
+        window.socket.disconnect(); // ✅ Disconnect WebSocket
+    }
     localStorage.clear();
-    if (window.socket) window.socket.disconnect();
+    sessionStorage.clear(); // ✅ Clears session storage too
     location.reload();
 }
+
 
 // ✅ Ensure `logs` is defined before using it
 function loadLogs() {
