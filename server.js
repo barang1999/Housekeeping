@@ -231,25 +231,35 @@ app.get("/logs/status", async (req, res) => {
 
 
 
-// 🚀 Start Cleaningapp.post("/logs/start", async (req, res) => {
-    let { roomNumber, username } = req.body;
-    const startTime = new Date().toLocaleString("en-US", { timeZone: "Asia/Phnom_Penh" });
+// 🚀 Start Cleaning
 
-    if (!roomNumber || isNaN(roomNumber)) {
-        return res.status(400).json({ message: "❌ Invalid room number" });
-    }
-
-    roomNumber = parseInt(roomNumber, 10);
-
+app.post("/logs/start", async (req, res) => {
     try {
+        let { roomNumber, username } = req.body;
+        const startTime = new Date().toLocaleString("en-US", { timeZone: "Asia/Phnom_Penh" });
+
+        if (!roomNumber || isNaN(roomNumber)) {
+            return res.status(400).json({ message: "❌ Invalid room number" });
+        }
+
+        roomNumber = parseInt(roomNumber, 10);
+
+        // ✅ Ensure CleaningLog.updateOne runs inside an async function
         await CleaningLog.updateOne(
             { roomNumber },
             { $set: { startTime, startedBy: username, finishTime: null, finishedBy: null } },
             { upsert: true }
         );
 
-        io.emit("update", { roomNumber, status: "in_progress" });
+        // ✅ Emit the event through WebSocket properly
+        if (io) {
+            io.emit("update", { roomNumber, status: "in_progress" });
+        } else {
+            console.warn("⚠ WebSocket (io) is not initialized.");
+        }
+
         res.status(201).json({ message: `✅ Room ${roomNumber} started by ${username} at ${startTime}` });
+
     } catch (error) {
         console.error("❌ Start Cleaning Error:", error);
         res.status(500).json({ message: "Server error", error });
