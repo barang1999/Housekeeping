@@ -124,15 +124,20 @@ async function login(event) {
     }
 }
 
+function showDashboard(username) {
+    document.getElementById("auth-section").classList.add("hidden"); 
+    document.getElementById("dashboard").classList.remove("hidden");
+    document.getElementById("user-name").textContent = username;
+}
+
 window.onload = function () {
     const token = localStorage.getItem("token");
-    if (token) {
-        document.getElementById("auth-section").classList.add("hidden"); // Hide login form
-        document.getElementById("dashboard").classList.remove("hidden"); // Show dashboard
-        document.getElementById("user-name").textContent = localStorage.getItem("username") || "User"; // Update UI
+    const username = localStorage.getItem("username");
+
+    if (token && username) {
+        showDashboard(username);
     }
 };
-
 
 async function checkAuth() {
     let token = localStorage.getItem("token");
