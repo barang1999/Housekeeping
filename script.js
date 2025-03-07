@@ -96,6 +96,12 @@ async function refreshToken() {
     }
 }
 
+function getToken() {
+    const token = localStorage.getItem("token");
+    return token ? token : null; // Ensures no undefined errors
+}
+
+
 async function connectWebSocket() {
     let token = await ensureValidToken();
     if (!token) return;
@@ -115,16 +121,15 @@ async function connectWebSocket() {
     console.warn("WebSocket connection error:", err.message);
     if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
         reconnectAttempts++;
+        await new Promise(res => setTimeout(res, 2000)); // Wait before retrying
         const newToken = await refreshToken();
         if (newToken) {
-            window.socket.auth.token = newToken; // ✅ Assign new token before reconnecting
-            window.socket.connect(); // ✅ Attempt reconnection without infinite loop
+            window.socket.auth.token = newToken;
+            window.socket.connect();
         } else {
-            logout(); // Prevents infinite attempts
+            console.error("Max reconnect attempts reached.");
+            logout();
         }
-    } else {
-        console.error("Maximum WebSocket reconnect attempts reached.");
-        logout();
     }
 });
 
