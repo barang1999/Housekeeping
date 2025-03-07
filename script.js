@@ -293,10 +293,11 @@ function formatRoomNumber(roomNumber) {
             return roomNumber.toString().padStart(3, '0');
         }
 // ✅ Fix restoreCleaningStatus()
-  function toggleFloor(floorId) {
-        document.querySelectorAll('.rooms').forEach(roomDiv => roomDiv.style.display = 'none');
-        document.getElementById(floorId).style.display = 'block';
-    }
+ function toggleFloor(floorId) {
+    document.querySelectorAll('.rooms').forEach(roomDiv => roomDiv.style.display = 'none');
+    const floorDiv = document.getElementById(floorId);
+    if (floorDiv) floorDiv.style.display = 'block';
+}
 
     function formatCambodiaTime() {
         return new Intl.DateTimeFormat('en-US', {
@@ -308,7 +309,6 @@ function formatRoomNumber(roomNumber) {
 async function restoreCleaningStatus() {
     try {
         const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
-        const logs = await res.json();
         logs.forEach(log => updateButtonStatus(log.roomNumber, log.status));
     } catch (error) {
         console.error("Error fetching logs:", error);
