@@ -124,6 +124,7 @@ async function connectWebSocket() {
         await new Promise(res => setTimeout(res, 2000)); // Wait before retrying
         const newToken = await refreshToken();
         if (newToken) {
+            window.socket.disconnect(); // Ensure clean reconnection
             window.socket.auth.token = newToken;
             window.socket.connect();
         } else {
@@ -334,15 +335,15 @@ function applyCleaningStatus(cleaningStatus) {
 }
 
 async function startCleaning(roomNumber) {
-    const username = localStorage.getItem("username");
     try {
         const res = await fetch(`${apiUrl}/logs/start`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roomNumber, username, status: "in_progress" })
+            body: JSON.stringify({ roomNumber, username: localStorage.getItem("username"), status: "in_progress" })
         });
         const data = await res.json();
         if (data.message.includes("started")) {
+            localStorage.setItem("username", data.username);
             updateButtonStatus(roomNumber, "in_progress");
             window.socket.emit("update", { roomNumber, status: "in_progress" });
         }
@@ -352,19 +353,22 @@ async function startCleaning(roomNumber) {
 }
 
 async function finishCleaning(roomNumber) {
-    const username = localStorage.getItem("username");
     try {
         const res = await fetch(`${apiUrl}/logs/finish`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roomNumber, username, status: "finished" })
+            body: JSON.stringify({ roomNumber, username: localStorage.getItem("username"), status: "finished" })
         });
         const data = await res.json();
-        if (data.message.includes("finished")) updateButtonStatus(roomNumber, "finished");
+        if (data.message.includes("finished")) {
+            localStorage.setItem("username", data.username);
+            updateButtonStatus(roomNumber, "finished");
+        }
     } catch (error) {
         console.error("Error finishing cleaning:", error);
     }
 }
+
 
 function logout() {
     console.log("🔴 Logging out...");
