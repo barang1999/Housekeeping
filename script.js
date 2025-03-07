@@ -51,7 +51,7 @@ async function ensureValidToken() {
 async function refreshToken() {
     const refreshToken = localStorage.getItem("refreshToken");
     if (!refreshToken) {
-        console.warn("No refresh token found. Logging out.");
+        console.warn("⚠ No refresh token found. Logging out.");
         return null;
     }
 
@@ -62,24 +62,22 @@ async function refreshToken() {
             body: JSON.stringify({ token: refreshToken })
         });
 
-        if (!res.ok) {
-            console.error(`Refresh token failed: ${res.status}`);
-            return null;
-        }
-
         const data = await res.json();
         if (!data.token) {
-            console.error("Invalid token received.");
+            console.error("❌ Refresh failed. No new token received.");
             return null;
         }
 
+        // ✅ Store new token
         localStorage.setItem("token", data.token);
+        console.log("✅ Token refreshed successfully:", data.token);
         return data.token;
     } catch (error) {
-        console.error("Error refreshing token:", error);
+        console.error("❌ Error refreshing token:", error);
         return null;
     }
 }
+
 
 async function connectWebSocket() {
     let token = await ensureValidToken();
