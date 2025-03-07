@@ -1,6 +1,8 @@
 const apiUrl = "https://housekeeping-production.up.railway.app";
 const token = localStorage.getItem("token");
 
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
 window.socket = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -79,11 +81,6 @@ async function refreshToken() {
     }
 }
 
-
-
-let reconnectAttempts = 0;
-const MAX_RECONNECT_ATTEMPTS = 5;
-
 async function connectWebSocket() {
     let token = await ensureValidToken();
     if (!token) return;
@@ -125,7 +122,6 @@ function safeEmit(event, data = {}) {
         console.warn(`WebSocket is not connected. Cannot emit ${event}`);
     }
 }
-
 async function login(username, password) {
     try {
         const res = await fetch(`${apiUrl}/auth/login`, {
@@ -140,19 +136,20 @@ async function login(username, password) {
         }
 
         const data = await res.json();
-        console.log("🔍 Login API Response:", data); // 🚀 Check if token is present
+        console.log("🔍 Login API Response:", data); // ✅ Debugging line
 
         if (!data.token || !data.refreshToken) {
-            console.error("❌ Login response does not contain tokens!");
+            console.error("❌ Login response does not contain both tokens!");
             return;
         }
 
-        // Store tokens in localStorage
+        // ✅ Store the token properly
         storeTokens(data.token, data.refreshToken);
-        console.log("✅ Tokens stored successfully.");
+
+        console.log("✅ Tokens stored successfully in localStorage.");
         
-        // Redirect to dashboard or reload
-        window.location.href = "/dashboard.html";
+        // ✅ Call dashboard() instead of redirecting
+        dashboard();
     } catch (error) {
         console.error("❌ Login request failed:", error);
     }
@@ -192,10 +189,13 @@ function storeTokens(accessToken, refreshToken) {
         console.error("❌ Missing tokens! Cannot store.");
         return;
     }
-    console.log("✅ Storing tokens...");
+
+    console.log("✅ Storing tokens in localStorage...", { accessToken, refreshToken });
+
     localStorage.setItem("token", accessToken);
     localStorage.setItem("refreshToken", refreshToken);
 }
+
 
 
 function updateButtonStatus(roomNumber, status) {
