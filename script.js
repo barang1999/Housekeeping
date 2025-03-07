@@ -84,7 +84,7 @@ async function refreshToken() {
             return null;
         }
 
-        // ✅ Store new tokens
+        // ✅ Store new tokens only once
         localStorage.setItem("token", data.token);
         localStorage.setItem("refreshToken", data.refreshToken);
 
