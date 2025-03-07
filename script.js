@@ -148,8 +148,8 @@ function showDashboard(username) {
 }
 
 
-window.onload = function () {
-    console.log("Window onload triggered");
+document.addEventListener("DOMContentLoaded", function () {
+    console.log("DOM fully loaded");
     const token = localStorage.getItem("token");
     const username = localStorage.getItem("username");
 
@@ -159,7 +159,8 @@ window.onload = function () {
     } else {
         console.log("No token found. Redirecting to login.");
     }
-};
+});
+
 
 async function checkAuth() {
     let token = localStorage.getItem("token");
