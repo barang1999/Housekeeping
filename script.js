@@ -86,7 +86,7 @@ async function fetchWithErrorHandling(url, options = {}) {
 }
 
 // ✅ Improved Login Function
-window.login = async function(event)  {
+async function login(event) {
     event.preventDefault();
 
     const username = document.getElementById("login-username").value.trim();
@@ -101,38 +101,30 @@ window.login = async function(event)  {
         const res = await fetch(`${apiUrl}/auth/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, password })
+            body: JSON.stringify({ username, password }),
+            credentials: "include"  // ✅ Required for cookies/JWT tokens
         });
-
-        if (!res.ok) {
-            throw new Error(`Login failed with status ${res.status}`);
-        }
 
         const data = await res.json();
 
-        if (!data.token || !data.refreshToken) {
-            alert("❌ Login failed. Please check your credentials.");
-            return;
+        if (!res.ok) {
+            console.error("❌ Login failed:", data.message);
+            throw new Error(data.message);
         }
 
+        console.log("✅ Login successful:", data);
         localStorage.setItem("token", data.token);
         localStorage.setItem("refreshToken", data.refreshToken);
-        localStorage.setItem("username", username);
-
-        console.log("✅ Login successful:", { username, token: data.token });
 
         document.getElementById("auth-section").classList.add("hidden");
         document.getElementById("dashboard").classList.remove("hidden");
         document.getElementById("user-name").innerText = username;
-
-        connectWebSocket();
-        loadRooms();
-
     } catch (error) {
-        console.error("❌ Login request failed:", error);
+        console.error("❌ Login error:", error);
         alert("❌ Error logging in. Please try again later.");
     }
 }
+
 
 
 
