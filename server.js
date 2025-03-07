@@ -78,9 +78,6 @@ io.use(async (socket, next) => {
     }
 });
 
-
-
-
 io.on("connection", (socket) => {
     const username = socket.user?.username || "Unknown User";  // ✅ Prevents crash
     console.log(`⚡ New WebSocket client connected: ${username}`);
@@ -114,14 +111,6 @@ mongoose.connection.on("disconnected", async () => {
     }
 });
 
-const logSchema = new mongoose.Schema({
-    roomNumber: Number,
-    startTime: String,
-    startedBy: String,
-    finishTime: String,
-    finishedBy: String
-});
-const CleaningLog = mongoose.model("CleaningLog", logSchema);
 
 // ✅ Authentication Routes
 
@@ -154,6 +143,7 @@ app.post("/auth/login", async (req, res) => {
     console.log("✅ Login successful for user:", username);
     res.json({ message: "Login successful", token, refreshToken, username: user.username });
 });
+
 
 // 🔐 User Signup
 app.post("/auth/signup", async (req, res) => {
@@ -338,6 +328,16 @@ app.post("/logs/finish", async (req, res) => {
         res.status(500).json({ message: "Server error", error });
     }
 });
+
+const logSchema = new mongoose.Schema({
+    roomNumber: Number,
+    startTime: String,
+    startedBy: String,
+    finishTime: String,
+    finishedBy: String
+});
+const CleaningLog = mongoose.model("CleaningLog", logSchema);
+
 // 📄 Get All Cleaning Logs
 app.get("/logs", async (req, res) => {
     try {
