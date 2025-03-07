@@ -111,12 +111,12 @@
 </form>
     <p>Don't have an account? <a href="#" onclick="toggleAuth()">Sign up here</a></p>
 
-    <div id="signup-form" class="hidden">
+   <form id="signup-form" class="hidden" onsubmit="signUp(event)">
     <h2>Sign Up</h2>
-    <input type="text" id="signup-username" placeholder="Username">
-    <input type="password" id="signup-password" placeholder="Password" onkeyup="if(event.keyCode===13) signUp()">
-    <button onclick="signUp()">Sign Up</button>
-</div>
+    <input type="text" id="signup-username" placeholder="Username" required>
+    <input type="password" id="signup-password" placeholder="Password" required>
+    <button type="submit">Sign Up</button>
+</form>
         <div id="dashboard" class="hidden">
             <h2>Welcome, <span id="user-name"></span></h2>
             <button onclick="logout()">Logout</button>
