@@ -68,7 +68,7 @@ async function refreshToken() {
         if (!res.ok) {
             console.error("❌ Refresh failed with status:", res.status);
             alert("Session expired. Please log in again.");
-            logout(); // Stop infinite retries
+            logout();
             return null;
         }
 
