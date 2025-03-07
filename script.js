@@ -14,8 +14,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 
 async function connectWebSocket() {
-    let token = await ensureValidToken();
-    if (!token) return;
+    let token = await ensureValidToken(); // ✅ Always get the latest valid token
+    if (!token) {
+        console.warn("❌ WebSocket connection aborted: No valid token.");
+        return;
+    }
+
+    if (window.socket) {
+        window.socket.disconnect(); // Ensure no duplicate connections
+    }
 
     window.socket = io(apiUrl, {
         auth: { token },
@@ -24,19 +31,18 @@ async function connectWebSocket() {
     });
 
     window.socket.on("connect", () => {
-        console.log("WebSocket connected");
+        console.log("✅ WebSocket connected successfully.");
         reconnectAttempts = 0; // ✅ Reset attempts on successful connection
     });
 
-    window.socket.on("connect_error", async (err) => {
-    console.warn("WebSocket connection error:", err.message);
+   window.socket.on("connect_error", async (err) => {
+    console.warn("❌ WebSocket connection error:", err.message);
     if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
         reconnectAttempts++;
         await new Promise(res => setTimeout(res, 2000)); // Wait before retrying
         const newToken = await refreshToken();
         if (newToken) {
-            window.socket.disconnect(); // Ensure clean reconnection
-            window.socket.auth.token = newToken;
+            window.socket.auth = { token: newToken };  // ✅ Correctly update auth before reconnecting
             window.socket.connect();
         } else {
             console.error("Max reconnect attempts reached.");
@@ -45,9 +51,11 @@ async function connectWebSocket() {
     }
 });
 
-    window.socket.on("disconnect", (reason) => console.warn("WebSocket disconnected:", reason));
+
+    window.socket.on("disconnect", (reason) => console.warn("🔴 WebSocket disconnected:", reason));
     window.socket.on("update", ({ roomNumber, status }) => updateButtonStatus(roomNumber, status));
 }
+
 
 function safeEmit(event, data = {}) {
     if (window.socket && window.socket.connected) {
@@ -59,14 +67,23 @@ function safeEmit(event, data = {}) {
 
 async function fetchWithErrorHandling(url, options = {}) {
     try {
+        console.log(`🔍 Fetching: ${url}`);  // Debugging log
         const res = await fetch(url, options);
-        if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
-        return await res.json();
+
+        if (!res.ok) {
+            console.error(`❌ Request failed with status ${res.status}`);
+            throw new Error(`Request failed with status ${res.status} - ${res.statusText}`);
+        }
+
+        const data = await res.json();
+        console.log("✅ API Response Data:", data);
+        return data;
     } catch (error) {
-        console.error("API Request Error:", error);
-        return null; // Ensures failure is handled gracefully
+        console.error("❌ API Request Error:", error.message);
+        return null; // Prevents app from crashing
     }
 }
+
 function handleLogin(event) {
     event.preventDefault(); // Prevent form from reloading page
     const username = document.getElementById("login-username").value;
@@ -91,13 +108,19 @@ async function login(username, password) {
             return;
         }
 
-        // ✅ Store tokens
+        // ✅ Store tokens correctly
         localStorage.setItem("token", data.token);
         localStorage.setItem("refreshToken", data.refreshToken);
+        localStorage.setItem("username", username);  // ✅ Store username properly
 
-        console.log("✅ Tokens stored successfully.");
+        console.log("✅ Tokens stored successfully:", {
+            token: localStorage.getItem("token"),
+            refreshToken: localStorage.getItem("refreshToken"),
+            username: localStorage.getItem("username")
+        });
 
-        dashboard(); // Navigate after login
+        connectWebSocket(); // ✅ Ensure WebSocket connects after login
+        dashboard(); // ✅ Navigate after login
     } catch (error) {
         console.error("❌ Login request failed:", error);
     }
@@ -164,7 +187,7 @@ async function refreshToken() {
     const refreshToken = localStorage.getItem("refreshToken");
 
     if (!refreshToken) {
-        console.warn("⚠ No refresh token found in localStorage. User needs to log in.");
+        console.warn("⚠ No refresh token found. User needs to log in.");
         console.log("🔍 Current LocalStorage:", localStorage);
         return null; // 🔄 Prevents infinite logout loop
     }
@@ -181,17 +204,17 @@ async function refreshToken() {
             console.error(`❌ Refresh failed with status ${res.status}`);
             if (res.status === 403 || res.status === 401) {
                 console.warn("🔴 Refresh token invalid or expired. User needs to log in.");
-                return null; // ❌ DO NOT force logout here
+                return null;
             }
         }
 
         const data = await res.json();
         if (!data.token || !data.refreshToken) {
             console.error("❌ Refresh failed. No new tokens received.");
-            return null; // ❌ Avoid logging out immediately
+            return null;
         }
 
-        // ✅ Store new tokens only once
+        // ✅ Store new tokens properly
         localStorage.setItem("token", data.token);
         localStorage.setItem("refreshToken", data.refreshToken);
 
@@ -203,11 +226,9 @@ async function refreshToken() {
         return data.token;
     } catch (error) {
         console.error("❌ Error refreshing token:", error);
-        return null; // 🔄 Don't force logout on network errors
+        return null;
     }
-}
-
-async function ensureValidToken() {
+}async function ensureValidToken() {
     let token = localStorage.getItem("token");
 
     if (!token) {
@@ -217,6 +238,7 @@ async function ensureValidToken() {
             console.error("❌ Token refresh failed. User must log in.");
             return null;
         }
+        localStorage.setItem("token", token); // ✅ Store new token
     }
 
     try {
@@ -229,7 +251,7 @@ async function ensureValidToken() {
                 console.error("❌ Token refresh unsuccessful. User must log in.");
                 return null;
             }
-            localStorage.setItem("token", token);
+            localStorage.setItem("token", token); // ✅ Store new token
         }
 
         console.log("✅ Token is valid.");
@@ -316,24 +338,29 @@ function formatRoomNumber(roomNumber) {
 
 async function restoreCleaningStatus() {
     try {
+        console.log("🔄 Fetching cleaning logs...");
         const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
-        logs.forEach(log => updateButtonStatus(log.roomNumber, log.status));
-    } catch (error) {
-        console.error("Error fetching logs:", error);
-    }
-}
 
-// Apply statuses to buttons after fetching logs
-function applyCleaningStatus(cleaningStatus) {
-    Object.keys(cleaningStatus).forEach(roomNumber => {
-        const startButton = document.getElementById(`start-${roomNumber}`);
-        const finishButton = document.getElementById(`finish-${roomNumber}`);
-
-        if (cleaningStatus[roomNumber].started) {
-            if (startButton) startButton.disabled = true;
-            if (finishButton) finishButton.disabled = !cleaningStatus[roomNumber].finished;
+        if (!logs || !Array.isArray(logs)) {
+            console.warn("⚠️ No valid logs found. Setting empty array.");
+            return;
         }
-    });
+
+        logs.forEach(log => {
+            // ✅ Fix: Ensure correct field name and check for missing status
+            const roomNumber = log.roomNumber || log.roomNumb;  // Handle incorrect field name
+            const status = log.status || "pending";  // Default status if missing
+
+            if (!roomNumber) {
+                console.warn("⚠️ Skipping log entry with missing room number:", log);
+                return;
+            }
+
+            updateButtonStatus(roomNumber, status);
+        });
+    } catch (error) {
+        console.error("❌ Error fetching logs:", error);
+    }
 }
 
 async function startCleaning(roomNumber) {
