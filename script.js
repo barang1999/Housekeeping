@@ -52,9 +52,9 @@ async function refreshToken() {
     const refreshToken = localStorage.getItem("refreshToken");
 
     if (!refreshToken) {
-        console.warn("⚠ No refresh token found. Attempting re-login...");
+        console.warn("⚠ No refresh token found. Logging out.");
         alert("Session expired. Please log in again.");
-        logout(); // Redirect to login instead of looping
+        logout();
         return null;
     }
 
@@ -62,20 +62,19 @@ async function refreshToken() {
         const res = await fetch(`${apiUrl}/auth/refresh`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token: refreshToken })
+            body: JSON.stringify({ refreshToken }) // ✅ Ensure correct key
         });
 
         if (!res.ok) {
             console.error("❌ Refresh failed with status:", res.status);
             alert("Session expired. Please log in again.");
-            logout(); // Avoid infinite loop
+            logout(); // Stop infinite retries
             return null;
         }
 
         const data = await res.json();
         if (!data.token || !data.refreshToken) {
             console.error("❌ Refresh failed. No new tokens received.");
-            alert("Session expired. Please log in again.");
             logout();
             return null;
         }
@@ -88,7 +87,6 @@ async function refreshToken() {
         return data.token;
     } catch (error) {
         console.error("❌ Error refreshing token:", error);
-        alert("Session expired. Please log in again.");
         logout();
         return null;
     }
