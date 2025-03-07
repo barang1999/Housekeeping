@@ -231,18 +231,7 @@ async function refreshToken() {
             return null;
         }
 
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("refreshToken", data.refreshToken);
-
-        return data.token;
-    } catch (error) {
-        console.error("❌ Error refreshing token:", error);
-        return null;
-    }
-}
-
-
-        // ✅ Store new tokens properly
+        // ✅ Store new tokens properly inside the try block
         localStorage.setItem("token", data.token);
         localStorage.setItem("refreshToken", data.refreshToken);
 
@@ -256,7 +245,9 @@ async function refreshToken() {
         console.error("❌ Error refreshing token:", error);
         return null;
     }
-}async function ensureValidToken() {
+}
+
+async function ensureValidToken() {
     let token = localStorage.getItem("token");
 
     if (!token) {
