@@ -142,31 +142,26 @@ async function login(username, password) {
             body: JSON.stringify({ username, password })
         });
 
-        if (!res.ok) {
-            console.error("❌ Login failed with status:", res.status);
-            return;
-        }
-
         const data = await res.json();
-        console.log("🔍 Login API Response:", data); // ✅ Debugging line
+        console.log("🔍 Login API Response:", data);
 
         if (!data.token || !data.refreshToken) {
-            console.error("❌ Login response does not contain both tokens!");
+            console.error("❌ Missing token or refreshToken in login response!");
+            alert("Login failed. Please try again.");
             return;
         }
 
-        // ✅ Store the token properly
-        storeTokens(data.token, data.refreshToken);
+        // ✅ Store tokens
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("refreshToken", data.refreshToken);
 
-        console.log("✅ Tokens stored successfully in localStorage.");
-        
-        // ✅ Call dashboard() instead of redirecting
-        dashboard();
+        console.log("✅ Tokens stored successfully.");
+
+        dashboard(); // Navigate after login
     } catch (error) {
         console.error("❌ Login request failed:", error);
     }
 }
-
  function signUp() {
     const username = document.getElementById("signup-username").value;
     const password = document.getElementById("signup-password").value;
