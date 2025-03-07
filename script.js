@@ -30,14 +30,14 @@ async function connectWebSocket() {
             console.log("✅ WebSocket connected");
         });
 
-        socket.on("connect_error", async (err) => {
+                socket.on("connect_error", async (err) => {
             console.error("❌ WebSocket connection error:", err);
-
+            
             if (err.message.includes("Invalid token")) {
                 console.warn("🔄 Attempting token refresh...");
-                token = await refreshToken();
-                if (token) {
-                     window.socket.auth = { token };  // ✅ Update auth
+                const newToken = await refreshToken();
+                if (newToken) {
+                    window.socket.auth = { token: newToken };  // ✅ Properly update token
                     window.socket.disconnect();
                     window.socket.connect();
                 } else {
@@ -46,6 +46,7 @@ async function connectWebSocket() {
                 }
             }
         });
+
 
         socket.on("disconnect", (reason) => {
             console.warn("⚠️ WebSocket disconnected:", reason);
@@ -60,7 +61,7 @@ async function connectWebSocket() {
 }
     // ✅ Ensure socket is initialized before adding event listeners
 if (window.socket && window.socket.connected) {
-    socket.on("update", (data) => {
+    window.socket.on("update", (data) => {
         console.log("🔄 Live Update Received:", data);
         updateButtonStatus(data.roomNumber, data.status);
     });
@@ -70,13 +71,11 @@ if (window.socket && window.socket.connected) {
 
 // ✅ Listen for events safely (prevents duplication)
 document.addEventListener("DOMContentLoaded", () => {
-    if (window.socket && socket.hasListeners && !socket.hasListeners("clearLogs")) {
-        socket.on("clearLogs", () => {
+    if (window.socket && window.socket.hasListeners && !window.socket.hasListeners("clearLogs")) {
+        window.socket.on("clearLogs", () => {
             console.log("🧹 Logs cleared remotely, resetting buttons...");
             resetButtonStatus();
         });
-    } else {
-        console.warn("⚠️ WebSocket is not ready. Delaying event binding...");
     }
 });
         // ✅ Function to send safe WebSocket events
@@ -97,8 +96,8 @@ async function ensureValidToken() {
         console.warn("⚠️ No token found. Attempting to refresh.");
         token = await refreshToken();
 
-        if (!token) {
-            console.error("❌ Token refresh failed. Redirecting to login.");
+               if (!token || typeof token !== "string" || !token.includes(".")) {
+            console.error("❌ Invalid token format. Clearing token storage.");
             localStorage.removeItem("token");
             showLogin();
             return null;
@@ -153,7 +152,7 @@ async function ensureValidToken() {
 document.addEventListener("DOMContentLoaded", async () => {
     const validToken = await ensureValidToken();
     if (validToken) {
-        connectWebSocket(validToken); // Ensure WebSocket connects only when token is ready
+        connectWebSocket(validToken); // ✅ Ensure WebSocket connects only when token is valid
     }
 });
 
@@ -299,11 +298,12 @@ function showLogin() {
 
     function logout() {
     console.log("🔴 Logging out...");
-    localStorage.removeItem("token");
-    localStorage.removeItem("username");
-    location.reload(); // Refresh page to reset state
-}
-        
+    localStorage.clear(); // ✅ Clears all local storage
+    if (window.socket) {
+        window.socket.disconnect(); // ✅ Disconnect WebSocket
+    }
+    location.reload(); // ✅ Refresh page to reset state
+} 
 
 
     function loadRooms() {
