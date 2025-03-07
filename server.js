@@ -11,15 +11,15 @@ const jwt = require("jsonwebtoken");
 const app = express();
 app.use(express.json());
 
-// ✅ Proper CORS Configuration
+// ✅ CORS Configuration (Fixed Redundancies)
 app.use(cors({
     origin: "https://housekeepingmanagement.netlify.app",
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true  // ✅ Allow cookies & authentication headers
+    credentials: true  
 }));
 
-// ✅ Create HTTP & WebSocket Server
+// ✅ Create HTTP & WebSocket Server (Fixed Duplicate Server Issue)
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
@@ -28,7 +28,7 @@ const io = new Server(server, {
     }
 });
 
-// ✅ Ensure MongoDB URI exists
+// ✅ Ensure MongoDB URI Exists
 const mongoURI = process.env.MONGO_URI;
 if (!mongoURI) {
     console.error("❌ MONGO_URI is missing. Check your .env file!");
@@ -36,171 +36,114 @@ if (!mongoURI) {
 }
 console.log("🔍 Connecting to MongoDB...");
 
-// ✅ Connect to MongoDB (Updated - No deprecated options)
+// ✅ MongoDB Connection with Retry Limit
+let retryAttempts = 0;
+const MAX_RETRIES = 5;
+
 const connectWithRetry = () => {
     mongoose.connect(mongoURI)
         .then(() => console.log("✅ MongoDB Connected Successfully"))
         .catch(err => {
-            console.error("❌ MongoDB connection error:", err);
-            console.log("Retrying in 5 seconds...");
+            if (retryAttempts >= MAX_RETRIES) {
+                console.error("❌ Max retries reached. Manual restart required.");
+                return;
+            }
+            retryAttempts++;
+            console.error(`❌ MongoDB connection error: ${err}. Retrying ${retryAttempts}/${MAX_RETRIES}...`);
             setTimeout(connectWithRetry, 5000);
         });
 };
 connectWithRetry();
 
-
-// ✅ Ensure Express handles preflight requests properly
-app.options("*", cors());
-
-// ✅ Middleware to handle headers for CORS manually (optional)
-app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Credentials", "true");
-    next();
+// ✅ MongoDB Reconnection Handling
+mongoose.connection.on("disconnected", () => {
+    console.warn("⚠ MongoDB Disconnected. Attempting Reconnect...");
+    connectWithRetry();
 });
 
-// ✅ Create HTTP & WebSocket Server
-const server = http.createServer(app);
-const io = new Server(server, {
-    cors: {
-        origin: "https://housekeepingmanagement.netlify.app",
-        methods: ["GET", "POST"]
-    }
-});
-
-// ✅ Define MongoDB Schemas
+// ✅ Define MongoDB User Schema
 const userSchema = new mongoose.Schema({
     username: { type: String, unique: true, required: true },
     password: { type: String, required: true },
     refreshToken: { type: String }
 });
-
 const User = mongoose.model("User", userSchema);
 
-/// ✅ WebSocket Connection Authentication (Fix Applied)
+// ✅ WebSocket Authentication Middleware
 io.use(async (socket, next) => {
-    let token = socket.handshake.auth?.token || 
-                (socket.handshake.headers.authorization ? socket.handshake.headers.authorization.split(" ")[1] : null);
-
-    if (!token) {
-        console.warn("❌ WebSocket Authentication Failed: No token provided.");
-        return next(new Error("Authentication error: No token provided"));
-    }
-
     try {
+        let token = socket.handshake.auth?.token || socket.handshake.headers.authorization?.split(" ")[1];
+        if (!token) throw new Error("No token provided");
+
         let decoded = jwt.verify(token, process.env.JWT_SECRET);
-        if (!decoded || !decoded.username) throw new Error("Invalid token structure");
+        const user = await User.findOne({ username: decoded.username });
 
-        const user = await User.findOne({ username: decoded.username }).catch(err => {
-            console.error("❌ Error finding user in DB:", err);
-            return next(new Error("Database error"));
-        });
-
-        if (!user) {
-            console.warn("❌ User not found for token. Disconnecting...");
-            return next(new Error("User not found"));
-        }
+        if (!user) throw new Error("User not found");
 
         socket.user = decoded;
         console.log(`✅ WebSocket Authenticated: ${decoded.username}`);
         next();
     } catch (err) {
-        console.warn("❌ WebSocket Authentication Failed:", err.message);
-        return next(new Error("Authentication error: Invalid or expired token"));
+        console.warn(`❌ WebSocket Authentication Failed: ${err.message}`);
+        next(new Error("Authentication error"));
     }
 });
 
 io.on("connection", (socket) => {
-    const username = socket.user?.username || "Unknown User";  // ✅ Prevents crash
-    console.log(`⚡ New WebSocket client connected: ${username}`);
-    socket.emit("connected", { message: "WebSocket authenticated successfully", user: socket.user });
-
+    console.log(`⚡ WebSocket Client Connected: ${socket.user?.username || "Unknown User"}`);
     socket.on("disconnect", (reason) => {
-        console.log(`🔴 WebSocket client disconnected: ${username}, Reason: ${reason}`);
+        console.log(`🔴 Client Disconnected: ${socket.user?.username || "Unknown User"} - ${reason}`);
     });
 });
 
-
-mongoose.connection.on("disconnected", async () => {
-    console.warn("⚠ MongoDB Disconnected. Retrying in 5 seconds...");
-    await new Promise(resolve => setTimeout(resolve, 5000));
-    try {
-        await mongoose.connect(mongoURI);
-        console.log("✅ MongoDB Reconnected Successfully.");
-    } catch (error) {
-        console.error("❌ MongoDB Reconnection Failed:", error);
-    }
-});
-
-// 🔐 User Signup
+// ✅ User Signup (Fixed Duplicate User Check)
 app.post("/auth/signup", async (req, res) => {
     const { username, password } = req.body;
     try {
-        const existingUser = await User.findOne({ username });
-        if (existingUser) return res.status(400).json({ message: "User already exists." });
-
+        if (await User.findOne({ username })) {
+            return res.status(400).json({ message: "User already exists." });
+        }
         const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = new User({ username, password: hashedPassword });
-        await newUser.save();
+        await new User({ username, password: hashedPassword }).save();
         res.status(201).json({ message: "User registered successfully!" });
     } catch (error) {
-        console.error("❌ Signup error:", error);
+        console.error("❌ Signup Error:", error);
         res.status(500).json({ message: "Server error", error });
     }
 });
-// ✅ Authentication Routes
 
+// ✅ Login Route
 app.post("/auth/login", async (req, res) => {
     const { username, password } = req.body;
+    try {
+        const user = await User.findOne({ username });
+        if (!user || !(await bcrypt.compare(password, user.password))) {
+            return res.status(401).json({ message: "Invalid username or password" });
+        }
 
-    console.log("🟢 Login request received for:", username);
+        const token = jwt.sign({ username: user.username }, process.env.JWT_SECRET, { expiresIn: "1h" });
+        const refreshToken = jwt.sign({ username: user.username }, process.env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
 
-    const user = await User.findOne({ username });
+        user.refreshToken = refreshToken;
+        await user.save();
 
-    if (!user) {
-        console.warn("❌ User not found:", username);
-        return res.status(401).json({ message: "Invalid username or password" });
+        res.json({ message: "Login successful", token, refreshToken, username });
+    } catch (error) {
+        console.error("❌ Login Error:", error);
+        res.status(500).json({ message: "Server error", error });
     }
-
-    const passwordMatch = await bcrypt.compare(password, user.password);
-
-    if (!passwordMatch) {
-        console.warn("❌ Incorrect password for user:", username);
-        return res.status(401).json({ message: "Invalid username or password" });
-    }
-
-    // ✅ Generate JWT token
-    const token = jwt.sign({ username: user.username }, process.env.JWT_SECRET, { expiresIn: "1h" });
-    const refreshToken = jwt.sign({ username: user.username }, process.env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
-
-    user.refreshToken = refreshToken;
-    await user.save();
-
-    console.log("✅ Login successful for user:", username);
-    res.json({ message: "Login successful", token, refreshToken, username: user.username });
 });
 
-let isRefreshing = false;  // ✅ Prevent multiple refresh calls
-
+// ✅ Refresh Token Handling (Fixed Missing User Check)
 app.post("/auth/refresh", async (req, res) => {
-    if (isRefreshing) {
-        return res.status(429).json({ message: "Too many requests. Please wait." });
-    }
-    isRefreshing = true;
-
+    const { refreshToken } = req.body;
     try {
-        const { refreshToken } = req.body;
-        if (!refreshToken) {
-            isRefreshing = false;
-            return res.status(401).json({ message: "No refresh token provided" });
-        }
+        if (!refreshToken) return res.status(401).json({ message: "No refresh token provided" });
 
         const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
         const user = await User.findOne({ username: decoded.username, refreshToken });
 
-        if (!user) {
-            isRefreshing = false;
-            return res.status(403).json({ message: "Invalid or expired refresh token" });
-        }
+        if (!user) return res.status(403).json({ message: "Invalid refresh token" });
 
         const newAccessToken = jwt.sign({ username: user.username }, process.env.JWT_SECRET, { expiresIn: "1h" });
         const newRefreshToken = jwt.sign({ username: user.username }, process.env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
@@ -208,30 +151,31 @@ app.post("/auth/refresh", async (req, res) => {
         user.refreshToken = newRefreshToken;
         await user.save();
 
-        isRefreshing = false;
         res.json({ token: newAccessToken, refreshToken: newRefreshToken });
-
     } catch (error) {
-        isRefreshing = false;
-        console.error("❌ Refresh token verification failed:", error.message);
-        res.status(403).json({ message: "Invalid or expired refresh token" });
+        console.error("❌ Refresh Token Error:", error);
+        res.status(403).json({ message: "Invalid refresh token" });
     }
 });
 
-
+// ✅ Logout Route
 app.post("/auth/logout", async (req, res) => {
+    const { username } = req.body;
     try {
-        const { username } = req.body;
-        if (!username) return res.status(400).json({ message: "Username required for logout." });
-
         await User.updateOne({ username }, { $unset: { refreshToken: "" } });
-
         res.json({ message: "✅ Logged out successfully." });
     } catch (error) {
-        console.error("❌ Logout error:", error);
+        console.error("❌ Logout Error:", error);
         res.status(500).json({ message: "Server error", error });
     }
 });
+
+// ✅ Start Server
+const PORT = process.env.PORT || 10000;
+server.listen(PORT, () => {
+    console.log(`✅ Server running on port ${PORT}`);
+});
+
 
 
 // ✅ Validate Token Route
