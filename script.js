@@ -1,14 +1,25 @@
 const apiUrl = "https://housekeeping-production.up.railway.app"; // API calls
 const token = localStorage.getItem("token");
 
-if (!token) {
-    console.warn("⚠️ No auth token found. Redirecting to login.");
-    showLogin();
-} else {
+window.socket = null; // ✅ Ensure global scope
+
+document.addEventListener("DOMContentLoaded", async () => {
+    await connectWebSocket(); // ✅ Ensure WebSocket connects when the page loads
+});
+
+// ✅ Updated connectWebSocket function
+async function connectWebSocket() {
+    let token = await ensureValidToken(); // Ensure token is valid
+
+    if (!token) {
+        console.error("❌ No valid token found. WebSocket will not connect.");
+        return;
+    }
+
     console.log("✅ Using token for WebSocket:", token);
 
-    const socket = io(apiUrl, {
-        auth: { token }, // ✅ Token sent for authentication
+    window.socket = io(apiUrl, { // ✅ Assign `socket` globally
+        auth: { token },
         reconnectionAttempts: 5,
         timeout: 5000
     });
@@ -18,31 +29,31 @@ if (!token) {
     });
 
     socket.on("connect_error", async (err) => {
-    console.error("❌ WebSocket connection error:", err);
+        console.error("❌ WebSocket connection error:", err);
 
-    if (err.message.includes("Invalid token")) {
-        console.warn("🔄 Attempting token refresh...");
-        await refreshToken();
-        socket.auth = { token: localStorage.getItem("token") }; // ✅ Use the new token
-        socket.connect();
-    }
-});
-
+        if (err.message.includes("Invalid token")) {
+            console.warn("🔄 Attempting token refresh...");
+            token = await refreshToken();
+            if (token) {
+                socket.auth = { token };
+                socket.disconnect();
+                socket.connect();
+            } else {
+                console.error("❌ Token refresh failed. Logging out.");
+                logout();
+            }
+        }
+    });
 
     socket.on("disconnect", (reason) => {
         console.warn("⚠️ WebSocket disconnected:", reason);
+    });
+
+    // ✅ Log all WebSocket messages AFTER socket is initialized
+    socket.onAny((event, data) => {
+        console.log(`📩 WebSocket Event Received: ${event}`, data);
     });
 }
-
-
-
-    socket.on("connect_error", (err) => {
-        console.error("❌ WebSocket connection error:", err);
-    });
-
-    socket.on("disconnect", (reason) => {
-        console.warn("⚠️ WebSocket disconnected:", reason);
-    });
 
     // ✅ Live Status Updates from Server
 socket.on("update", (data) => {
@@ -57,11 +68,6 @@ document.addEventListener("DOMContentLoaded", () => {
             resetButtonStatus();
         });
     }
-});
-
-// ✅ Log all WebSocket messages
-socket.onAny((event, data) => {
-    console.log(`📩 WebSocket Event Received: ${event}`, data);
 });
 
         // ✅ Ensure no duplicate event listeners
