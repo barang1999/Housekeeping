@@ -20,9 +20,10 @@ async function connectWebSocket() {
         return;
     }
 
-    if (window.socket) {
-        window.socket.disconnect(); // Ensure no duplicate connections
-    }
+   if (window.socket && window.socket.connected) {
+    console.warn("🔄 WebSocket already connected. Skipping reconnection...");
+    return;
+}
 
     window.socket = io(apiUrl, {
         auth: { token },
@@ -42,10 +43,11 @@ async function connectWebSocket() {
         await new Promise(res => setTimeout(res, 2000)); // Wait before retrying
         const newToken = await refreshToken();
         if (newToken) {
-            window.socket.auth = { token: newToken };  // ✅ Correctly update auth before reconnecting
+            window.socket.auth = { token: newToken };
             window.socket.connect();
         } else {
-            console.error("Max reconnect attempts reached.");
+            console.error("🔴 Max reconnect attempts reached. Disabling WebSocket.");
+            window.socket = null; // Prevent further connection attempts
             logout();
         }
     }
@@ -67,27 +69,25 @@ function safeEmit(event, data = {}) {
 
 async function fetchWithErrorHandling(url, options = {}) {
     try {
-        console.log(`🔍 Fetching: ${url}`);  // Debugging log
+        console.log(`🔍 Fetching: ${url}`);
         const res = await fetch(url, options);
 
         if (!res.ok) {
             console.error(`❌ Request failed with status ${res.status}`);
-            throw new Error(`Request failed with status ${res.status} - ${res.statusText}`);
+            return null; // Return null instead of crashing
         }
 
         const data = await res.json();
         console.log("✅ API Response Data:", data);
         return data;
     } catch (error) {
-        console.error("❌ API Request Error:", error.message);
-        return null; // Prevents app from crashing
+        console.error("❌ Network Error:", error.message);
+        return null;
     }
 }
 
 // ✅ Improved Login Function
 async function login(event) {
-    event.preventDefault(); // Prevents page reload
-
     const username = document.getElementById("login-username").value.trim();
     const password = document.getElementById("login-password").value.trim();
 
@@ -191,8 +191,7 @@ async function refreshToken() {
 
     if (!refreshToken) {
         console.warn("⚠ No refresh token found. User needs to log in.");
-        console.log("🔍 Current LocalStorage:", localStorage);
-        return null; // 🔄 Prevents infinite logout loop
+        return null;
     }
 
     try {
@@ -200,22 +199,31 @@ async function refreshToken() {
         const res = await fetch(`${apiUrl}/auth/refresh`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ refreshToken }) // ✅ Correct key used
+            body: JSON.stringify({ refreshToken })
         });
 
         if (!res.ok) {
             console.error(`❌ Refresh failed with status ${res.status}`);
-            if (res.status === 403 || res.status === 401) {
-                console.warn("🔴 Refresh token invalid or expired. User needs to log in.");
-                return null;
-            }
+            logout(); // Ensure logout happens if refresh fails
+            return null;
         }
 
         const data = await res.json();
         if (!data.token || !data.refreshToken) {
             console.error("❌ Refresh failed. No new tokens received.");
+            logout();
             return null;
         }
+
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("refreshToken", data.refreshToken);
+        return data.token;
+    } catch (error) {
+        console.error("❌ Error refreshing token:", error);
+        logout();
+        return null;
+    }
+}
 
         // ✅ Store new tokens properly
         localStorage.setItem("token", data.token);
@@ -402,16 +410,22 @@ async function finishCleaning(roomNumber) {
 }
 
 
-function logout() {
+function logout(manual = false) {
     console.log("🔴 Logging out...");
+
     if (window.socket) {
         window.socket.disconnect();
     }
-    localStorage.clear();
+
+    if (manual) {
+        localStorage.clear();
+    }
+
     sessionStorage.clear();
     alert("✅ You have been logged out.");
     location.reload();
 }
+
 
 // ✅ Ensure `logs` is defined before using it
 function loadLogs() {
