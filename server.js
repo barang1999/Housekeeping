@@ -39,6 +39,15 @@ const io = new Server(server, {
     }
 });
 
+// ✅ Define MongoDB Schemas
+const userSchema = new mongoose.Schema({
+    username: { type: String, unique: true, required: true },
+    password: { type: String, required: true },
+    refreshToken: { type: String }
+});
+
+const User = mongoose.model("User", userSchema);
+
 /// ✅ WebSocket Connection Authentication (Fix Applied)
 io.use(async (socket, next) => {
     let token = socket.handshake.auth?.token || 
@@ -76,11 +85,12 @@ io.use(async (socket, next) => {
 
 
 io.on("connection", (socket) => {
-    console.log(`⚡ New WebSocket client connected: ${socket.user.username}`);
+    const username = socket.user?.username || "Unknown User";  // ✅ Prevents crash
+    console.log(`⚡ New WebSocket client connected: ${username}`);
     socket.emit("connected", { message: "WebSocket authenticated successfully", user: socket.user });
 
     socket.on("disconnect", (reason) => {
-        console.log(`🔴 WebSocket client disconnected: ${socket.user.username}, Reason: ${reason}`);
+        console.log(`🔴 WebSocket client disconnected: ${username}, Reason: ${reason}`);
     });
 });
 
@@ -96,21 +106,16 @@ const connectWithRetry = () => {
 };
 connectWithRetry();
 
-mongoose.connection.on("disconnected", () => {
-    console.warn("⚠ MongoDB Disconnected. Attempting to reconnect...");
-    setTimeout(() => {
-        mongoose.connect(mongoURI).catch(err => console.error("❌ MongoDB Reconnection Failed:", err));
-    }, 5000); // Retry every 5 seconds
+mongoose.connection.on("disconnected", async () => {
+    console.warn("⚠ MongoDB Disconnected. Retrying in 5 seconds...");
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    try {
+        await mongoose.connect(mongoURI);
+        console.log("✅ MongoDB Reconnected Successfully.");
+    } catch (error) {
+        console.error("❌ MongoDB Reconnection Failed:", error);
+    }
 });
-
-
-// ✅ Define MongoDB Schemas
-const userSchema = new mongoose.Schema({
-    username: { type: String, unique: true, required: true },
-    password: { type: String, required: true },
-    refreshToken: { type: String }
-});
-const User = mongoose.model("User", userSchema);
 
 const logSchema = new mongoose.Schema({
     roomNumber: Number,
@@ -162,35 +167,58 @@ app.post("/auth/signup", async (req, res) => {
     }
 });
 
-app.post("/auth/refresh", async (req, res) => {
-    const { refreshToken } = req.body;
+app.post("/auth/logout", async (req, res) => {
+    try {
+        const { username } = req.body;
+        if (!username) return res.status(400).json({ message: "Username required for logout." });
 
-    if (!refreshToken) {
-        return res.status(401).json({ message: "No refresh token provided" });
+        await User.updateOne({ username }, { $unset: { refreshToken: "" } });
+
+        res.json({ message: "✅ Logged out successfully." });
+    } catch (error) {
+        console.error("❌ Logout error:", error);
+        res.status(500).json({ message: "Server error", error });
     }
+});
+
+
+
+let isRefreshing = false;  // ✅ Prevent multiple refresh calls
+
+app.post("/auth/refresh", async (req, res) => {
+    if (isRefreshing) {
+        return res.status(429).json({ message: "Too many requests. Please wait." });
+    }
+    isRefreshing = true;
 
     try {
-        // ✅ Verify refresh token
-        const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+        const { refreshToken } = req.body;
+        if (!refreshToken) {
+            isRefreshing = false;
+            return res.status(401).json({ message: "No refresh token provided" });
+        }
 
-        // ✅ Find user in DB
+        const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
         const user = await User.findOne({ username: decoded.username, refreshToken });
+
         if (!user) {
+            isRefreshing = false;
             return res.status(403).json({ message: "Invalid or expired refresh token" });
         }
 
-        // ✅ Generate new access & refresh tokens
         const newAccessToken = jwt.sign({ username: user.username }, process.env.JWT_SECRET, { expiresIn: "1h" });
         const newRefreshToken = jwt.sign({ username: user.username }, process.env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
 
-        // ✅ Update refresh token in DB (prevents reuse of old tokens)
         user.refreshToken = newRefreshToken;
         await user.save();
 
+        isRefreshing = false;
         res.json({ token: newAccessToken, refreshToken: newRefreshToken });
+
     } catch (error) {
+        isRefreshing = false;
         console.error("❌ Refresh token verification failed:", error.message);
-        return res.status(403).json({ message: "Invalid or expired refresh token" });
+        res.status(403).json({ message: "Invalid or expired refresh token" });
     }
 });
 
@@ -236,27 +264,27 @@ app.get("/logs/status", async (req, res) => {
 app.post("/logs/start", async (req, res) => {
     try {
         let { roomNumber, username } = req.body;
-        const startTime = new Date().toLocaleString("en-US", { timeZone: "Asia/Phnom_Penh" });
-
         if (!roomNumber || isNaN(roomNumber)) {
             return res.status(400).json({ message: "❌ Invalid room number" });
         }
 
         roomNumber = parseInt(roomNumber, 10);
 
-        // ✅ Ensure CleaningLog.updateOne runs inside an async function
+        // ✅ Check if room is already being cleaned
+        const existingLog = await CleaningLog.findOne({ roomNumber, finishTime: null });
+        if (existingLog) {
+            return res.status(400).json({ message: `⚠ Room ${roomNumber} is already being cleaned.` });
+        }
+
+        const startTime = new Date().toLocaleString("en-US", { timeZone: "Asia/Phnom_Penh" });
+
         await CleaningLog.updateOne(
             { roomNumber },
             { $set: { startTime, startedBy: username, finishTime: null, finishedBy: null } },
             { upsert: true }
         );
 
-        // ✅ Emit the event through WebSocket properly
-        if (io) {
-            io.emit("update", { roomNumber, status: "in_progress" });
-        } else {
-            console.warn("⚠ WebSocket (io) is not initialized.");
-        }
+        if (io) io.emit("update", { roomNumber, status: "in_progress" });
 
         res.status(201).json({ message: `✅ Room ${roomNumber} started by ${username} at ${startTime}` });
 
@@ -265,7 +293,6 @@ app.post("/logs/start", async (req, res) => {
         res.status(500).json({ message: "Server error", error });
     }
 });
-
 
 // ✅ Finish Cleaning
 app.post("/logs/finish", async (req, res) => {
