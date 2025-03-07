@@ -2,7 +2,7 @@ const apiUrl = "https://housekeeping-production.up.railway.app";
 const token = localStorage.getItem("token");
 
 let reconnectAttempts = 0;
-const MAX_RECONNECT_ATTEMPTS = 5;
+const MAX_RECONNECT_ATTEMPTS = 3;
 window.socket = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -167,6 +167,34 @@ async function login(username, password) {
     }
 }
 
+async function checkAuth() {
+    const token = localStorage.getItem("token");
+    if (!token) {
+        console.warn("No token found. Trying to refresh...");
+        await ensureValidToken(); // 🚀 Attempt to refresh before logging out
+        if (!localStorage.getItem("token")) {
+            logout();
+        }
+        return;
+    }
+
+    try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.exp * 1000 < Date.now()) {
+            console.warn("Token expired. Attempting refresh...");
+            await ensureValidToken();
+            if (!localStorage.getItem("token")) {
+                logout();
+            }
+        }
+    } catch {
+        console.error("Invalid token detected. Logging out.");
+        logout();
+    }
+}
+
+
+
  function signUp() {
     const username = document.getElementById("signup-username").value;
     const password = document.getElementById("signup-password").value;
@@ -325,32 +353,6 @@ function logout() {
     localStorage.clear();
     if (window.socket) window.socket.disconnect();
     location.reload();
-}
-
-async function checkAuth() {
-    const token = localStorage.getItem("token");
-    if (!token) {
-        console.warn("No token found. Trying to refresh...");
-        await ensureValidToken(); // 🚀 Attempt to refresh before logging out
-        if (!localStorage.getItem("token")) {
-            logout();
-        }
-        return;
-    }
-
-    try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        if (payload.exp * 1000 < Date.now()) {
-            console.warn("Token expired. Attempting refresh...");
-            await ensureValidToken();
-            if (!localStorage.getItem("token")) {
-                logout();
-            }
-        }
-    } catch {
-        console.error("Invalid token detected. Logging out.");
-        logout();
-    }
 }
 
 // ✅ Ensure `logs` is defined before using it
