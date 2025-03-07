@@ -37,9 +37,9 @@ async function connectWebSocket() {
                 console.warn("🔄 Attempting token refresh...");
                 token = await refreshToken();
                 if (token) {
-                    socket.auth = { token };
-                    socket.disconnect();
-                    socket.connect();
+                     window.socket.auth = { token };  // ✅ Update auth
+                    window.socket.disconnect();
+                    window.socket.connect();
                 } else {
                     console.error("❌ Token refresh failed. Logging out.");
                     logout();
@@ -92,7 +92,9 @@ function safeEmit(event, data) {
 
 async function ensureValidToken() {
     let token = localStorage.getItem("token");
-
+     if (!token) return await refreshToken();
+        return token;
+    }
     if (!token) {
         console.warn("⚠️ No token found. Redirecting to login.");
         showLogin();
@@ -374,24 +376,6 @@ function showLogin() {
                 alert("Failed to finish cleaning.");
             });
         }
-
- // ✅ Fix Duplicate Event Listeners
-document.addEventListener("DOMContentLoaded", () => {
-    socket.on("clearLogs", () => {
-        console.log("🔄 Logs cleared remotely, resetting buttons...");
-        localStorage.removeItem("cleaningStatus");
-
-        document.querySelectorAll(".room button").forEach(button => {
-            if (button.id.startsWith("start-")) {
-                button.disabled = false;
-            }
-            if (button.id.startsWith("finish-")) {
-                button.disabled = true;
-            }
-        });
-    });
-});
-
 // ✅ Ensure `logs` is defined before using it
 function loadLogs() {
     fetch(`${apiUrl}/logs`)
@@ -445,6 +429,11 @@ document.addEventListener("DOMContentLoaded", () => {
         console.warn("⚠️ Logs variable is not defined or is not an array. Skipping...");
     }
 });
+
+document.addEventListener("DOMContentLoaded", async () => {
+    await checkAuth();
+});
+
   function checkAuth() {
     const token = localStorage.getItem("token");
     
