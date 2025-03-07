@@ -190,11 +190,17 @@ function storeTokens(accessToken, refreshToken) {
         return;
     }
 
-    console.log("✅ Storing tokens in localStorage...", { accessToken, refreshToken });
-
+    console.log("✅ Attempting to store tokens in localStorage...");
+    
     localStorage.setItem("token", accessToken);
     localStorage.setItem("refreshToken", refreshToken);
+
+    console.log("✅ Tokens stored successfully:", {
+        token: localStorage.getItem("token"),
+        refreshToken: localStorage.getItem("refreshToken")
+    });
 }
+
 
 
 
