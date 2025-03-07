@@ -53,30 +53,25 @@ io.use(async (socket, next) => {
         let decoded = jwt.verify(token, process.env.JWT_SECRET);
         if (!decoded || !decoded.username) throw new Error("Invalid token structure");
 
+        const user = await User.findOne({ username: decoded.username }).catch(err => {
+            console.error("❌ Error finding user in DB:", err);
+            return next(new Error("Database error"));
+        });
+
+        if (!user) {
+            console.warn("❌ User not found for token. Disconnecting...");
+            return next(new Error("User not found"));
+        }
+
         socket.user = decoded;
         console.log(`✅ WebSocket Authenticated: ${decoded.username}`);
         next();
     } catch (err) {
-        if (err.name === "TokenExpiredError") {
-            console.warn("⚠ Token expired, attempting refresh...");
-            try {
-                const user = await User.findOne({ username: decoded?.username });
-                if (!user || !user.refreshToken) throw new Error("No valid refresh token");
-
-                const newToken = jwt.sign({ username: user.username }, process.env.JWT_SECRET, { expiresIn: "1h" });
-                socket.handshake.auth.token = newToken; // ✅ Update token for reconnection
-                console.log("✅ WebSocket Token Refreshed");
-                next();
-            } catch (refreshError) {
-                console.error("❌ WebSocket Token Refresh Failed:", refreshError);
-                return next(new Error("Authentication error: Token refresh failed"));
-            }
-        } else {
-            console.warn("❌ WebSocket Authentication Failed:", err.message);
-            return next(new Error("Authentication error: Invalid or expired token"));
-        }
+        console.warn("❌ WebSocket Authentication Failed:", err.message);
+        return next(new Error("Authentication error: Invalid or expired token"));
     }
 });
+
 
 
 
@@ -90,12 +85,16 @@ io.on("connection", (socket) => {
 });
 
 // ✅ Connect to MongoDB (Updated - No deprecated options)
-mongoose.connect(mongoURI)
-    .then(() => console.log("✅ MongoDB Connected Successfully"))
-    .catch(err => {
-        console.error("❌ MongoDB connection error:", err);
-        process.exit(1);
-    });
+const connectWithRetry = () => {
+    mongoose.connect(mongoURI)
+        .then(() => console.log("✅ MongoDB Connected Successfully"))
+        .catch(err => {
+            console.error("❌ MongoDB connection error:", err);
+            console.log("Retrying in 5 seconds...");
+            setTimeout(connectWithRetry, 5000);
+        });
+};
+connectWithRetry();
 
 mongoose.connection.on("disconnected", () => {
     console.warn("⚠ MongoDB Disconnected. Attempting to reconnect...");
@@ -232,18 +231,15 @@ app.get("/logs/status", async (req, res) => {
 
 
 
-// 🚀 Start Cleaning
-app.post("/logs/start", async (req, res) => {
-    console.log("📥 Start Cleaning Request:", req.body);
+// 🚀 Start Cleaningapp.post("/logs/start", async (req, res) => {
     let { roomNumber, username } = req.body;
     const startTime = new Date().toLocaleString("en-US", { timeZone: "Asia/Phnom_Penh" });
 
-    if (!roomNumber || !username) {
-        console.error("❌ Missing required fields:", req.body);
-        return res.status(400).json({ message: "Missing required fields" });
+    if (!roomNumber || isNaN(roomNumber)) {
+        return res.status(400).json({ message: "❌ Invalid room number" });
     }
 
-    roomNumber = parseInt(roomNumber, 10); // Convert to number ✅
+    roomNumber = parseInt(roomNumber, 10);
 
     try {
         await CleaningLog.updateOne(
@@ -253,12 +249,13 @@ app.post("/logs/start", async (req, res) => {
         );
 
         io.emit("update", { roomNumber, status: "in_progress" });
-        res.status(201).json({ message: `Room ${roomNumber} started by ${username} at ${startTime}` });
+        res.status(201).json({ message: `✅ Room ${roomNumber} started by ${username} at ${startTime}` });
     } catch (error) {
         console.error("❌ Start Cleaning Error:", error);
         res.status(500).json({ message: "Server error", error });
     }
 });
+
 
 // ✅ Finish Cleaning
 app.post("/logs/finish", async (req, res) => {
