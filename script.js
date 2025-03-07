@@ -27,7 +27,7 @@ async function ensureValidToken() {
 
     try {
         const payload = JSON.parse(atob(token.split('.')[1]));
-        
+
         // 🚀 Check if token is expired
         if (payload.exp * 1000 < Date.now()) {
             console.warn("⚠ Token expired. Attempting to refresh...");
@@ -53,9 +53,7 @@ async function refreshToken() {
 
     if (!refreshToken) {
         console.warn("⚠ No refresh token found. User needs to log in.");
-        alert("Session expired. Please log in again.");
-        logout();
-        return null;
+        return null; // 🔄 Prevents infinite logout loop
     }
 
     try {
@@ -69,19 +67,15 @@ async function refreshToken() {
             console.error(`❌ Refresh failed with status ${res.status}`);
             
             if (res.status === 403 || res.status === 401) {
-                console.warn("🔴 Refresh token invalid or expired. Logging out...");
-                alert("Session expired. Please log in again.");
-                logout();
+                console.warn("🔴 Refresh token invalid or expired. User needs to log in.");
+                return null; // ❌ DO NOT force logout here
             }
-            
-            return null;
         }
 
         const data = await res.json();
         if (!data.token || !data.refreshToken) {
             console.error("❌ Refresh failed. No new tokens received.");
-            logout();
-            return null;
+            return null; // ❌ Avoid logging out immediately
         }
 
         // ✅ Store new tokens only once
@@ -95,7 +89,6 @@ async function refreshToken() {
         return null; // 🔄 Don't force logout on network errors
     }
 }
-
 function getToken() {
     const token = localStorage.getItem("token");
     return token ? token : null; // Ensures no undefined errors
