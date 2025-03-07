@@ -21,14 +21,11 @@ app.use(express.json());
 
 // ✅ Proper CORS Configuration
 app.use(cors({
-    origin: [
-        "https://housekeepingmanagement.netlify.app", 
-        "http://localhost:10000",
-        "http://localhost:3000"
-    ],
-    methods: ["GET", "POST", "PUT", "DELETE"],    
+    origin: "*", // Allow all origins (Use specific domains in production)
+    methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"]
 }));
+
 
 // ✅ Create HTTP & WebSocket Server
 const server = http.createServer(app);
