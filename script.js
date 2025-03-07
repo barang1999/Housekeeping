@@ -12,88 +12,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     loadRooms();
 });
 
-async function ensureValidToken() {
-    let token = localStorage.getItem("token");
-
-    // 🚀 If no token, attempt refresh first
-    if (!token) {
-        console.warn("⚠ No token found. Attempting to refresh...");
-        token = await refreshToken();
-        if (!token) {
-            console.error("❌ Token refresh failed. Preventing infinite logout loop.");
-            return null; // ❗ Prevents calling `logout()` directly
-        }
-    }
-
-    try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-
-        // 🚀 Check if token is expired
-        if (payload.exp * 1000 < Date.now()) {
-            console.warn("⚠ Token expired. Attempting to refresh...");
-            token = await refreshToken();
-            if (!token) {
-                console.error("❌ Token refresh unsuccessful. Avoiding logout loop.");
-                return null;
-            }
-            localStorage.setItem("token", token); // ✅ Ensure new token is stored
-        }
-
-        console.log("✅ Token is valid.");
-        return token;
-    } catch (error) {
-        console.error("❌ Invalid token structure. Logging out...");
-        logout();
-        return null;
-    }
-}
-
-async function refreshToken() {
-    const refreshToken = localStorage.getItem("refreshToken");
-
-    if (!refreshToken) {
-        console.warn("⚠ No refresh token found. User needs to log in.");
-        return null; // 🔄 Prevents infinite logout loop
-    }
-
-    try {
-        const res = await fetch(`${apiUrl}/auth/refresh`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ refreshToken }) // ✅ Correct key used
-        });
-
-        if (!res.ok) {
-            console.error(`❌ Refresh failed with status ${res.status}`);
-            
-            if (res.status === 403 || res.status === 401) {
-                console.warn("🔴 Refresh token invalid or expired. User needs to log in.");
-                return null; // ❌ DO NOT force logout here
-            }
-        }
-
-        const data = await res.json();
-        if (!data.token || !data.refreshToken) {
-            console.error("❌ Refresh failed. No new tokens received.");
-            return null; // ❌ Avoid logging out immediately
-        }
-
-        // ✅ Store new tokens only once
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("refreshToken", data.refreshToken);
-
-        console.log("✅ Tokens refreshed successfully.");
-        return data.token;
-    } catch (error) {
-        console.error("❌ Error refreshing token:", error);
-        return null; // 🔄 Don't force logout on network errors
-    }
-}
-function getToken() {
-    const token = localStorage.getItem("token");
-    return token ? token : null; // Ensures no undefined errors
-}
-
 
 async function connectWebSocket() {
     let token = await ensureValidToken();
@@ -242,6 +160,93 @@ window.toggleAuth = function() {
 };
 
 
+async function refreshToken() {
+    const refreshToken = localStorage.getItem("refreshToken");
+
+    if (!refreshToken) {
+        console.warn("⚠ No refresh token found in localStorage. User needs to log in.");
+        console.log("🔍 Current LocalStorage:", localStorage);
+        return null; // 🔄 Prevents infinite logout loop
+    }
+
+    try {
+        console.log("🔄 Attempting to refresh token...");
+        const res = await fetch(`${apiUrl}/auth/refresh`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ refreshToken }) // ✅ Correct key used
+        });
+
+        if (!res.ok) {
+            console.error(`❌ Refresh failed with status ${res.status}`);
+            if (res.status === 403 || res.status === 401) {
+                console.warn("🔴 Refresh token invalid or expired. User needs to log in.");
+                return null; // ❌ DO NOT force logout here
+            }
+        }
+
+        const data = await res.json();
+        if (!data.token || !data.refreshToken) {
+            console.error("❌ Refresh failed. No new tokens received.");
+            return null; // ❌ Avoid logging out immediately
+        }
+
+        // ✅ Store new tokens only once
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("refreshToken", data.refreshToken);
+
+        console.log("✅ Tokens refreshed successfully:", {
+            token: localStorage.getItem("token"),
+            refreshToken: localStorage.getItem("refreshToken")
+        });
+
+        return data.token;
+    } catch (error) {
+        console.error("❌ Error refreshing token:", error);
+        return null; // 🔄 Don't force logout on network errors
+    }
+}
+
+async function ensureValidToken() {
+    let token = localStorage.getItem("token");
+
+    if (!token) {
+        console.warn("⚠ No token found. Attempting to refresh...");
+        token = await refreshToken();
+        if (!token) {
+            console.error("❌ Token refresh failed. User must log in.");
+            return null;
+        }
+    }
+
+    try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+
+        if (payload.exp * 1000 < Date.now()) {
+            console.warn("⚠ Token expired. Attempting to refresh...");
+            token = await refreshToken();
+            if (!token) {
+                console.error("❌ Token refresh unsuccessful. User must log in.");
+                return null;
+            }
+            localStorage.setItem("token", token);
+        }
+
+        console.log("✅ Token is valid.");
+        return token;
+    } catch (error) {
+        console.error("❌ Invalid token structure. Logging out...");
+        logout();
+        return null;
+    }
+}
+
+
+function getToken() {
+    const token = localStorage.getItem("token");
+    return token ? token : null; // Ensures no undefined errors
+}
+
 function storeTokens(accessToken, refreshToken) {
     if (!accessToken || !refreshToken) {
         console.error("❌ Missing tokens! Cannot store.");
@@ -258,9 +263,6 @@ function storeTokens(accessToken, refreshToken) {
         refreshToken: localStorage.getItem("refreshToken")
     });
 }
-
-
-
 
 function updateButtonStatus(roomNumber, status) {
     const startButton = document.getElementById(`start-${roomNumber}`);
