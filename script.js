@@ -106,7 +106,9 @@ async function login(event) {
             localStorage.setItem("token", data.token);
             localStorage.setItem("username", data.username);
 
-            showDashboard(data.username);  // Call function to show dashboard
+            // Debugging: Check if this function runs
+            console.log("showDashboard is being called with username:", data.username);
+            showDashboard(data.username); // Ensure this executes
         } else {
             alert("❌ Login failed: " + data.message);
         }
@@ -116,18 +118,34 @@ async function login(event) {
     }
 }
 
+
 function showDashboard(username) {
-    document.getElementById("auth-section").classList.add("hidden"); 
-    document.getElementById("dashboard").classList.remove("hidden");
-    document.getElementById("user-name").textContent = username;
+    console.log("Inside showDashboard function. Username:", username);
+
+    const authSection = document.getElementById("auth-section");
+    const dashboard = document.getElementById("dashboard");
+    const usernameDisplay = document.getElementById("user-name");
+
+    if (!authSection || !dashboard || !usernameDisplay) {
+        console.error("❌ Dashboard elements not found!");
+        return;
+    }
+
+    authSection.classList.add("hidden");
+    dashboard.classList.remove("hidden");
+    usernameDisplay.textContent = username;
 }
 
 window.onload = function () {
+    console.log("Window onload triggered");
     const token = localStorage.getItem("token");
     const username = localStorage.getItem("username");
 
     if (token && username) {
+        console.log("Token and username found. Logging in automatically.");
         showDashboard(username);
+    } else {
+        console.log("No token found. Redirecting to login.");
     }
 };
 
