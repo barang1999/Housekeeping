@@ -23,7 +23,11 @@ async function ensureValidToken() {
         const payload = JSON.parse(atob(token.split('.')[1]));
         if (payload.exp * 1000 < Date.now()) {
             token = await refreshToken();
-            if (!token) logout();
+            if (!token) {
+                logout();
+                return null;
+            }
+            localStorage.setItem("token", token); // ✅ Ensure new token is saved
         }
         return token;
     } catch {
@@ -32,41 +36,76 @@ async function ensureValidToken() {
     }
 }
 
+
 async function refreshToken() {
     const refreshToken = localStorage.getItem("refreshToken");
     if (!refreshToken) return null;
+
     try {
         const res = await fetch(`${apiUrl}/auth/refresh`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ token: refreshToken })
         });
+
+        if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+
         const data = await res.json();
+        if (!data.token) throw new Error("Invalid token received.");
+
         localStorage.setItem("token", data.token);
         return data.token;
-    } catch {
+    } catch (error) {
+        console.error("Error refreshing token:", error);
         return null;
     }
 }
 
+
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
+
 async function connectWebSocket() {
     let token = await ensureValidToken();
     if (!token) return;
-    
-    window.socket = io(apiUrl, { auth: { token }, reconnectionAttempts: 5, timeout: 5000 });
-    
-    window.socket.on("connect", () => console.log("WebSocket connected"));
+
+    window.socket = io(apiUrl, {
+        auth: { token },
+        reconnectionAttempts: MAX_RECONNECT_ATTEMPTS,
+        timeout: 5000
+    });
+
+    window.socket.on("connect", () => {
+        console.log("WebSocket connected");
+        reconnectAttempts = 0; // ✅ Reset attempts on successful connection
+    });
+
     window.socket.on("connect_error", async (err) => {
-        if (err.message.includes("Invalid token")) {
+        console.warn("WebSocket connection error:", err.message);
+        if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+            reconnectAttempts++;
             const newToken = await refreshToken();
-            if (newToken) connectWebSocket();
-            else logout();
+            if (newToken) {
+                connectWebSocket();
+            } else {
+                logout();
+            }
+        } else {
+            console.error("Maximum WebSocket reconnect attempts reached.");
+            logout();
         }
     });
+
     window.socket.on("disconnect", (reason) => console.warn("WebSocket disconnected:", reason));
     window.socket.on("update", ({ roomNumber, status }) => updateButtonStatus(roomNumber, status));
 }
-
+function safeEmit(event, data = {}) {
+    if (window.socket && window.socket.connected) {
+        window.socket.emit(event, data);
+    } else {
+        console.warn(`WebSocket is not connected. Cannot emit ${event}`);
+    }
+}
 function updateButtonStatus(roomNumber, status) {
     const startButton = document.getElementById(`start-${roomNumber}`);
     const finishButton = document.getElementById(`finish-${roomNumber}`);
