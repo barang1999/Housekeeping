@@ -87,7 +87,7 @@ async function fetchWithErrorHandling(url, options = {}) {
 
 // ✅ Improved Login Function
 async function login(event) {
-    event.preventDefault();  // Prevent form from reloading the page
+    event.preventDefault(); // Prevent page refresh
 
     const username = document.getElementById("login-username").value;
     const password = document.getElementById("login-password").value;
@@ -103,20 +103,12 @@ async function login(event) {
 
         if (response.ok) {
             console.log("✅ Login successful:", data);
-
-            // Store token and refresh token in localStorage
             localStorage.setItem("token", data.token);
-            localStorage.setItem("refreshToken", data.refreshToken);
+            localStorage.setItem("username", data.username);
 
-            // Update UI to show dashboard
-            document.getElementById("auth-section").classList.add("hidden"); // Hide login form
-            document.getElementById("dashboard").classList.remove("hidden"); // Show dashboard
-            document.getElementById("user-name").textContent = data.username; // Update username display
-
-            alert("Login successful!");  // Notify user
+            showDashboard(data.username);  // Call function to show dashboard
         } else {
-            console.error("❌ Login failed:", data.message);
-            alert("Login failed: " + data.message);
+            alert("❌ Login failed: " + data.message);
         }
     } catch (error) {
         console.error("❌ Error logging in:", error);
@@ -170,34 +162,33 @@ async function checkAuth() {
 
 
 
- async function signUp() {
-    const username = document.getElementById("signup-username").value.trim();
-    const password = document.getElementById("signup-password").value.trim();
+ async function signUp(event) {
+    event.preventDefault(); // Prevent form refresh
 
-    if (!username || !password) {
-        alert("⚠ Please enter both username and password.");
-        return;
-    }
+    const username = document.getElementById("signup-username").value;
+    const password = document.getElementById("signup-password").value;
 
     try {
-        const res = await fetch(`${apiUrl}/auth/signup`, {
+        const response = await fetch("https://housekeeping-production.up.railway.app/auth/signup", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, password })
+            body: JSON.stringify({ username, password }),
         });
 
-        const data = await res.json();
-        alert(data.message);
+        const data = await response.json();
 
-        if (res.ok) {
-            document.getElementById("signup-form").classList.add("hidden");
-            document.getElementById("auth-section").classList.remove("hidden");
+        if (response.ok) {
+            alert("✅ Signup successful! Please log in.");
+            document.getElementById("signup-form").classList.add("hidden"); 
+        } else {
+            alert("❌ Signup failed: " + data.message);
         }
     } catch (error) {
-        console.error("❌ Signup request failed:", error);
-        alert("❌ Error signing up. Please try again later.");
+        console.error("❌ Signup error:", error);
+        alert("An error occurred. Please try again.");
     }
 }
+
    
 function toggleAuth() {
     const signupForm = document.getElementById("signup-form");
