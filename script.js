@@ -84,13 +84,6 @@ async function fetchWithErrorHandling(url, options = {}) {
     }
 }
 
-function handleLogin(event) {
-    event.preventDefault(); // Prevent form from reloading page
-    const username = document.getElementById("login-username").value;
-    const password = document.getElementById("login-password").value;
-    login(username, password); // Ensure login function is correctly called
-}
-
 // ✅ Improved Login Function
 async function login(event) {
     event.preventDefault(); // Prevents page reload
