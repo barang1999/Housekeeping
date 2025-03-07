@@ -51,24 +51,29 @@ async function ensureValidToken() {
 async function refreshToken() {
     const refreshToken = localStorage.getItem("refreshToken");
 
-    async function refreshToken() {
-    const refreshToken = localStorage.getItem("refreshToken");
-
     if (!refreshToken) {
-        console.warn("⚠ No refresh token found. Login required.");
-        return null; // 🔄 Prevents logout loop
+        console.warn("⚠ No refresh token found. User needs to log in.");
+        alert("Session expired. Please log in again.");
+        logout();
+        return null;
     }
 
     try {
         const res = await fetch(`${apiUrl}/auth/refresh`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ refreshToken }) // ✅ Ensure correct key
+            body: JSON.stringify({ refreshToken }) // ✅ Correct key used
         });
 
         if (!res.ok) {
-            console.error("❌ Refresh failed with status:", res.status);
-            logout(); // ✅ Logout only when needed
+            console.error(`❌ Refresh failed with status ${res.status}`);
+            
+            if (res.status === 403 || res.status === 401) {
+                console.warn("🔴 Refresh token invalid or expired. Logging out...");
+                alert("Session expired. Please log in again.");
+                logout();
+            }
+            
             return null;
         }
 
@@ -87,12 +92,9 @@ async function refreshToken() {
         return data.token;
     } catch (error) {
         console.error("❌ Error refreshing token:", error);
-        logout();
-        return null;
+        return null; // 🔄 Don't force logout on network errors
     }
 }
-
-
 
 async function connectWebSocket() {
     let token = await ensureValidToken();
