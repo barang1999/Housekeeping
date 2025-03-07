@@ -58,14 +58,6 @@ async function connectWebSocket() {
 
     window.socket.on("update", ({ roomNumber, status }) => updateButtonStatus(roomNumber, status));
 }
-
-
-
-    window.socket.on("disconnect", (reason) => console.warn("🔴 WebSocket disconnected:", reason));
-    window.socket.on("update", ({ roomNumber, status }) => updateButtonStatus(roomNumber, status));
-}
-
-
 function safeEmit(event, data = {}) {
     if (window.socket && window.socket.connected) {
         window.socket.emit(event, data);
