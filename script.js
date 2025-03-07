@@ -156,6 +156,13 @@ async function fetchWithErrorHandling(url, options = {}) {
         return null; // Ensures failure is handled gracefully
     }
 }
+function handleLogin(event) {
+    event.preventDefault(); // Prevent form from reloading page
+    const username = document.getElementById("login-username").value;
+    const password = document.getElementById("login-password").value;
+    login(username, password); // Ensure login function is correctly called
+}
+
 async function login(username, password) {
     try {
         const res = await fetch(`${apiUrl}/auth/login`, {
@@ -231,7 +238,8 @@ async function checkAuth() {
     })
     .catch(error => console.log("Error:", error));
 }
-       window.toggleAuth = function() {
+   
+window.toggleAuth = function() {
     const signupForm = document.getElementById("signup-form");
     if (signupForm) {
         signupForm.classList.toggle("hidden");
@@ -239,7 +247,6 @@ async function checkAuth() {
         console.error("❌ Error: Signup form element not found!");
     }
 };
-
 
 
 function storeTokens(accessToken, refreshToken) {
