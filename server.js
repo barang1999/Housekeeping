@@ -21,11 +21,11 @@ app.use(express.json());
 
 // ✅ Proper CORS Configuration
 app.use(cors({
-    origin: ["https://housekeepingmanagement.netlify.app"], // Allow requests from Netlify
+    origin: "https://housekeepingmanagement.netlify.app",
     methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true  // ✅ Allow cookies & authentication headers
 }));
-
 
 // ✅ Create HTTP & WebSocket Server
 const server = http.createServer(app);
@@ -127,25 +127,33 @@ const CleaningLog = mongoose.model("CleaningLog", logSchema);
 
 app.post("/auth/login", async (req, res) => {
     const { username, password } = req.body;
-    
+
+    console.log("🟢 Login request received for:", username);
+
     const user = await User.findOne({ username });
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+
+    if (!user) {
+        console.warn("❌ User not found:", username);
         return res.status(401).json({ message: "Invalid username or password" });
     }
 
-    // ✅ Generate access & refresh tokens
+    const passwordMatch = await bcrypt.compare(password, user.password);
+
+    if (!passwordMatch) {
+        console.warn("❌ Incorrect password for user:", username);
+        return res.status(401).json({ message: "Invalid username or password" });
+    }
+
+    // ✅ Generate JWT token
     const token = jwt.sign({ username: user.username }, process.env.JWT_SECRET, { expiresIn: "1h" });
     const refreshToken = jwt.sign({ username: user.username }, process.env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
 
-    // ✅ Store refresh token in DB
     user.refreshToken = refreshToken;
     await user.save();
 
-    console.log("✅ Tokens generated:", { token, refreshToken }); // Debugging
-
+    console.log("✅ Login successful for user:", username);
     res.json({ message: "Login successful", token, refreshToken, username: user.username });
 });
-
 
 // 🔐 User Signup
 app.post("/auth/signup", async (req, res) => {
