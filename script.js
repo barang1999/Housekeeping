@@ -4,7 +4,40 @@ const token = localStorage.getItem("token");
 window.socket = null; // ✅ Ensure global scope
 
 document.addEventListener("DOMContentLoaded", async () => {
-    await connectWebSocket(); // ✅ Ensure WebSocket connects when the page loads
+    const validToken = await ensureValidToken();
+    if (validToken) {
+        connectWebSocket(); // ✅ Fix: No argument needed
+    }
+});
+
+// ✅ Fix `logs` undefined issue
+document.addEventListener("DOMContentLoaded", () => {
+    if (typeof logs !== "undefined" && Array.isArray(logs)) {
+        console.log("✅ Logs found:", logs);
+    } else {
+        console.warn("⚠️ Logs variable is not defined or is not an array. Skipping...");
+    }
+});
+
+document.addEventListener("DOMContentLoaded", async () => {
+    await checkAuth();
+});
+
+// ✅ Listen for events safely (prevents duplication)
+document.addEventListener("DOMContentLoaded", () => {
+    if (window.socket && window.socket.hasListeners && !window.socket.hasListeners("clearLogs")) {
+        window.socket.on("clearLogs", () => {
+            console.log("🧹 Logs cleared remotely, resetting buttons...");
+            resetButtonStatus();
+        });
+    }
+});
+// ✅ Ensure WebSocket only initializes after token verification
+document.addEventListener("DOMContentLoaded", async () => {
+    const validToken = await ensureValidToken();
+    if (validToken) {
+        connectWebSocket(validToken); // ✅ Ensure WebSocket connects only when token is valid
+    }
 });
 
 // ✅ Updated connectWebSocket function
@@ -26,11 +59,11 @@ async function connectWebSocket() {
 
     // ✅ Ensure `socket` is defined before using `socket.on`
     if (window.socket) {
-        socket.on("connect", () => {
+        window.socke("connect", () => {
             console.log("✅ WebSocket connected");
         });
 
-                socket.on("connect_error", async (err) => {
+                window.socket("connect_error", async (err) => {
             console.error("❌ WebSocket connection error:", err);
             
             if (err.message.includes("Invalid token")) {
@@ -39,6 +72,10 @@ async function connectWebSocket() {
                 if (newToken) {
                     window.socket.auth = { token: newToken };  // ✅ Properly update token
                     window.socket.disconnect();
+                    setTimeout(() => {
+                        window.socket = io(apiUrl, { auth: { token: newToken } });
+                        connectWebSocket();
+                    }, 1000);
                     window.socket.connect();
                 } else {
                     console.error("❌ Token refresh failed. Logging out.");
@@ -48,17 +85,16 @@ async function connectWebSocket() {
         });
 
 
-        socket.on("disconnect", (reason) => {
+        window.socket("disconnect", (reason) => {
             console.warn("⚠️ WebSocket disconnected:", reason);
         });
 
-        socket.onAny((event, data) => {
+        window.socket.onAny((event, data) => {
             console.log(`📩 WebSocket Event Received: ${event}`, data);
         });
     } else {
         console.error("❌ WebSocket is not initialized before setting up event listeners.");
     }
-}
     // ✅ Ensure socket is initialized before adding event listeners
 if (window.socket && window.socket.connected) {
     window.socket.on("update", (data) => {
@@ -68,25 +104,17 @@ if (window.socket && window.socket.connected) {
 } else {
     console.warn("⚠️ WebSocket is not initialized yet. Event listeners will be set after connection.");
 }
+}
 
-// ✅ Listen for events safely (prevents duplication)
-document.addEventListener("DOMContentLoaded", () => {
-    if (window.socket && window.socket.hasListeners && !window.socket.hasListeners("clearLogs")) {
-        window.socket.on("clearLogs", () => {
-            console.log("🧹 Logs cleared remotely, resetting buttons...");
-            resetButtonStatus();
-        });
-    }
-});
         // ✅ Function to send safe WebSocket events
 function safeEmit(event, data) {
-    if (!socket || !socket.connected) {
+    if (!window.socket || !window.socket.connected) {
         console.warn("⚠️ WebSocket is not connected yet. Retrying...");
         return;
     }
     
     const token = localStorage.getItem("token"); // Ensure token is included in event emissions
-    socket.emit(event, { ...data, token });
+    window.socket.emit(event, { ...data, token });
 }
 
 async function ensureValidToken() {
@@ -96,7 +124,7 @@ async function ensureValidToken() {
         console.warn("⚠️ No token found. Attempting to refresh.");
         token = await refreshToken();
 
-               if (!token || typeof token !== "string" || !token.includes(".")) {
+        if (!token || typeof token !== "string" || !token.includes(".")) {
             console.error("❌ Invalid token format. Clearing token storage.");
             localStorage.removeItem("token");
             showLogin();
@@ -105,15 +133,7 @@ async function ensureValidToken() {
     }
 
     try {
-        if (!token.includes(".")) {
-            console.error("❌ Invalid token format. Clearing token storage.");
-            localStorage.removeItem("token");
-            showLogin();
-            return null;
-        }
-
         const payload = JSON.parse(atob(token.split('.')[1]));
-
         if (!payload || !payload.exp || isNaN(payload.exp)) {
             console.error("❌ Invalid token payload. Logging out.");
             logout();
@@ -121,20 +141,16 @@ async function ensureValidToken() {
         }
 
         const expTime = payload.exp * 1000;
-        const currentTime = Date.now();
-
-        if (expTime < currentTime) {
+        if (expTime < Date.now()) {
             console.warn("❌ JWT Token Expired. Attempting to refresh...");
             const refreshedToken = await refreshToken();
-
             if (refreshedToken) {
                 console.log("✅ Token successfully refreshed.");
                 localStorage.setItem("token", refreshedToken);
                 return refreshedToken;
             } else {
                 console.error("❌ Token refresh failed. Logging out.");
-                localStorage.removeItem("token");
-                showLogin();
+                logout();
                 return null;
             }
         }
@@ -147,14 +163,6 @@ async function ensureValidToken() {
         return null;
     }
 }
-
-// ✅ Ensure WebSocket only initializes after token verification
-document.addEventListener("DOMContentLoaded", async () => {
-    const validToken = await ensureValidToken();
-    if (validToken) {
-        connectWebSocket(validToken); // ✅ Ensure WebSocket connects only when token is valid
-    }
-});
 
 async function refreshToken() {
     const refreshToken = localStorage.getItem("refreshToken");
@@ -329,7 +337,7 @@ function showLogin() {
     });
 
     // Ensure status is restored **after** rooms are loaded
-    setTimeout(restoreCleaningStatus, 100);
+    await restoreCleaningStatus(); // ✅ Fix: Ensure status is restored after rooms are loaded
 }
     function toggleFloor(floorId) {
         document.querySelectorAll('.rooms').forEach(roomDiv => roomDiv.style.display = 'none');
@@ -358,7 +366,7 @@ function showLogin() {
                 if (data.message.includes("started")) {
                     document.getElementById(`start-${roomNumber}`).disabled = true;
                     document.getElementById(`finish-${roomNumber}`).disabled = false;
-                    socket.emit("update", { roomNumber, status: "in_progress" });
+                    window.socket.emit("update", { roomNumber, status: "in_progress" });
                 } else {
                     alert("Failed to start cleaning.");
                 }
@@ -437,18 +445,6 @@ function loadLogs() {
         })
         .catch(error => console.error("❌ Error fetching logs:", error));
 }
-// ✅ Fix `logs` undefined issue
-document.addEventListener("DOMContentLoaded", () => {
-    if (typeof logs !== "undefined" && Array.isArray(logs)) {
-        console.log("✅ Logs found:", logs);
-    } else {
-        console.warn("⚠️ Logs variable is not defined or is not an array. Skipping...");
-    }
-});
-
-document.addEventListener("DOMContentLoaded", async () => {
-    await checkAuth();
-});
 
   function checkAuth() {
     const token = localStorage.getItem("token");
