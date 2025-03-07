@@ -409,7 +409,7 @@ async function finishCleaning(roomNumber) {
 }
 
 
-ffunction logout() {
+function logout() {
     console.log("🔴 Logging out...");
     if (window.socket) {
         window.socket.disconnect();
