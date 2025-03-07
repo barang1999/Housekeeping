@@ -51,18 +51,19 @@ io.use(async (socket, next) => {
 
     try {
         let decoded = jwt.verify(token, process.env.JWT_SECRET);
+        if (!decoded || !decoded.username) throw new Error("Invalid token structure");
+
         socket.user = decoded;
         console.log(`✅ WebSocket Authenticated: ${decoded.username}`);
         next();
     } catch (err) {
         if (err.name === "TokenExpiredError") {
             console.warn("⚠ Token expired, attempting refresh...");
-            const refreshToken = await User.findOne({ username: decoded.username }).select("refreshToken");
-            if (!refreshToken) {
-                return next(new Error("Authentication error: No valid refresh token"));
-            }
             try {
-                const newToken = jwt.sign({ username: decoded.username }, process.env.JWT_SECRET, { expiresIn: "1h" });
+                const user = await User.findOne({ username: decoded?.username });
+                if (!user || !user.refreshToken) throw new Error("No valid refresh token");
+
+                const newToken = jwt.sign({ username: user.username }, process.env.JWT_SECRET, { expiresIn: "1h" });
                 socket.handshake.auth.token = newToken; // ✅ Update token for reconnection
                 console.log("✅ WebSocket Token Refreshed");
                 next();
@@ -76,6 +77,7 @@ io.use(async (socket, next) => {
         }
     }
 });
+
 
 
 io.on("connection", (socket) => {
@@ -97,8 +99,11 @@ mongoose.connect(mongoURI)
 
 mongoose.connection.on("disconnected", () => {
     console.warn("⚠ MongoDB Disconnected. Attempting to reconnect...");
-    mongoose.connect(mongoURI).catch(err => console.error("❌ MongoDB Reconnection Failed:", err));
+    setTimeout(() => {
+        mongoose.connect(mongoURI).catch(err => console.error("❌ MongoDB Reconnection Failed:", err));
+    }, 5000); // Retry every 5 seconds
 });
+
 
 // ✅ Define MongoDB Schemas
 const userSchema = new mongoose.Schema({
