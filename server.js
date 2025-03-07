@@ -97,24 +97,23 @@ const CleaningLog = mongoose.model("CleaningLog", logSchema);
 
 // ✅ Authentication Routes
 
-// 🔐 Login
 app.post("/auth/login", async (req, res) => {
     const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ message: "Missing fields" });
-
-    try {
-        const user = await User.findOne({ username });
-        if (!user) return res.status(401).json({ message: "Invalid credentials" });
-
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
-
-        const token = jwt.sign({ username: user.username }, process.env.JWT_SECRET, { expiresIn: "1h" });
-
-        res.status(200).json({ message: "Login successful", token, username });
-    } catch (error) {
-        res.status(500).json({ message: "Server error", error });
+    
+    const user = await User.findOne({ username });
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+        return res.status(401).json({ message: "Invalid username or password" });
     }
+
+    // ✅ Generate access & refresh tokens
+    const token = jwt.sign({ username: user.username }, process.env.JWT_SECRET, { expiresIn: "1h" });
+    const refreshToken = jwt.sign({ username: user.username }, process.env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
+
+    // ✅ Store refresh token in the database (optional for revocation)
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    res.json({ message: "Login successful", token, refreshToken, username: user.username });
 });
 
 // 🔐 User Signup
