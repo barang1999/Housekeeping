@@ -364,11 +364,21 @@ function formatRoomNumber(roomNumber) {
         }
 // ✅ Fix restoreCleaningStatus()
 function toggleFloor(floorId) {
+    // Hide all floor room lists first
+    document.querySelectorAll(".rooms").forEach(roomDiv => {
+        roomDiv.style.display = "none";
+    });
+
+    // Show the selected floor's rooms
     const floorDiv = document.getElementById(floorId);
     if (floorDiv) {
-        floorDiv.classList.toggle("hidden"); // Use classList for better performance
+        floorDiv.style.display = "block";
+        console.log(`✅ Showing rooms for: ${floorId}`);
+    } else {
+        console.error(`❌ No room list found for ${floorId}`);
     }
 }
+
 
 
     function formatCambodiaTime() {
