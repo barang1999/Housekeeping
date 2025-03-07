@@ -116,21 +116,38 @@ app.post("/auth/signup", async (req, res) => {
 app.post("/auth/login", async (req, res) => {
     const { username, password } = req.body;
     try {
+        if (!username || !password) {
+            return res.status(400).json({ message: "Missing username or password" });
+        }
+
+        if (mongoose.connection.readyState !== 1) {
+            return res.status(500).json({ message: "Database not connected" });
+        }
+
         const user = await User.findOne({ username });
-        if (!user || !(await bcrypt.compare(password, user.password))) {
+        if (!user) {
+            console.warn(`❌ Login Failed: User not found - ${username}`);
             return res.status(401).json({ message: "Invalid username or password" });
         }
 
+        const passwordMatch = await bcrypt.compare(password, user.password);
+        if (!passwordMatch) {
+            console.warn(`❌ Login Failed: Incorrect password for ${username}`);
+            return res.status(401).json({ message: "Invalid username or password" });
+        }
+
+        // ✅ Generate JWT token
         const token = jwt.sign({ username: user.username }, process.env.JWT_SECRET, { expiresIn: "1h" });
         const refreshToken = jwt.sign({ username: user.username }, process.env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
 
         user.refreshToken = refreshToken;
         await user.save();
 
+        console.log(`✅ Login successful for: ${username}`);
         res.json({ message: "Login successful", token, refreshToken, username });
     } catch (error) {
-        console.error("❌ Login Error:", error);
-        res.status(500).json({ message: "Server error", error });
+        console.error("❌ Server Error on Login:", error);
+        res.status(500).json({ message: "Internal server error" });
     }
 });
 
