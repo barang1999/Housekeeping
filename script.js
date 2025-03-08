@@ -212,29 +212,32 @@ async function loadRooms() {
 function showDashboard(username) {
     console.log("Inside showDashboard function. Username:", username);
 
-    const authSection = document.getElementById("auth-section");
     const dashboard = document.getElementById("dashboard");
+    const authSection = document.getElementById("auth-section");
     const usernameDisplay = document.getElementById("user-name");
 
-    if (!authSection || !dashboard || !usernameDisplay) {
-        console.error("❌ One or more required elements not found!");
+    if (!dashboard || !authSection || !usernameDisplay) {
+        console.error("❌ Dashboard, Auth section, or Username display not found in DOM.");
         return;
     }
 
-    // ✅ Ensure authentication section is hidden
+    // ✅ Hide login section
     authSection.style.display = "none";
 
-    // ✅ Ensure dashboard is visible
+    // ✅ Show dashboard
     dashboard.classList.remove("hidden");
-    dashboard.style.display = "block"; 
+    dashboard.style.display = "block";
 
-    // ✅ Update the username display
+    // ✅ Set username display
     usernameDisplay.textContent = username;
 
-    // ✅ Load rooms after successful login
+    // ✅ Load rooms first, then ensure the ground floor is shown
     loadRooms();
 
-    console.log("✅ Dashboard is now displayed.");
+    setTimeout(() => {
+        console.log("✅ Activating ground floor...");
+        toggleFloor("ground-floor"); // Ensure it's visible after rooms load
+    }, 1000);
 }
 
 document.addEventListener("DOMContentLoaded", function () {
