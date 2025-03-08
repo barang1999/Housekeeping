@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     loadRooms();
 });
 
+
 async function connectWebSocket() {
     let token = await ensureValidToken();
     if (!token) {
@@ -67,6 +68,40 @@ function safeEmit(event, data = {}) {
         console.warn(`WebSocket is not connected. Cannot emit ${event}`);
     }
 }
+
+document.addEventListener("DOMContentLoaded", async () => {
+    console.log("🔄 Initializing housekeeping system...");
+
+    await ensureValidToken();
+    ensureWebSocketConnection();
+    
+    // ✅ Immediately fetch logs and update buttons
+    await loadLogs();
+    
+    // ✅ Ensure buttons reflect the latest status from logs
+    updateButtonsFromLogs();
+});
+
+// ✅ Ensure buttons update after logs are loaded
+async function updateButtonsFromLogs() {
+    console.log("🔄 Updating button status from logs...");
+
+    const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
+    if (!logs || !Array.isArray(logs)) {
+        console.warn("⚠️ No valid logs found. Skipping button updates.");
+        return;
+    }
+
+    logs.forEach(log => {
+        const roomNumber = log.roomNumber.toString().padStart(3, '0');
+        const status = log.status || "pending";
+
+        updateButtonStatus(roomNumber, status);
+    });
+
+    console.log("✅ Buttons updated based on logs.");
+}
+
 
 function ensureWebSocketConnection() {
     if (!window.socket || !window.socket.connected) {
