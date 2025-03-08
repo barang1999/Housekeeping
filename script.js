@@ -503,50 +503,58 @@ function logout() {
 }
 
 // ✅ Ensure `logs` is defined before using it
-function loadLogs() {
-    fetch(`${apiUrl}/logs`)
-        .then(response => response.json())
-        .then(logs => {
-            if (!logs || !Array.isArray(logs)) {
-                console.warn("⚠️ No logs found or logs is not an array.");
-                return;
+async function loadLogs() {
+    console.log("🔄 Fetching cleaning logs...");
+    try {
+        const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
+        console.log("✅ API Cleaning Logs Response:", logs); // Debugging API response
+
+        if (!logs || !Array.isArray(logs)) {
+            console.warn("⚠️ No valid logs found. Setting empty table.");
+            return;
+        }
+
+        const logTable = document.querySelector("#logTable tbody");
+        logTable.innerHTML = ""; // Clear existing logs
+
+        const today = new Date().toISOString().split('T')[0];
+        let cleaningStatus = {};
+
+        logs.forEach(log => {
+            console.log("📌 Log Entry:", log); // Debug individual log entries
+
+            let roomNumber = log.roomNumber || "N/A";
+            let logDate = log.startTime ? new Date(log.startTime).toISOString().split('T')[0] : null;
+            
+            // Store cleaning status
+            cleaningStatus[roomNumber] = {
+                started: log.status === "in_progress",
+                finished: log.status === "finished",
+            };
+
+            if (logDate === today) {
+                let row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${roomNumber}</td>
+                    <td>${log.startTime || "N/A"}</td>
+                    <td>${log.startedBy || "-"}</td>
+                    <td>${log.finishTime ? log.finishTime : "In Progress..."}</td>
+                    <td>${log.finishedBy || "-"}</td>
+                `;
+                logTable.appendChild(row);
             }
+        });
 
-            const logTable = document.querySelector("#logTable tbody");
-            logTable.innerHTML = ""; // Clear existing logs
+        localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
 
-            const today = new Date().toISOString().split('T')[0];
-            let cleaningStatus = {};
-
-            logs.forEach(log => {
-                let roomNumber = log.roomNumber;
-                cleaningStatus[roomNumber] = {
-                    started: log.status === "in_progress",
-                    finished: log.status === "finished",
-                };
-
-                let logDate = new Date(log.startTime).toISOString().split('T')[0];
-                if (logDate === today) {
-                    const row = document.createElement("tr");
-                    row.innerHTML = `
-                        <td>${log.roomNumber}</td>
-                        <td>${log.startTime || "N/A"}</td>
-                        <td>${log.startedBy || "-"}</td>
-                        <td>${log.finishTime ? log.finishTime : "In Progress..."}</td>
-                        <td>${log.finishedBy || "-"}</td>
-                    `;
-                    logTable.appendChild(row);
-                }
-            });
-
-            localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
-
-            if (!logTable.innerHTML.trim()) {
-                logTable.innerHTML = "<tr><td colspan='5'>No logs found for today.</td></tr>";
-            }
-        })
-        .catch(error => console.error("❌ Error fetching logs:", error));
+        if (!logTable.innerHTML.trim()) {
+            logTable.innerHTML = "<tr><td colspan='5'>No logs found for today.</td></tr>";
+        }
+    } catch (error) {
+        console.error("❌ Error loading logs:", error);
+    }
 }
+
  // ✅ Function to Clear Logs and Reset Buttons
 function clearLogs() {
     console.log("🧹 Clearing logs...");
