@@ -237,29 +237,24 @@ app.get("/logs/status", async (req, res) => {
 const router = express.Router();
 
 // ✅ Toggle DND Mode
-router.post("/logs/dnd", async (req, res) => {
+app.post("/logs/dnd", async (req, res) => {
     try {
-        const { roomNumber, status, updatedBy } = req.body;
-        
+        const { roomNumber, status } = req.body;
+
         if (!roomNumber) {
             return res.status(400).json({ message: "Room number is required." });
         }
 
-        const log = await CleaningLog.findOne({ roomNumber });
+        const log = await CleaningLog.findOneAndUpdate(
+            { roomNumber },
+            { dndStatus: status === "dnd" }, // ✅ Save DND status in DB
+            { new: true, upsert: true }
+        );
 
-        if (!log) {
-            return res.status(404).json({ message: "Room not found." });
-        }
-
-        // ✅ Update DND status
-        log.dndStatus = (status === "dnd");
-        await log.save();
-
-        // ✅ Emit WebSocket Event to Notify All Users
-        req.app.get("io").emit("dndUpdate", { roomNumber, status });
+        // ✅ Emit WebSocket Event so all devices get the update
+        io.emit("dndUpdate", { roomNumber, status });
 
         res.json({ message: `DND mode ${status} for Room ${roomNumber}`, room: log });
-
     } catch (error) {
         console.error("❌ Error updating DND status:", error);
         res.status(500).json({ message: "Internal server error." });
