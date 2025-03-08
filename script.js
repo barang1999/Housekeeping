@@ -643,17 +643,6 @@ function updateDNDStatus(roomNumber, status) {
         finishButton.disabled = true;
     }
 }
-    // Apply styles based on status
-    if (status === "dnd") {
-        dndButton.classList.add("active-dnd");
-        dndButton.style.backgroundColor = "red";
-    } else {
-        dndButton.classList.remove("active-dnd");
-        dndButton.style.backgroundColor = "blue";
-    }
-}
-
-
 // Ensure updateButtonStatus is being called after fetching logs
 async function loadLogs() {
     console.log("🔄 Fetching cleaning logs...");
