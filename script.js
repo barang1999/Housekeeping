@@ -537,46 +537,6 @@ function updateButtonStatus(roomNumber, status) {
     }
 }
 
-function logout() {
-    console.log("🔴 Logging out...");
-    if (window.socket) {
-        window.socket.disconnect();
-    }
-
-    localStorage.clear();
-    sessionStorage.clear();
-    alert("✅ You have been logged out.");
-
-    document.getElementById("dashboard").classList.add("hidden");
-    document.getElementById("auth-section").classList.remove("hidden");
-    document.getElementById("auth-section").style.display = "block";
-    document.getElementById("dashboard").style.display = "none";
-}
-
-// ✅ Ensure `logs` is defined before using it
-function updateButtonStatus(roomNumber, status) {
-    // Ensure room number is formatted correctly with leading zeros
-    const formattedRoomNumber = roomNumber.toString().padStart(3, '0');
-    
-    const startButton = document.getElementById(`start-${formattedRoomNumber}`);
-    const finishButton = document.getElementById(`finish-${formattedRoomNumber}`);
-
-    if (!startButton || !finishButton) {
-        console.warn(`❌ Buttons not found for Room ${formattedRoomNumber}`);
-        return;
-    }
-
-    if (status === "in_progress") {
-        startButton.style.backgroundColor = "grey";  // Change start button to grey
-        startButton.disabled = true;                 // Disable start button
-        finishButton.style.backgroundColor = "blue"; // Enable finish button
-        finishButton.disabled = false;
-    } else if (status === "finished") {
-        finishButton.style.backgroundColor = "green"; // Mark finished button as green
-        finishButton.disabled = true;
-    }
-}
-
 // Ensure updateButtonStatus is being called after fetching logs
 async function loadLogs() {
     console.log("🔄 Fetching cleaning logs...");
@@ -632,6 +592,24 @@ async function loadLogs() {
     } catch (error) {
         console.error("❌ Error loading logs:", error);
     }
+}
+
+
+
+function logout() {
+    console.log("🔴 Logging out...");
+    if (window.socket) {
+        window.socket.disconnect();
+    }
+
+    localStorage.clear();
+    sessionStorage.clear();
+    alert("✅ You have been logged out.");
+
+    document.getElementById("dashboard").classList.add("hidden");
+    document.getElementById("auth-section").classList.remove("hidden");
+    document.getElementById("auth-section").style.display = "block";
+    document.getElementById("dashboard").style.display = "none";
 }
 
 
