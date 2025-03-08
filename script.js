@@ -515,9 +515,9 @@ async function loadLogs() {
         }
 
         const logTable = document.querySelector("#logTable tbody");
+        console.log("📌 Checking logTable:", logTable); // Debug table selection
         logTable.innerHTML = ""; // Clear existing logs
 
-        const today = new Date().toISOString().split('T')[0];
         let cleaningStatus = {};
 
         logs.forEach(log => {
@@ -532,23 +532,22 @@ async function loadLogs() {
                 finished: log.status === "finished",
             };
 
-            if (logDate === today) {
-                let row = document.createElement("tr");
-                row.innerHTML = `
-                    <td>${roomNumber}</td>
-                    <td>${log.startTime || "N/A"}</td>
-                    <td>${log.startedBy || "-"}</td>
-                    <td>${log.finishTime ? log.finishTime : "In Progress..."}</td>
-                    <td>${log.finishedBy || "-"}</td>
-                `;
-                logTable.appendChild(row);
-            }
+            // 🔹 Temporarily removing date filtering to check if logs exist
+            let row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${roomNumber}</td>
+                <td>${log.startTime || "N/A"}</td>
+                <td>${log.startedBy || "-"}</td>
+                <td>${log.finishTime ? log.finishTime : "In Progress..."}</td>
+                <td>${log.finishedBy || "-"}</td>
+            `;
+            logTable.appendChild(row);
         });
 
         localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
 
         if (!logTable.innerHTML.trim()) {
-            logTable.innerHTML = "<tr><td colspan='5'>No logs found for today.</td></tr>";
+            logTable.innerHTML = "<tr><td colspan='5'>No logs found.</td></tr>";
         }
     } catch (error) {
         console.error("❌ Error loading logs:", error);
