@@ -31,7 +31,7 @@ async function connectWebSocket() {
 
     window.socket.on("connect", () => {
         console.log("✅ WebSocket connected successfully.");
-        reconnectAttempts = 0; 
+        reconnectAttempts = 0;
     });
 
     window.socket.on("connect_error", async (err) => {
@@ -58,7 +58,9 @@ async function connectWebSocket() {
 
     window.socket.on("update", ({ roomNumber, status }) => updateButtonStatus(roomNumber, status));
 }
+
 function safeEmit(event, data = {}) {
+    ensureWebSocketConnection(); // Ensure WebSocket is connected before emitting
     if (window.socket && window.socket.connected) {
         window.socket.emit(event, data);
     } else {
@@ -66,6 +68,23 @@ function safeEmit(event, data = {}) {
     }
 }
 
+function ensureWebSocketConnection() {
+    if (!window.socket || !window.socket.connected) {
+        console.warn("⛔ WebSocket is not connected. Attempting reconnect...");
+        
+        // Attempt reconnection
+        connectWebSocket();
+        
+        // Wait 2 seconds and check again
+        setTimeout(() => {
+            if (!window.socket || !window.socket.connected) {
+                console.error("⛔ WebSocket reconnection failed.");
+            } else {
+                console.log("✅ WebSocket reconnected successfully.");
+            }
+        }, 2000);
+    }
+}
 async function fetchWithErrorHandling(url, options = {}) {
     try {
         console.log(`🔍 Fetching: ${url}`);
@@ -516,27 +535,6 @@ async function finishCleaning(roomNumber) {
         alert("❌ Failed to finish cleaning. Please try again.");
     }
 }
-
-function updateButtonStatus(roomNumber, status) {
-    const startButton = document.getElementById(`start-${roomNumber}`);
-    const finishButton = document.getElementById(`finish-${roomNumber}`);
-
-    if (!startButton || !finishButton) {
-        console.warn(`❌ Buttons not found for Room ${roomNumber}`);
-        return;
-    }
-
-    if (status === "in_progress") {
-        startButton.style.backgroundColor = "grey";  // Change start button to grey
-        startButton.disabled = true;                 // Disable start button
-        finishButton.style.backgroundColor = "blue"; // Enable finish button
-        finishButton.disabled = false;
-    } else if (status === "finished") {
-        finishButton.style.backgroundColor = "green"; // Mark finished button as green
-        finishButton.disabled = true;
-    }
-}
-
 // Ensure updateButtonStatus is being called after fetching logs
 async function loadLogs() {
     console.log("🔄 Fetching cleaning logs...");
@@ -550,25 +548,15 @@ async function loadLogs() {
         }
 
         const logTable = document.querySelector("#logTable tbody");
-        console.log("📌 Checking logTable:", logTable);
         logTable.innerHTML = ""; // Clear existing logs
 
-        let cleaningStatus = {};
-
         logs.forEach(log => {
-            console.log("📌 Log Entry:", log);
-
             let roomNumber = log.roomNumber ? log.roomNumber.toString().padStart(3, '0') : "N/A";
             let startTime = log.startTime ? new Date(log.startTime).toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' }) : "N/A";
             let startedBy = log.startedBy || "-";
             let finishTime = log.finishTime ? new Date(log.finishTime).toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' }) : "In Progress...";
             let finishedBy = log.finishedBy || "-";
-
-            // Store cleaning status
-            cleaningStatus[roomNumber] = {
-                started: log.status === "in_progress",
-                finished: log.status === "finished",
-            };
+            let status = log.finishTime ? "finished" : "in_progress";
 
             let row = document.createElement("tr");
             row.innerHTML = `
@@ -580,17 +568,36 @@ async function loadLogs() {
             `;
             logTable.appendChild(row);
 
-            // Ensure buttons are updated
-            updateButtonStatus(roomNumber, log.status);
+            // ✅ Ensure buttons update based on logs
+            updateButtonStatus(roomNumber, status);
         });
-
-        localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
 
         if (!logTable.innerHTML.trim()) {
             logTable.innerHTML = "<tr><td colspan='5'>No logs found.</td></tr>";
         }
     } catch (error) {
         console.error("❌ Error loading logs:", error);
+    }
+}
+
+function updateButtonStatus(roomNumber, status) {
+    let formattedRoom = roomNumber.toString().padStart(3, '0'); // Ensure consistent format
+    const startButton = document.getElementById(`start-${formattedRoom}`);
+    const finishButton = document.getElementById(`finish-${formattedRoom}`);
+
+    if (!startButton || !finishButton) {
+        console.warn(`❌ Buttons not found for Room ${formattedRoom}`);
+        return;
+    }
+
+    if (status === "in_progress") {
+        startButton.style.backgroundColor = "grey";  // Change start button to grey
+        startButton.disabled = true;                 // Disable start button
+        finishButton.style.backgroundColor = "blue"; // Enable finish button
+        finishButton.disabled = false;
+    } else if (status === "finished") {
+        finishButton.style.backgroundColor = "green"; // Mark finished button as green
+        finishButton.disabled = true;
     }
 }
 
