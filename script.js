@@ -481,13 +481,13 @@ async function restoreCleaningStatus() {
             // ✅ Fix: Ensure correct field name and check for missing status
             const roomNumber = log.roomNumber;  // Handle incorrect field name
             const status = log.status || "pending";  // Default status if missing
-
+            const dndStatus = log.dndStatus ? "dnd" : "available"; // ✅ Retrieve DND status
             if (!roomNumber) {
                 console.warn("⚠️ Skipping log entry with missing room number:", log);
                 return;
             }
 
-            updateButtonStatus(roomNumber, status);
+            updateButtonStatus(roomNumber, status, dndStatus);
         });
     } catch (error) {
         console.error("❌ Error fetching logs:", error);
@@ -713,39 +713,41 @@ async function loadLogs() {
     }
 }
 
-
-function updateButtonStatus(roomNumber, status) {
+function updateButtonStatus(roomNumber, status, dndStatus) {
     let formattedRoom = roomNumber.toString().padStart(3, '0'); // Ensure consistent format
     const startButton = document.getElementById(`start-${formattedRoom}`);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
     const dndButton = document.getElementById(`dnd-${formattedRoom}`);
 
-    if (!startButton || !finishButton) {
+    if (!startButton || !finishButton || !dndButton) {
         console.warn(`❌ Buttons not found for Room ${formattedRoom}`);
         return;
     }
 
-if (dndStatus === "dnd") {
-        startButton.style.backgroundColor = "grey";  // Grey out start button
-        startButton.disabled = true;                 // Disable start button
-        finishButton.style.backgroundColor = "grey"; // Grey out finish button
+    if (dndStatus === "dnd") {
+        startButton.style.backgroundColor = "grey";  
+        startButton.disabled = true;                 
+        finishButton.style.backgroundColor = "grey"; 
         finishButton.disabled = true;
-        dndButton.style.backgroundColor = "red";     // Mark DND button as active
+        dndButton.style.backgroundColor = "red";     
     } else if (status === "in_progress") {
-        startButton.style.backgroundColor = "grey";  // Change start button to grey
-        startButton.disabled = true;                 // Disable start button
-        finishButton.style.backgroundColor = "blue"; // Enable finish button
+        startButton.style.backgroundColor = "grey";  
+        startButton.disabled = true;                 
+        finishButton.style.backgroundColor = "blue"; 
         finishButton.disabled = false;
     } else if (status === "finished") {
-        startButton.style.backgroundColor = "grey";  // Disable start button after finishing
+        startButton.style.backgroundColor = "grey";  
         startButton.disabled = true;
-        finishButton.style.backgroundColor = "green"; // Mark finished button as green
+        finishButton.style.backgroundColor = "green"; 
+        finishButton.disabled = true;
+    } else {
+        // Default case (if no status is set)
+        startButton.style.backgroundColor = "blue";
+        startButton.disabled = false;
+        finishButton.style.backgroundColor = "grey";
         finishButton.disabled = true;
     }
 }
-
-
-
 function logout() {
     console.log("🔴 Logging out...");
     if (window.socket) {
@@ -761,8 +763,6 @@ function logout() {
     document.getElementById("auth-section").style.display = "block";
     document.getElementById("dashboard").style.display = "none";
 }
-
-
 
  // ✅ Function to Clear Logs and Reset Buttons
 function clearLogs() {
