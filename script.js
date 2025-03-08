@@ -494,26 +494,33 @@ async function restoreCleaningStatus() {
     }
 }
 
-function toggleDoNotDisturb(roomNumber) {
+async function toggleDoNotDisturb(roomNumber) {
     const dndButton = document.getElementById(`dnd-${roomNumber}`);
     if (!dndButton) {
         console.error(`❌ DND button not found for Room ${roomNumber}`);
         return;
     }
 
-    // Toggle DND status
     const isDNDActive = dndButton.classList.contains("active-dnd");
     const newStatus = isDNDActive ? "available" : "dnd";
 
-    // Update UI immediately
-    updateDNDStatus(roomNumber, newStatus);
+    updateDNDStatus(roomNumber, newStatus); // ✅ Update UI immediately
 
-    // ✅ Emit WebSocket event to notify all clients
-    if (window.socket && window.socket.connected) {
-        window.socket.emit("dndUpdate", { roomNumber, status: newStatus });
-        console.log(`📡 WebSocket: Emitting DND update for Room ${roomNumber} to ${newStatus}`);
-    } else {
-        console.warn("⚠️ WebSocket is not connected. DND update won't sync.");
+    try {
+        const res = await fetch(`${apiUrl}/logs/dnd`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ roomNumber, status: newStatus })
+        });
+
+        const data = await res.json();
+        console.log(`✅ DND status updated for Room ${roomNumber}:`, data);
+
+        if (!res.ok) {
+            console.error("❌ Failed to update DND status:", data);
+        }
+    } catch (error) {
+        console.error("❌ Error updating DND status:", error);
     }
 }
 
