@@ -196,20 +196,22 @@ async function loadRooms() {
     };
 
     Object.keys(floors).forEach(floor => {
-        const floorDiv = document.getElementById(floor);
-        if (!floorDiv) return;
-        floorDiv.innerHTML = "";
-        floors[floor].forEach(room => {
-            const roomDiv = document.createElement("div");
-            roomDiv.classList.add("room");
-            roomDiv.innerHTML = `
-                <span>Room ${room}</span>
-                <button id="start-${room}" onclick="startCleaning('${room}')">Start Cleaning</button>
-                <button id="finish-${room}" onclick="finishCleaning('${room}')" disabled>Finish</button>
-            `;
-            floorDiv.appendChild(roomDiv);
-        });
+    const floorDiv = document.getElementById(floor);
+    if (!floorDiv) return; // Skip missing floors
+
+    floorDiv.innerHTML = "";
+    floors[floor].forEach(room => {
+        const roomDiv = document.createElement("div");
+        roomDiv.classList.add("room");
+        roomDiv.innerHTML = `
+            <span>Room ${room}</span>
+            <button id="start-${room}" onclick="startCleaning('${room}')">Start Cleaning</button>
+            <button id="finish-${room}" onclick="finishCleaning('${room}')" disabled>Finish</button>
+        `;
+        floorDiv.appendChild(roomDiv);
     });
+});
+
     await restoreCleaningStatus();
 }
 
@@ -386,10 +388,11 @@ function updateButtonStatus(roomNumber, status) {
     const startButton = document.getElementById(`start-${roomNumber}`);
     const finishButton = document.getElementById(`finish-${roomNumber}`);
     if (!startButton || !finishButton) return;
-    
-    startButton.disabled = status !== "pending";
-    finishButton.disabled = status !== "in_progress";
+
+    startButton.disabled = (status === "in_progress" || status === "finished");
+    finishButton.disabled = (status !== "in_progress");
 }
+
 
 
 function formatRoomNumber(roomNumber) {
@@ -504,8 +507,9 @@ function logout() {
 
     document.getElementById("dashboard").classList.add("hidden");
     document.getElementById("auth-section").classList.remove("hidden");
+    document.getElementById("auth-section").style.display = "block";
+    document.getElementById("dashboard").style.display = "none";
 }
-
 
 // ✅ Ensure `logs` is defined before using it
 function loadLogs() {
