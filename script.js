@@ -634,6 +634,8 @@ function updateDNDStatus(roomNumber, status) {
     if (status === "dnd") {
         dndButton.classList.add("active-dnd");
         dndButton.style.backgroundColor = "red";
+
+        // ✅ Disable Start and Finish when DND is active
         startButton.style.backgroundColor = "grey";
         startButton.disabled = true;
         finishButton.style.backgroundColor = "grey";
@@ -641,12 +643,35 @@ function updateDNDStatus(roomNumber, status) {
     } else {
         dndButton.classList.remove("active-dnd");
         dndButton.style.backgroundColor = "blue";
-        startButton.style.backgroundColor = "blue";
-        startButton.disabled = false;
-        finishButton.style.backgroundColor = "grey";
-        finishButton.disabled = true;
+
+        // ✅ Fetch latest cleaning status from logs to determine if buttons should remain disabled
+        fetch(`${apiUrl}/logs`)
+            .then(res => res.json())
+            .then(logs => {
+                const roomLog = logs.find(log => log.roomNumber.toString() === formattedRoom);
+                if (roomLog) {
+                    if (roomLog.status === "in_progress") {
+                        startButton.style.backgroundColor = "grey";  // Keep Start button disabled
+                        startButton.disabled = true;
+                        finishButton.style.backgroundColor = "blue"; // Enable Finish button
+                        finishButton.disabled = false;
+                    } else if (roomLog.status === "finished") {
+                        startButton.style.backgroundColor = "grey";  // Keep Start button disabled
+                        startButton.disabled = true;
+                        finishButton.style.backgroundColor = "green"; // Keep Finish button green
+                        finishButton.disabled = true;
+                    } else {
+                        startButton.style.backgroundColor = "blue";  // Enable Start button only if no cleaning in progress
+                        startButton.disabled = false;
+                        finishButton.style.backgroundColor = "grey"; // Disable Finish button
+                        finishButton.disabled = true;
+                    }
+                }
+            })
+            .catch(err => console.error("❌ Error fetching logs:", err));
     }
 }
+
 // Ensure updateButtonStatus is being called after fetching logs
 async function loadLogs() {
     console.log("🔄 Fetching cleaning logs...");
