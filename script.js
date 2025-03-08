@@ -613,21 +613,32 @@ async function finishCleaning(roomNumber) {
 function updateDNDStatus(roomNumber, status) {
     console.log(`Updating DND status for Room ${roomNumber} to: ${status}`);
 
-    // Ensure room number is correctly formatted
-    roomNumber = roomNumber.toString().padStart(3, '0');
+    let formattedRoom = roomNumber.toString().padStart(3, '0'); // Ensure consistent format
+    const dndButton = document.getElementById(`dnd-${formattedRoom}`);
+    const startButton = document.getElementById(`start-${formattedRoom}`);
+    const finishButton = document.getElementById(`finish-${formattedRoom}`);
 
-    // Try to find the DND button
-    const dndButton = document.getElementById(`dnd-${roomNumber}`);
-
-    // If button is not found, log warning and return
-    if (!dndButton) {
-        console.warn(`⚠️ DND button not found for Room ${roomNumber}. Trying again after 1 second...`);
-        
-        // Retry after 1 second to check if the button is loaded later
-        setTimeout(() => updateDNDStatus(roomNumber, status), 1000);
+    if (!dndButton || !startButton || !finishButton) {
+        console.warn(`⚠️ Buttons not found for Room ${formattedRoom}.`);
         return;
     }
 
+    if (status === "dnd") {
+        dndButton.classList.add("active-dnd");
+        dndButton.style.backgroundColor = "red";
+        startButton.style.backgroundColor = "grey";
+        startButton.disabled = true;
+        finishButton.style.backgroundColor = "grey";
+        finishButton.disabled = true;
+    } else {
+        dndButton.classList.remove("active-dnd");
+        dndButton.style.backgroundColor = "blue";
+        startButton.style.backgroundColor = "blue";
+        startButton.disabled = false;
+        finishButton.style.backgroundColor = "grey";
+        finishButton.disabled = true;
+    }
+}
     // Apply styles based on status
     if (status === "dnd") {
         dndButton.classList.add("active-dnd");
@@ -679,8 +690,6 @@ async function loadLogs() {
             let status = log.finishTime ? "finished" : "in_progress";
             let dndStatus = log.dndStatus ? "dnd" : "available"; // ✅ Read DND status from DB
 
-            updateDNDStatus(log.roomNumber, log.dndStatus ? "dnd" : "available");
-
             // Store cleaning status
             cleaningStatus[roomNumber] = {
                 started: status === "in_progress",
@@ -697,7 +706,8 @@ async function loadLogs() {
                 <td>${finishedBy}</td>
             `;
             logTable.appendChild(row);
-
+            
+            updateDNDStatus(roomNumber, dndStatus);
             // ✅ Ensure buttons update based on logs
             updateButtonStatus(roomNumber, status,dndStatus);
         });
