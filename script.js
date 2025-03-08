@@ -452,11 +452,17 @@ async function startCleaning(roomNumber) {
             status: "in_progress"
         });
 
-        // Disable the start button immediately after clicking
+        // Disable the start button and change its color to grey
         const startButton = document.getElementById(`start-${numericRoomNumber}`);
         const finishButton = document.getElementById(`finish-${numericRoomNumber}`);
-        if (startButton) startButton.disabled = true;
-        if (finishButton) finishButton.disabled = false;
+        if (startButton) {
+            startButton.disabled = true;
+            startButton.style.backgroundColor = "grey";
+        }
+        if (finishButton) {
+            finishButton.disabled = false;
+            finishButton.style.backgroundColor = "blue";
+        }
 
         const res = await fetch(`${apiUrl}/logs/start`, {
             method: "POST",
@@ -490,22 +496,42 @@ async function startCleaning(roomNumber) {
 
 async function finishCleaning(roomNumber) {
     try {
+        const numericRoomNumber = parseInt(roomNumber, 10);
+        const username = localStorage.getItem("username");
+
+        console.log("🟢 Sending Finish Cleaning Request: ", {
+            roomNumber: numericRoomNumber,
+            username: username,
+            status: "finished"
+        });
+
         const res = await fetch(`${apiUrl}/logs/finish`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roomNumber, username: localStorage.getItem("username"), status: "finished" })
+            body: JSON.stringify({ roomNumber: numericRoomNumber, username, status: "finished" })
         });
 
+        const data = await res.json();
+        console.log("✅ API Response for Finish Cleaning:", data);
+
         if (!res.ok) {
-            throw new Error(`Request failed with status ${res.status}`);
+            console.error("❌ Failed Finish Cleaning: ", data);
+            alert(`❌ Failed to finish cleaning: ${data.message || "Please try again."}`);
+            return;
         }
 
-        const data = await res.json();
         if (data.message.includes("finished")) {
-            updateButtonStatus(roomNumber, "finished");
+            const finishButton = document.getElementById(`finish-${numericRoomNumber}`);
+            if (finishButton) {
+                finishButton.disabled = true;
+                finishButton.style.backgroundColor = "green";
+            }
+            updateButtonStatus(numericRoomNumber, "finished");
+            safeEmit("update", { roomNumber: numericRoomNumber, status: "finished" });
+            loadLogs(); // ✅ Ensure UI reflects latest status
         }
     } catch (error) {
-        console.error("Error finishing cleaning:", error);
+        console.error("❌ Error finishing cleaning:", error);
         alert("❌ Failed to finish cleaning. Please try again.");
     }
 }
