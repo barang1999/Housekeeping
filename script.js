@@ -108,7 +108,10 @@ async function login(event) {
 
             // Debugging: Check if this function runs
             console.log("showDashboard is being called with username:", data.username);
-            showDashboard(data.username); // Ensure this executes
+            
+            setTimeout(() => {
+                showDashboard(data.username); // Ensure UI updates correctly
+            }, 500); // Small delay to allow UI update
         } else {
             alert("❌ Login failed: " + data.message);
         }
@@ -117,6 +120,7 @@ async function login(event) {
         alert("An error occurred. Please try again.");
     }
 }
+
 
 async function checkAuth() {
     let token = localStorage.getItem("token");
@@ -248,7 +252,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (token && username) {
         console.log("✅ Token and username found. Logging in automatically.");
-        showDashboard(username);
+        setTimeout(() => {
+            showDashboard(username);
+        }, 500); // Small delay to ensure proper UI rendering
     } else {
         console.log("❌ No token found. Showing login form.");
         document.getElementById("auth-section").style.display = "block";
