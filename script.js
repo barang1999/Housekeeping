@@ -66,7 +66,6 @@ async function connectWebSocket() {
           await loadLogs();
     });
 }
-}
 
 function safeEmit(event, data = {}) {
     ensureWebSocketConnection(); // Ensure WebSocket is connected before emitting
