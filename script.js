@@ -220,8 +220,18 @@ function showDashboard(username) {
     const authSection = document.getElementById("auth-section");
     const usernameDisplay = document.getElementById("user-name");
 
-    if (!dashboard || !authSection || !usernameDisplay) {
-        console.error("❌ Dashboard, Auth section, or Username display not found in DOM.");
+    if (!dashboard) {
+        console.error("❌ Dashboard element is missing in the DOM.");
+        return;
+    }
+
+    if (!authSection) {
+        console.error("❌ Auth section not found.");
+        return;
+    }
+
+    if (!usernameDisplay) {
+        console.error("❌ Username display element missing.");
         return;
     }
 
@@ -244,23 +254,32 @@ function showDashboard(username) {
     }, 1000);
 }
 
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", async function () {
     console.log("DOM fully loaded");
-    
+
     const token = localStorage.getItem("token");
     const username = localStorage.getItem("username");
 
     if (token && username) {
-        console.log("✅ Token and username found. Logging in automatically.");
-        setTimeout(() => {
-            showDashboard(username);
-        }, 500); // Small delay to ensure proper UI rendering
+        console.log("✅ Token and username found. Attempting authentication...");
+        const validToken = await ensureValidToken();
+        
+        if (validToken) {
+            console.log("✅ Token is valid. Redirecting to dashboard...");
+            setTimeout(() => {
+                showDashboard(username);
+            }, 500); // Small delay to ensure UI updates correctly
+        } else {
+            console.warn("❌ Invalid or expired token. Showing login form.");
+            logout();
+        }
     } else {
         console.log("❌ No token found. Showing login form.");
         document.getElementById("auth-section").style.display = "block";
         document.getElementById("dashboard").style.display = "none";
     }
 });
+
 
 async function refreshToken() {
     const refreshToken = localStorage.getItem("refreshToken");
