@@ -78,16 +78,14 @@ function safeEmit(event, data = {}) {
 
 document.addEventListener("DOMContentLoaded", async () => {
     console.log("🔄 Initializing housekeeping system...");
-
+    
     await ensureValidToken();
     ensureWebSocketConnection();
     
-    // ✅ Immediately fetch logs and update buttons
-    await loadLogs();
-    
-    // ✅ Ensure buttons reflect the latest status from logs
-    updateButtonsFromLogs();
+    // ✅ Fetch logs and update buttons immediately after the page loads
+    await restoreCleaningStatus();
 });
+
 
 // ✅ Ensure buttons update after logs are loaded
 async function updateButtonsFromLogs() {
@@ -478,21 +476,24 @@ async function restoreCleaningStatus() {
         }
 
         logs.forEach(log => {
-            // ✅ Fix: Ensure correct field name and check for missing status
-            const roomNumber = log.roomNumber;  // Handle incorrect field name
-            const status = log.status || "pending";  // Default status if missing
+            const roomNumber = log.roomNumber.toString().padStart(3, '0');  
+            const status = log.finishTime ? "finished" : log.startTime ? "in_progress" : "pending";
             const dndStatus = log.dndStatus ? "dnd" : "available"; // ✅ Retrieve DND status
+
             if (!roomNumber) {
                 console.warn("⚠️ Skipping log entry with missing room number:", log);
                 return;
             }
 
-            updateButtonStatus(roomNumber, status, dndStatus);
+            updateButtonStatus(roomNumber, status, dndStatus); // ✅ Pass `dndStatus`
         });
+
+        console.log("✅ All buttons updated after page load.");
     } catch (error) {
         console.error("❌ Error fetching logs:", error);
     }
 }
+
 
 async function toggleDoNotDisturb(roomNumber) {
     const dndButton = document.getElementById(`dnd-${roomNumber}`);
@@ -748,6 +749,7 @@ function updateButtonStatus(roomNumber, status, dndStatus) {
         finishButton.disabled = true;
     }
 }
+
 function logout() {
     console.log("🔴 Logging out...");
     if (window.socket) {
