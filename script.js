@@ -261,6 +261,7 @@ async function loadRooms() {
             <span>Room ${room}</span>
             <button id="start-${room}" onclick="startCleaning('${room}')">Start Cleaning</button>
             <button id="finish-${room}" onclick="finishCleaning('${room}')" disabled>Finish</button>
+            <button id="dnd-${room}" class="dnd-btn" onclick="toggleDoNotDisturb('${room}')">DND</button>
         `;
         floorDiv.appendChild(roomDiv);
     });
@@ -483,6 +484,30 @@ async function restoreCleaningStatus() {
         });
     } catch (error) {
         console.error("❌ Error fetching logs:", error);
+    }
+}
+
+function toggleDoNotDisturb(roomNumber) {
+    const dndButton = document.getElementById(`dnd-${roomNumber}`);
+    const startButton = document.getElementById(`start-${roomNumber}`);
+    const finishButton = document.getElementById(`finish-${roomNumber}`);
+
+    if (!dndButton || !startButton || !finishButton) return;
+
+    const isDNDActive = dndButton.classList.contains("active-dnd");
+
+    if (isDNDActive) {
+        // ✅ Remove DND mode (reenable cleaning buttons)
+        dndButton.classList.remove("active-dnd");
+        dndButton.style.backgroundColor = "blue";
+        startButton.disabled = false;
+        finishButton.disabled = true;
+    } else {
+        // ✅ Activate DND mode (disable cleaning buttons)
+        dndButton.classList.add("active-dnd");
+        dndButton.style.backgroundColor = "red";
+        startButton.disabled = true;
+        finishButton.disabled = true;
     }
 }
 
