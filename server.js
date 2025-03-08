@@ -345,8 +345,6 @@ const logSchema = new mongoose.Schema({
     finishedBy: { type: String, default: null },
     dndStatus: { type: Boolean, default: false } // ✅ DND Mode
 });
-
-const CleaningLog = mongoose.model("CleaningLog", logSchema);
 module.exports = CleaningLog;
 
 // 📄 Get All Cleaning Logs
