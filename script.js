@@ -599,12 +599,22 @@ async function finishCleaning(roomNumber) {
 function updateDNDStatus(roomNumber, status) {
     console.log(`Updating DND status for Room ${roomNumber} to: ${status}`);
 
+    // Ensure room number is correctly formatted
+    roomNumber = roomNumber.toString().padStart(3, '0');
+
+    // Try to find the DND button
     const dndButton = document.getElementById(`dnd-${roomNumber}`);
+
+    // If button is not found, log warning and return
     if (!dndButton) {
-        console.warn(`⚠️ DND button not found for Room ${roomNumber}`);
+        console.warn(`⚠️ DND button not found for Room ${roomNumber}. Trying again after 1 second...`);
+        
+        // Retry after 1 second to check if the button is loaded later
+        setTimeout(() => updateDNDStatus(roomNumber, status), 1000);
         return;
     }
 
+    // Apply styles based on status
     if (status === "dnd") {
         dndButton.classList.add("active-dnd");
         dndButton.style.backgroundColor = "red";
@@ -613,6 +623,7 @@ function updateDNDStatus(roomNumber, status) {
         dndButton.style.backgroundColor = "blue";
     }
 }
+
 
 // Ensure updateButtonStatus is being called after fetching logs
 async function loadLogs() {
