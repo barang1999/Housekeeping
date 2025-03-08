@@ -508,7 +508,7 @@ async function toggleDoNotDisturb(roomNumber) {
     const isDNDActive = dndButton.classList.contains("active-dnd");
     const newStatus = isDNDActive ? "available" : "dnd";
 
-    // Update UI first to give instant feedback
+    // ✅ Update UI immediately for instant feedback
     updateDNDStatus(roomNumber, newStatus);
 
     try {
@@ -525,8 +525,11 @@ async function toggleDoNotDisturb(roomNumber) {
             console.error("❌ Failed to update DND status:", data);
         }
 
-        // Emit update via WebSocket to notify other clients
+        // ✅ Emit update via WebSocket to notify other clients
         safeEmit("dndUpdate", { roomNumber, status: newStatus });
+
+        // ✅ Ensure logs are fetched again to update UI after DND is changed
+        loadLogs();
 
     } catch (error) {
         console.error("❌ Error updating DND status:", error);
@@ -619,57 +622,38 @@ async function finishCleaning(roomNumber) {
     }
 }
 
-function updateDNDStatus(roomNumber, status) {
-    console.log(`Updating DND status for Room ${roomNumber} to: ${status}`);
-
+function updateButtonStatus(roomNumber, status, dndStatus) {
     let formattedRoom = roomNumber.toString().padStart(3, '0'); // Ensure consistent format
-    const dndButton = document.getElementById(`dnd-${formattedRoom}`);
     const startButton = document.getElementById(`start-${formattedRoom}`);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
+    const dndButton = document.getElementById(`dnd-${formattedRoom}`);
 
-    if (!dndButton || !startButton || !finishButton) {
-        console.warn(`⚠️ Buttons not found for Room ${formattedRoom}.`);
+    if (!startButton || !finishButton || !dndButton) {
+        console.warn(`❌ Buttons not found for Room ${formattedRoom}`);
         return;
     }
 
-    if (status === "dnd") {
-        // Set buttons to disabled (greyed out) when DND is active
-        dndButton.classList.add("active-dnd");
-        dndButton.style.backgroundColor = "red";
+    if (dndStatus === "dnd") {
         startButton.style.backgroundColor = "grey";
         startButton.disabled = true;
         finishButton.style.backgroundColor = "grey";
         finishButton.disabled = true;
+        dndButton.style.backgroundColor = "red";
+    } else if (status === "in_progress") {
+        startButton.style.backgroundColor = "grey";
+        startButton.disabled = true;
+        finishButton.style.backgroundColor = "blue";
+        finishButton.disabled = false;
+    } else if (status === "finished") {
+        startButton.style.backgroundColor = "grey";
+        startButton.disabled = true;
+        finishButton.style.backgroundColor = "green";
+        finishButton.disabled = true;
     } else {
-        // Restore button state when DND is turned off
-        dndButton.classList.remove("active-dnd");
-        dndButton.style.backgroundColor = "blue";
-
-        // Fetch room status from logs to decide whether the start button should be enabled
-        fetch(`${apiUrl}/logs`)
-            .then(response => response.json())
-            .then(logs => {
-                const log = logs.find(log => log.roomNumber.toString().padStart(3, '0') === formattedRoom);
-                if (log) {
-                    if (log.status === "in_progress") {
-                        startButton.style.backgroundColor = "grey";
-                        startButton.disabled = true;
-                        finishButton.style.backgroundColor = "blue";
-                        finishButton.disabled = false;
-                    } else if (log.status === "finished") {
-                        startButton.style.backgroundColor = "grey";
-                        startButton.disabled = true;
-                        finishButton.style.backgroundColor = "green";
-                        finishButton.disabled = true;
-                    } else {
-                        startButton.style.backgroundColor = "blue";
-                        startButton.disabled = false;
-                        finishButton.style.backgroundColor = "grey";
-                        finishButton.disabled = true;
-                    }
-                }
-            })
-            .catch(error => console.error("❌ Error fetching logs:", error));
+        startButton.style.backgroundColor = "blue";  // ✅ Reset to blue when DND is off
+        startButton.disabled = false;                 // ✅ Re-enable start button
+        finishButton.style.backgroundColor = "grey";
+        finishButton.disabled = true;
     }
 }
 
