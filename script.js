@@ -710,6 +710,7 @@ async function loadLogs() {
     }
 }
 
+
 function updateButtonStatus(roomNumber, status) {
     let formattedRoom = roomNumber.toString().padStart(3, '0'); // Ensure consistent format
     const startButton = document.getElementById(`start-${formattedRoom}`);
