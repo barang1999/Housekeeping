@@ -223,7 +223,6 @@ app.get("/logs/status", async (req, res) => {
     }
 });
 
-const express = require("express");
 const router = express.Router();
 const CleaningLog = require("../models/CleaningLog"); // Import the model
 
@@ -258,7 +257,6 @@ router.post("/logs/dnd", async (req, res) => {
 });
 
 module.exports = router;
-
 
 // 🚀 Start Cleaning
 
