@@ -489,27 +489,27 @@ async function restoreCleaningStatus() {
 
 function toggleDoNotDisturb(roomNumber) {
     const dndButton = document.getElementById(`dnd-${roomNumber}`);
-    const startButton = document.getElementById(`start-${roomNumber}`);
-    const finishButton = document.getElementById(`finish-${roomNumber}`);
+    if (!dndButton) {
+        console.error(`❌ DND button not found for Room ${roomNumber}`);
+        return;
+    }
 
-    if (!dndButton || !startButton || !finishButton) return;
-
+    // Toggle DND status
     const isDNDActive = dndButton.classList.contains("active-dnd");
+    const newStatus = isDNDActive ? "available" : "dnd";
 
-    if (isDNDActive) {
-        // ✅ Remove DND mode (reenable cleaning buttons)
-        dndButton.classList.remove("active-dnd");
-        dndButton.style.backgroundColor = "blue";
-        startButton.disabled = false;
-        finishButton.disabled = true;
+    // Update UI immediately
+    updateDNDStatus(roomNumber, newStatus);
+
+    // ✅ Emit WebSocket event to notify all clients
+    if (window.socket && window.socket.connected) {
+        window.socket.emit("dndUpdate", { roomNumber, status: newStatus });
+        console.log(`📡 WebSocket: Emitting DND update for Room ${roomNumber} to ${newStatus}`);
     } else {
-        // ✅ Activate DND mode (disable cleaning buttons)
-        dndButton.classList.add("active-dnd");
-        dndButton.style.backgroundColor = "red";
-        startButton.disabled = true;
-        finishButton.disabled = true;
+        console.warn("⚠️ WebSocket is not connected. DND update won't sync.");
     }
 }
+
 
 async function startCleaning(roomNumber) {
     try {
