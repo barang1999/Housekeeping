@@ -507,7 +507,7 @@ async function loadLogs() {
     console.log("🔄 Fetching cleaning logs...");
     try {
         const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
-        console.log("✅ API Cleaning Logs Response:", logs); // Debugging API response
+        console.log("✅ API Cleaning Logs Response:", JSON.stringify(logs, null, 2)); // Debugging API response
 
         if (!logs || !Array.isArray(logs)) {
             console.warn("⚠️ No valid logs found. Setting empty table.");
@@ -523,23 +523,26 @@ async function loadLogs() {
         logs.forEach(log => {
             console.log("📌 Log Entry:", log); // Debug individual log entries
 
-            let roomNumber = log.roomNumber || "N/A";
-            let logDate = log.startTime ? new Date(log.startTime).toISOString().split('T')[0] : null;
-            
+            // 🔍 Ensure correct data structure and formatting
+            let roomNumber = log.roomNumber ? log.roomNumber.toString().padStart(3, '0') : "N/A";
+            let startTime = log.startTime ? new Date(log.startTime).toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' }) : "N/A";
+            let startedBy = log.startedBy || "-";
+            let finishTime = log.finishTime ? new Date(log.finishTime).toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' }) : "In Progress...";
+            let finishedBy = log.finishedBy || "-";
+
             // Store cleaning status
             cleaningStatus[roomNumber] = {
                 started: log.status === "in_progress",
                 finished: log.status === "finished",
             };
 
-            // 🔹 Temporarily removing date filtering to check if logs exist
             let row = document.createElement("tr");
             row.innerHTML = `
                 <td>${roomNumber}</td>
-                <td>${log.startTime || "N/A"}</td>
-                <td>${log.startedBy || "-"}</td>
-                <td>${log.finishTime ? log.finishTime : "In Progress..."}</td>
-                <td>${log.finishedBy || "-"}</td>
+                <td>${startTime}</td>
+                <td>${startedBy}</td>
+                <td>${finishTime}</td>
+                <td>${finishedBy}</td>
             `;
             logTable.appendChild(row);
         });
@@ -553,6 +556,7 @@ async function loadLogs() {
         console.error("❌ Error loading logs:", error);
     }
 }
+
 
  // ✅ Function to Clear Logs and Reset Buttons
 function clearLogs() {
