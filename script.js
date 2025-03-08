@@ -81,6 +81,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     
     await ensureValidToken();
     ensureWebSocketConnection();
+
+    // ✅ Immediately fetch logs and update buttons
+    await loadLogs();
     
     // ✅ Fetch logs and update buttons immediately after the page loads
     await restoreCleaningStatus();
