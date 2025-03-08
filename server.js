@@ -223,6 +223,41 @@ app.get("/logs/status", async (req, res) => {
     }
 });
 
+const express = require("express");
+const router = express.Router();
+const CleaningLog = require("../models/CleaningLog"); // Import the model
+
+// ✅ Toggle DND Mode
+router.post("/logs/dnd", async (req, res) => {
+    try {
+        const { roomNumber, status, updatedBy } = req.body;
+        
+        if (!roomNumber) {
+            return res.status(400).json({ message: "Room number is required." });
+        }
+
+        const log = await CleaningLog.findOne({ roomNumber });
+
+        if (!log) {
+            return res.status(404).json({ message: "Room not found." });
+        }
+
+        // ✅ Update DND status
+        log.dndStatus = (status === "dnd");
+        await log.save();
+
+        // ✅ Emit WebSocket Event to Notify All Users
+        req.app.get("io").emit("dndUpdate", { roomNumber, status });
+
+        res.json({ message: `DND mode ${status} for Room ${roomNumber}`, room: log });
+
+    } catch (error) {
+        console.error("❌ Error updating DND status:", error);
+        res.status(500).json({ message: "Internal server error." });
+    }
+});
+
+module.exports = router;
 
 
 // 🚀 Start Cleaning
@@ -301,13 +336,17 @@ app.post("/logs/finish", async (req, res) => {
 });
 
 const logSchema = new mongoose.Schema({
-    roomNumber: Number,
-    startTime: String,
-    startedBy: String,
-    finishTime: String,
-    finishedBy: String
+    roomNumber: { type: Number, required: true },
+    startTime: { type: String, default: null },
+    startedBy: { type: String, default: null },
+    finishTime: { type: String, default: null },
+    finishedBy: { type: String, default: null },
+    dndStatus: { type: Boolean, default: false } // ✅ Added field for DND mode
 });
+
 const CleaningLog = mongoose.model("CleaningLog", logSchema);
+
+module.exports = CleaningLog;
 
 // 📄 Get All Cleaning Logs
 app.get("/logs", async (req, res) => {
