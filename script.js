@@ -442,23 +442,41 @@ async function restoreCleaningStatus() {
 
 async function startCleaning(roomNumber) {
     try {
+        // Ensure roomNumber is sent as a number
+        const numericRoomNumber = parseInt(roomNumber, 10);
+        const username = localStorage.getItem("username");
+
+        console.log("🟢 Sending Start Cleaning Request: ", {
+            roomNumber: numericRoomNumber,
+            username: username,
+            status: "in_progress"
+        });
+
         const res = await fetch(`${apiUrl}/logs/start`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roomNumber, username: localStorage.getItem("username"), status: "in_progress" })
+            body: JSON.stringify({ roomNumber: numericRoomNumber, username, status: "in_progress" })
         });
 
+        const data = await res.json();
+        console.log("✅ API Response for Start Cleaning:", data);
+
         if (!res.ok) {
-            throw new Error(`Request failed with status ${res.status}`);
+            console.error("❌ Failed Start Cleaning: ", data);
+            alert(`❌ Failed to start cleaning: ${data.message || "Please try again."}`);
+            
+            // 🔄 Force refresh to reflect actual room status
+            loadLogs();
+            return;
         }
 
-        const data = await res.json();
         if (data.message.includes("started")) {
-            updateButtonStatus(roomNumber, "in_progress");
-            safeEmit("update", { roomNumber, status: "in_progress" });
+            updateButtonStatus(numericRoomNumber, "in_progress");
+            safeEmit("update", { roomNumber: numericRoomNumber, status: "in_progress" });
+            loadLogs(); // ✅ Ensure UI reflects latest status
         }
     } catch (error) {
-        console.error("Error starting cleaning:", error);
+        console.error("❌ Error starting cleaning:", error);
         alert("❌ Failed to start cleaning. Please try again.");
     }
 }
