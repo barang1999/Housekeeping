@@ -452,6 +452,12 @@ async function startCleaning(roomNumber) {
             status: "in_progress"
         });
 
+        // Disable the start button immediately after clicking
+        const startButton = document.getElementById(`start-${numericRoomNumber}`);
+        const finishButton = document.getElementById(`finish-${numericRoomNumber}`);
+        if (startButton) startButton.disabled = true;
+        if (finishButton) finishButton.disabled = false;
+
         const res = await fetch(`${apiUrl}/logs/start`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -480,6 +486,7 @@ async function startCleaning(roomNumber) {
         alert("❌ Failed to start cleaning. Please try again.");
     }
 }
+
 
 async function finishCleaning(roomNumber) {
     try {
