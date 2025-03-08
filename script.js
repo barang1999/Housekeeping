@@ -519,6 +519,10 @@ async function toggleDoNotDisturb(roomNumber) {
         if (!res.ok) {
             console.error("❌ Failed to update DND status:", data);
         }
+
+        // ✅ Emit update to WebSocket so all devices sync
+        safeEmit("dndUpdate", { roomNumber, status: newStatus });
+        
     } catch (error) {
         console.error("❌ Error updating DND status:", error);
     }
