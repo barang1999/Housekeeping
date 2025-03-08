@@ -179,9 +179,8 @@ async function checkAuth() {
    
 function toggleAuth() {
     const signupForm = document.getElementById("signup-form");
-    if (signupForm) {
-        signupForm.classList.toggle("hidden");
-    }
+    signupForm.classList.toggle("hidden");
+    signupForm.reset(); // Clears input fields
 }
 
 
@@ -404,7 +403,7 @@ async function restoreCleaningStatus() {
 
         logs.forEach(log => {
             // ✅ Fix: Ensure correct field name and check for missing status
-            const roomNumber = log.roomNumber || log.roomNumb;  // Handle incorrect field name
+            const roomNumber = log.roomNumber;  // Handle incorrect field name
             const status = log.status || "pending";  // Default status if missing
 
             if (!roomNumber) {
