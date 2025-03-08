@@ -118,46 +118,6 @@ async function login(event) {
     }
 }
 
-
-function showDashboard(username) {
-    console.log("Inside showDashboard function. Username:", username);
-
-    const authSection = document.getElementById("auth-section");
-    const dashboard = document.getElementById("dashboard");
-    const usernameDisplay = document.getElementById("user-name");
-
-    if (!authSection || !dashboard || !usernameDisplay) {
-        console.error("❌ One or more required elements not found!");
-        return;
-    }
-
-    // ✅ Hide the authentication section (Login & Signup)
-    authSection.style.display = "none";
-
-    // ✅ Show the dashboard
-    dashboard.classList.remove("hidden");
-    dashboard.style.display = "block"; 
-
-    // ✅ Display the username
-    usernameDisplay.textContent = username;
-
-    console.log("✅ Authentication section hidden, Dashboard displayed.");
-}
-
-document.addEventListener("DOMContentLoaded", function () {
-    console.log("DOM fully loaded");
-    const token = localStorage.getItem("token");
-    const username = localStorage.getItem("username");
-
-    if (token && username) {
-        console.log("Token and username found. Logging in automatically.");
-        showDashboard(username);
-    } else {
-        console.log("No token found. Redirecting to login.");
-    }
-});
-
-
 async function checkAuth() {
     let token = localStorage.getItem("token");
     if (!token) {
@@ -223,6 +183,73 @@ function toggleAuth() {
         signupForm.classList.toggle("hidden");
     }
 }
+
+
+async function loadRooms() {
+    const floors = {
+       "ground-floor": ["001", "002", "003", "004", "005", "006", "007", "011", "012", "013", "014", "015", "016", "017"],
+        "second-floor": ["101", "102", "103", "104", "105", "106", "107", "108", "109", "110", "111", "112", "113", "114", "115", "116", "117"],
+        "third-floor": ["201", "202", "203", "204", "205", "208", "209", "210", "211", "212", "213", "214", "215", "216", "217"]
+    };
+
+    Object.keys(floors).forEach(floor => {
+        const floorDiv = document.getElementById(floor);
+        if (!floorDiv) return;
+        floorDiv.innerHTML = "";
+        floors[floor].forEach(room => {
+            const roomDiv = document.createElement("div");
+            roomDiv.classList.add("room");
+            roomDiv.innerHTML = `
+                <span>Room ${room}</span>
+                <button id="start-${room}" onclick="startCleaning('${room}')">Start Cleaning</button>
+                <button id="finish-${room}" onclick="finishCleaning('${room}')" disabled>Finish</button>
+            `;
+            floorDiv.appendChild(roomDiv);
+        });
+    });
+    await restoreCleaningStatus();
+}
+
+function showDashboard(username) {
+    console.log("Inside showDashboard function. Username:", username);
+
+    const authSection = document.getElementById("auth-section");
+    const dashboard = document.getElementById("dashboard");
+    const usernameDisplay = document.getElementById("user-name");
+
+    if (!authSection || !dashboard || !usernameDisplay) {
+        console.error("❌ One or more required elements not found!");
+        return;
+    }
+
+    // ✅ Hide the authentication section (Login & Signup)
+    authSection.style.display = "none";
+
+    // ✅ Show the dashboard
+    dashboard.classList.remove("hidden");
+    dashboard.style.display = "block"; 
+
+    // ✅ Display the username
+    usernameDisplay.textContent = username;
+
+    // ✅ Load rooms for floors
+    loadRooms();
+
+    console.log("✅ Authentication section hidden, Dashboard displayed.");
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    console.log("DOM fully loaded");
+    const token = localStorage.getItem("token");
+    const username = localStorage.getItem("username");
+
+    if (token && username) {
+        console.log("Token and username found. Logging in automatically.");
+        showDashboard(username);
+    } else {
+        console.log("No token found. Redirecting to login.");
+    }
+});
 
 
 async function refreshToken() {
@@ -335,41 +362,18 @@ function updateButtonStatus(roomNumber, status) {
     finishButton.disabled = status !== "in_progress";
 }
 
-async function loadRooms() {
-    const floors = {
-       "ground-floor": ["001", "002", "003", "004", "005", "006", "007", "011", "012", "013", "014", "015", "016", "017"],
-        "second-floor": ["101", "102", "103", "104", "105", "106", "107", "108", "109", "110", "111", "112", "113", "114", "115", "116", "117"],
-        "third-floor": ["201", "202", "203", "204", "205", "208", "209", "210", "211", "212", "213", "214", "215", "216", "217"]
-    };
 
-    Object.keys(floors).forEach(floor => {
-        const floorDiv = document.getElementById(floor);
-        if (!floorDiv) return;
-        floorDiv.innerHTML = "";
-        floors[floor].forEach(room => {
-            const roomDiv = document.createElement("div");
-            roomDiv.classList.add("room");
-            roomDiv.innerHTML = `
-                <span>Room ${room}</span>
-                <button id="start-${room}" onclick="startCleaning('${room}')">Start Cleaning</button>
-                <button id="finish-${room}" onclick="finishCleaning('${room}')" disabled>Finish</button>
-            `;
-            floorDiv.appendChild(roomDiv);
-        });
-    });
-    await restoreCleaningStatus();
-}
 function formatRoomNumber(roomNumber) {
             return roomNumber.toString().padStart(3, '0');
         }
 // ✅ Fix restoreCleaningStatus()
 function toggleFloor(floorId) {
-    // Hide all floor room lists first
+    // Hide all floors
     document.querySelectorAll(".rooms").forEach(roomDiv => {
         roomDiv.style.display = "none";
     });
 
-    // Show the selected floor's rooms
+    // Show the selected floor
     const floorDiv = document.getElementById(floorId);
     if (floorDiv) {
         floorDiv.style.display = "block";
@@ -378,8 +382,6 @@ function toggleFloor(floorId) {
         console.error(`❌ No room list found for ${floorId}`);
     }
 }
-
-
 
     function formatCambodiaTime() {
         return new Intl.DateTimeFormat('en-US', {
