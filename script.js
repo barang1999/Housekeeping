@@ -595,6 +595,25 @@ async function finishCleaning(roomNumber) {
         alert("❌ Failed to finish cleaning. Please try again.");
     }
 }
+
+function updateDNDStatus(roomNumber, status) {
+    console.log(`Updating DND status for Room ${roomNumber} to: ${status}`);
+
+    const dndButton = document.getElementById(`dnd-${roomNumber}`);
+    if (!dndButton) {
+        console.warn(`⚠️ DND button not found for Room ${roomNumber}`);
+        return;
+    }
+
+    if (status === "dnd") {
+        dndButton.classList.add("active-dnd");
+        dndButton.style.backgroundColor = "red";
+    } else {
+        dndButton.classList.remove("active-dnd");
+        dndButton.style.backgroundColor = "blue";
+    }
+}
+
 // Ensure updateButtonStatus is being called after fetching logs
 async function loadLogs() {
     console.log("🔄 Fetching cleaning logs...");
