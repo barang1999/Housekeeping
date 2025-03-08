@@ -727,41 +727,58 @@ async function loadLogs() {
     }
 }
 
-function updateButtonStatus(roomNumber, status, dndStatus) {
+function updateDNDStatus(roomNumber, status) {
+    console.log(`Updating DND status for Room ${roomNumber} to: ${status}`);
+
     let formattedRoom = roomNumber.toString().padStart(3, '0'); // Ensure consistent format
+    const dndButton = document.getElementById(`dnd-${formattedRoom}`);
     const startButton = document.getElementById(`start-${formattedRoom}`);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
-    const dndButton = document.getElementById(`dnd-${formattedRoom}`);
 
-    if (!startButton || !finishButton || !dndButton) {
-        console.warn(`❌ Buttons not found for Room ${formattedRoom}`);
+    if (!dndButton || !startButton || !finishButton) {
+        console.warn(`⚠️ Buttons not found for Room ${formattedRoom}.`);
         return;
     }
 
-    if (dndStatus === "dnd") {
-        startButton.style.backgroundColor = "grey";  
-        startButton.disabled = true;                 
-        finishButton.style.backgroundColor = "grey"; 
-        finishButton.disabled = true;
-        dndButton.style.backgroundColor = "red";     
-    } else if (status === "in_progress") {
-        startButton.style.backgroundColor = "grey";  
-        startButton.disabled = true;                 
-        finishButton.style.backgroundColor = "blue"; 
-        finishButton.disabled = false;
-    } else if (status === "finished") {
-        startButton.style.backgroundColor = "grey";  
+    if (status === "dnd") {
+        dndButton.classList.add("active-dnd");
+        dndButton.style.backgroundColor = "red";
+        startButton.style.backgroundColor = "grey";
         startButton.disabled = true;
-        finishButton.style.backgroundColor = "green"; 
-        finishButton.disabled = true;
-    } else {
-        // Default case (if no status is set)
-        startButton.style.backgroundColor = "blue";
-        startButton.disabled = false;
         finishButton.style.backgroundColor = "grey";
         finishButton.disabled = true;
+    } else {
+        dndButton.classList.remove("active-dnd");
+        dndButton.style.backgroundColor = "blue";
+
+        // ✅ Fetch latest logs to determine correct button states
+        fetch(`${apiUrl}/logs`)
+            .then(response => response.json())
+            .then(logs => {
+                const log = logs.find(log => log.roomNumber.toString().padStart(3, '0') === formattedRoom);
+                if (log) {
+                    if (log.status === "in_progress") {
+                        startButton.style.backgroundColor = "grey";
+                        startButton.disabled = true;
+                        finishButton.style.backgroundColor = "blue";
+                        finishButton.disabled = false;
+                    } else if (log.status === "finished") {
+                        startButton.style.backgroundColor = "grey";
+                        startButton.disabled = true;
+                        finishButton.style.backgroundColor = "green";
+                        finishButton.disabled = true;
+                    } else {
+                        startButton.style.backgroundColor = "blue";  // ✅ Make Start Cleaning blue again
+                        startButton.disabled = false;                 // ✅ Enable Start Cleaning button
+                        finishButton.style.backgroundColor = "grey";
+                        finishButton.disabled = true;
+                    }
+                }
+            })
+            .catch(error => console.error("❌ Error fetching logs:", error));
     }
 }
+
 
 function logout() {
     console.log("🔴 Logging out...");
