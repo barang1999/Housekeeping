@@ -57,12 +57,13 @@ async function connectWebSocket() {
         setTimeout(connectWebSocket, 5000); // Try reconnecting after disconnect
     });
 
-    window.socket.on("update", ({ roomNumber, status }) => updateButtonStatus(roomNumber, status));
-
-    if (window.socket) {
-    window.socket.on("dndUpdate", ({ roomNumber, status }) => {
-        console.log(`📡 WebSocket: Received DND update for Room ${roomNumber} -> ${status}`);
-        updateDNDStatus(roomNumber, status); // ✅ Update UI on all devices
+   // ✅ Handle DND updates in real-time
+      window.socket.on("dndUpdate", async ({ roomNumber, status }) => {
+          console.log(`📡 WebSocket: Received DND update for Room ${roomNumber} -> ${status}`);
+          updateDNDStatus(roomNumber, status);
+  
+          // ✅ Fetch logs after DND change
+          await loadLogs();
     });
 }
 }
@@ -78,17 +79,14 @@ function safeEmit(event, data = {}) {
 
 document.addEventListener("DOMContentLoaded", async () => {
     console.log("🔄 Initializing housekeeping system...");
-    
+
     await ensureValidToken();
     ensureWebSocketConnection();
-
+    
     // ✅ Immediately fetch logs and update buttons
     await loadLogs();
-    
-    // ✅ Fetch logs and update buttons immediately after the page loads
     await restoreCleaningStatus();
 });
-
 
 // ✅ Ensure buttons update after logs are loaded
 async function updateButtonsFromLogs() {
@@ -499,16 +497,18 @@ async function restoreCleaningStatus() {
 
 
 async function toggleDoNotDisturb(roomNumber) {
-    const dndButton = document.getElementById(`dnd-${roomNumber}`);
+    const formattedRoom = roomNumber.toString().padStart(3, '0');
+    const dndButton = document.getElementById(`dnd-${formattedRoom}`);
+    
     if (!dndButton) {
-        console.error(`❌ DND button not found for Room ${roomNumber}`);
+        console.error(`❌ DND button not found for Room ${formattedRoom}`);
         return;
     }
 
     const isDNDActive = dndButton.classList.contains("active-dnd");
     const newStatus = isDNDActive ? "available" : "dnd";
 
-    // ✅ Update UI immediately for instant feedback
+    // ✅ Instantly update UI
     updateDNDStatus(roomNumber, newStatus);
 
     try {
@@ -519,23 +519,22 @@ async function toggleDoNotDisturb(roomNumber) {
         });
 
         const data = await res.json();
-        console.log(`✅ DND status updated for Room ${roomNumber}:`, data);
+        console.log(`✅ DND status updated for Room ${formattedRoom}:`, data);
 
         if (!res.ok) {
             console.error("❌ Failed to update DND status:", data);
+            return;
         }
 
-        // ✅ Emit update via WebSocket to notify other clients
+        // ✅ Emit update via WebSocket
         safeEmit("dndUpdate", { roomNumber, status: newStatus });
 
-        // ✅ Ensure logs are fetched again to update UI after DND is changed
-        loadLogs();
-
+        // ✅ Fetch the latest logs to update UI correctly
+        await loadLogs();
     } catch (error) {
         console.error("❌ Error updating DND status:", error);
     }
 }
-
 
 async function startCleaning(roomNumber) {
     try {
@@ -651,13 +650,15 @@ function updateButtonStatus(roomNumber, status, dndStatus) {
             finishButton.style.backgroundColor = "green";
             finishButton.disabled = true;
         } else {
-            startButton.style.backgroundColor = "blue";  // ✅ Reset Start Cleaning to blue
-            startButton.disabled = false;                 // ✅ Enable Start Cleaning
+            // ✅ Reset the start cleaning button properly when DND is OFF
+            startButton.style.backgroundColor = "blue";
+            startButton.disabled = false;
             finishButton.style.backgroundColor = "grey";
             finishButton.disabled = true;
         }
     }
 }
+
 
 // Ensure updateButtonStatus is being called after fetching logs
 async function loadLogs() {
@@ -754,7 +755,7 @@ function updateDNDStatus(roomNumber, status) {
         dndButton.classList.remove("active-dnd");
         dndButton.style.backgroundColor = "blue";
 
-        // ✅ Fetch latest logs and update the buttons accordingly
+        // ✅ Fetch the latest status from logs
         fetch(`${apiUrl}/logs`)
             .then(response => response.json())
             .then(logs => {
