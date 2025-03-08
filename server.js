@@ -246,7 +246,8 @@ router.post("/logs/dnd", async (req, res) => {
         await log.save();
 
         // ✅ Emit WebSocket Event to Notify All Users
-        req.app.get("io").emit("dndUpdate", { roomNumber, status });
+        app.set("io", io);
+        io.emit("dndUpdate", { roomNumber, status });
 
         res.json({ message: `DND mode ${status} for Room ${roomNumber}`, room: log });
 
@@ -339,11 +340,10 @@ const logSchema = new mongoose.Schema({
     startedBy: { type: String, default: null },
     finishTime: { type: String, default: null },
     finishedBy: { type: String, default: null },
-    dndStatus: { type: Boolean, default: false } // ✅ Added field for DND mode
+    dndStatus: { type: Boolean, default: false }
 });
 
 const CleaningLog = mongoose.model("CleaningLog", logSchema);
-
 module.exports = CleaningLog;
 
 // 📄 Get All Cleaning Logs
