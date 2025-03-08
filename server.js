@@ -7,6 +7,8 @@ const { Server } = require("socket.io");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
+const CleaningLog = require("./models/CleaningLog"); // ✅ Import Model
+
 // ✅ Initialize Express
 const app = express();
 app.use(express.json());
@@ -95,6 +97,9 @@ io.on("connection", (socket) => {
         console.log(`🔴 Client Disconnected: ${socket.user?.username || "Unknown User"} - ${reason}`);
     });
 });
+
+// ✅ Store `io` in Express for later use
+app.set("io", io);
 
 // ✅ User Signup (Fixed Duplicate User Check)
 app.post("/auth/signup", async (req, res) => {
@@ -224,7 +229,6 @@ app.get("/logs/status", async (req, res) => {
 });
 
 const router = express.Router();
-const CleaningLog = require("../models/CleaningLog"); // Import the model
 
 // ✅ Toggle DND Mode
 router.post("/logs/dnd", async (req, res) => {
@@ -246,8 +250,7 @@ router.post("/logs/dnd", async (req, res) => {
         await log.save();
 
         // ✅ Emit WebSocket Event to Notify All Users
-        app.set("io", io);
-        io.emit("dndUpdate", { roomNumber, status });
+        req.app.get("io").emit("dndUpdate", { roomNumber, status });
 
         res.json({ message: `DND mode ${status} for Room ${roomNumber}`, room: log });
 
@@ -340,7 +343,7 @@ const logSchema = new mongoose.Schema({
     startedBy: { type: String, default: null },
     finishTime: { type: String, default: null },
     finishedBy: { type: String, default: null },
-    dndStatus: { type: Boolean, default: false }
+    dndStatus: { type: Boolean, default: false } // ✅ DND Mode
 });
 
 const CleaningLog = mongoose.model("CleaningLog", logSchema);
