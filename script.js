@@ -435,25 +435,19 @@ async function restoreCleaningStatus() {
 async function startCleaning(roomNumber) {
     try {
         const numericRoomNumber = parseInt(roomNumber, 10);
-        const username = localStorage.getItem("username");
+        const username = localStorage.getItem("username"); // Ensure username is retrieved
 
-        console.log("🟢 Sending Start Cleaning Request: ", {
+        if (!username) {
+            console.error("❌ No username found in localStorage. Cannot start cleaning.");
+            alert("You must be logged in to start cleaning.");
+            return;
+        }
+
+        console.log("🟢 Sending Start Cleaning Request:", {
             roomNumber: numericRoomNumber,
             username: username,
             status: "in_progress"
         });
-
-        // Disable the start button and change its color to grey
-        const startButton = document.getElementById(`start-${numericRoomNumber}`);
-        const finishButton = document.getElementById(`finish-${numericRoomNumber}`);
-        if (startButton) {
-            startButton.disabled = true;
-            startButton.style.backgroundColor = "grey";
-        }
-        if (finishButton) {
-            finishButton.disabled = false;
-            finishButton.style.backgroundColor = "blue";
-        }
 
         const res = await fetch(`${apiUrl}/logs/start`, {
             method: "POST",
@@ -465,18 +459,15 @@ async function startCleaning(roomNumber) {
         console.log("✅ API Response for Start Cleaning:", data);
 
         if (!res.ok) {
-            console.error("❌ Failed Start Cleaning: ", data);
+            console.error("❌ Failed Start Cleaning:", data);
             alert(`❌ Failed to start cleaning: ${data.message || "Please try again."}`);
-            
-            // 🔄 Force refresh to reflect actual room status
-            loadLogs();
             return;
         }
 
         if (data.message.includes("started")) {
             updateButtonStatus(numericRoomNumber, "in_progress");
             safeEmit("update", { roomNumber: numericRoomNumber, status: "in_progress" });
-            loadLogs();
+            loadLogs(); // ✅ Ensure UI reflects latest status
         }
     } catch (error) {
         console.error("❌ Error starting cleaning:", error);
