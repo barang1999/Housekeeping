@@ -670,6 +670,9 @@ async function loadLogs() {
             let finishTime = log.finishTime ? new Date(log.finishTime).toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' }) : "In Progress...";
             let finishedBy = log.finishedBy || "-";
             let status = log.finishTime ? "finished" : "in_progress";
+            let roomNumber = log.roomNumber.toString().padStart(3, '0');
+            let dndStatus = log.dndStatus ? "dnd" : "available"; // ✅ Read DND status from DB
+
             updateDNDStatus(log.roomNumber, log.dndStatus ? "dnd" : "available");
 
             // Store cleaning status
