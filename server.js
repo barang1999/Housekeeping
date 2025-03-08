@@ -92,11 +92,17 @@ io.use(async (socket, next) => {
 });
 
 io.on("connection", (socket) => {
-    console.log(`⚡ WebSocket Client Connected: ${socket.user?.username || "Unknown User"}`);
-    socket.on("disconnect", (reason) => {
-        console.log(`🔴 Client Disconnected: ${socket.user?.username || "Unknown User"} - ${reason}`);
+    console.log(`⚡ WebSocket Client Connected: ${socket.id}`);
+
+    // ✅ Listen for DND status updates
+    socket.on("dndUpdate", ({ roomNumber, status }) => {
+        console.log(`📡 Broadcasting DND update for Room ${roomNumber} to ${status}`);
+        
+        // ✅ Broadcast to all connected clients
+        io.emit("dndUpdate", { roomNumber, status });
     });
 });
+
 
 // ✅ Store `io` in Express for later use
 app.set("io", io);
