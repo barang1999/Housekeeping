@@ -633,6 +633,7 @@ async function loadLogs() {
             let finishTime = log.finishTime ? new Date(log.finishTime).toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' }) : "In Progress...";
             let finishedBy = log.finishedBy || "-";
             let status = log.finishTime ? "finished" : "in_progress";
+            updateDNDStatus(log.roomNumber, log.dndStatus ? "dnd" : "available");
 
             // Store cleaning status
             cleaningStatus[roomNumber] = {
