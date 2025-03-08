@@ -58,6 +58,13 @@ async function connectWebSocket() {
     });
 
     window.socket.on("update", ({ roomNumber, status }) => updateButtonStatus(roomNumber, status));
+
+    if (window.socket) {
+    window.socket.on("dndUpdate", ({ roomNumber, status }) => {
+        console.log(`📡 WebSocket: Received DND update for Room ${roomNumber} -> ${status}`);
+        updateDNDStatus(roomNumber, status); // ✅ Update UI on all devices
+    });
+}
 }
 
 function safeEmit(event, data = {}) {
