@@ -722,7 +722,7 @@ function updateButtonStatus(roomNumber, status) {
         return;
     }
 
-   if (dndStatus === "dnd") {
+if (dndStatus === "dnd") {
         startButton.style.backgroundColor = "grey";  // Grey out start button
         startButton.disabled = true;                 // Disable start button
         finishButton.style.backgroundColor = "grey"; // Grey out finish button
@@ -734,6 +734,8 @@ function updateButtonStatus(roomNumber, status) {
         finishButton.style.backgroundColor = "blue"; // Enable finish button
         finishButton.disabled = false;
     } else if (status === "finished") {
+        startButton.style.backgroundColor = "grey";  // Disable start button after finishing
+        startButton.disabled = true;
         finishButton.style.backgroundColor = "green"; // Mark finished button as green
         finishButton.disabled = true;
     }
