@@ -222,35 +222,37 @@ function showDashboard(username) {
         return;
     }
 
-    // ✅ Hide the authentication section (Login & Signup)
+    // ✅ Ensure authentication section is hidden
     authSection.style.display = "none";
 
-    // ✅ Show the dashboard
+    // ✅ Ensure dashboard is visible
     dashboard.classList.remove("hidden");
     dashboard.style.display = "block"; 
 
-    // ✅ Display the username
+    // ✅ Update the username display
     usernameDisplay.textContent = username;
 
-    // ✅ Load rooms for floors
+    // ✅ Load rooms after successful login
     loadRooms();
 
-    console.log("✅ Authentication section hidden, Dashboard displayed.");
+    console.log("✅ Dashboard is now displayed.");
 }
 
 document.addEventListener("DOMContentLoaded", function () {
     console.log("DOM fully loaded");
+    
     const token = localStorage.getItem("token");
     const username = localStorage.getItem("username");
 
     if (token && username) {
-        console.log("Token and username found. Logging in automatically.");
+        console.log("✅ Token and username found. Logging in automatically.");
         showDashboard(username);
     } else {
-        console.log("No token found. Redirecting to login.");
+        console.log("❌ No token found. Showing login form.");
+        document.getElementById("auth-section").style.display = "block";
+        document.getElementById("dashboard").style.display = "none";
     }
 });
-
 
 async function refreshToken() {
     const refreshToken = localStorage.getItem("refreshToken");
@@ -373,7 +375,7 @@ function toggleFloor(floorId) {
         roomDiv.style.display = "none";
     });
 
-    // Show the selected floor
+    // Show only the selected floor
     const floorDiv = document.getElementById(floorId);
     if (floorDiv) {
         floorDiv.style.display = "block";
