@@ -222,32 +222,22 @@ function showDashboard(username) {
     const authSection = document.getElementById("auth-section");
     const usernameDisplay = document.getElementById("user-name");
 
-    if (!dashboard) {
-        console.error("❌ Dashboard element is missing in the DOM.");
+    if (!dashboard || !authSection || !usernameDisplay) {
+        console.error("❌ Dashboard, Auth section, or Username display not found in DOM.");
         return;
     }
 
-    if (!authSection) {
-        console.error("❌ Auth section not found.");
-        return;
-    }
-
-    if (!usernameDisplay) {
-        console.error("❌ Username display element missing.");
-        return;
-    }
-
-    // ✅ Hide login section
+    // Hide login section
     authSection.style.display = "none";
 
-    // ✅ Show dashboard
+    // Show dashboard properly
     dashboard.classList.remove("hidden");
-    dashboard.style.display = "block";
+    dashboard.style.display = "block"; // ✅ Ensure it's visible
 
-    // ✅ Set username display
+    // Set username display
     usernameDisplay.textContent = username;
 
-    // ✅ Load rooms first, then ensure the ground floor is shown
+    // Load rooms first, then ensure the ground floor is shown
     loadRooms();
 
     setTimeout(() => {
@@ -255,6 +245,7 @@ function showDashboard(username) {
         toggleFloor("ground-floor"); // Ensure it's visible after rooms load
     }, 1000);
 }
+
 
 document.addEventListener("DOMContentLoaded", async function () {
     console.log("DOM fully loaded");
@@ -408,7 +399,7 @@ function toggleFloor(floorId) {
     // Show only the selected floor
     const floorDiv = document.getElementById(floorId);
     if (floorDiv) {
-        floorDiv.style.display = "block";
+        floorDiv.style.display = "block"; // ✅ Ensure it's visible
         console.log(`✅ Showing rooms for: ${floorId}`);
     } else {
         console.error(`❌ No room list found for ${floorId}`);
