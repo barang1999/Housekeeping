@@ -585,13 +585,35 @@ async function loadLogs() {
         const logTable = document.querySelector("#logTable tbody");
         logTable.innerHTML = ""; // Clear existing logs
 
+         let cleaningStatus = {};
+
+        // ✅ Sort logs: "In Progress" first, then latest logs first
+        logs.sort((a, b) => {
+            const statusA = a.status === "in_progress" ? 1 : 0;
+            const statusB = b.status === "in_progress" ? 1 : 0;
+            const timeA = new Date(a.startTime).getTime();
+            const timeB = new Date(b.startTime).getTime();
+            
+            // Prioritize "In Progress", then sort by latest time
+            return statusB - statusA || timeB - timeA;
+        });
+
+
         logs.forEach(log => {
+            console.log("📌 Log Entry:", log); // Debug individual log entries
+            
             let roomNumber = log.roomNumber ? log.roomNumber.toString().padStart(3, '0') : "N/A";
             let startTime = log.startTime ? new Date(log.startTime).toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' }) : "N/A";
             let startedBy = log.startedBy || "-";
             let finishTime = log.finishTime ? new Date(log.finishTime).toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' }) : "In Progress...";
             let finishedBy = log.finishedBy || "-";
             let status = log.finishTime ? "finished" : "in_progress";
+
+            // Store cleaning status
+            cleaningStatus[roomNumber] = {
+                started: log.status === "in_progress",
+                finished: log.status === "finished",
+            };
 
             let row = document.createElement("tr");
             row.innerHTML = `
