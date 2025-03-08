@@ -554,11 +554,35 @@ function logout() {
 }
 
 // ✅ Ensure `logs` is defined before using it
+function updateButtonStatus(roomNumber, status) {
+    // Ensure room number is formatted correctly with leading zeros
+    const formattedRoomNumber = roomNumber.toString().padStart(3, '0');
+    
+    const startButton = document.getElementById(`start-${formattedRoomNumber}`);
+    const finishButton = document.getElementById(`finish-${formattedRoomNumber}`);
+
+    if (!startButton || !finishButton) {
+        console.warn(`❌ Buttons not found for Room ${formattedRoomNumber}`);
+        return;
+    }
+
+    if (status === "in_progress") {
+        startButton.style.backgroundColor = "grey";  // Change start button to grey
+        startButton.disabled = true;                 // Disable start button
+        finishButton.style.backgroundColor = "blue"; // Enable finish button
+        finishButton.disabled = false;
+    } else if (status === "finished") {
+        finishButton.style.backgroundColor = "green"; // Mark finished button as green
+        finishButton.disabled = true;
+    }
+}
+
+// Ensure updateButtonStatus is being called after fetching logs
 async function loadLogs() {
     console.log("🔄 Fetching cleaning logs...");
     try {
         const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
-        console.log("✅ API Cleaning Logs Response:", logs); // Debugging API response
+        console.log("✅ API Cleaning Logs Response:", JSON.stringify(logs, null, 2));
 
         if (!logs || !Array.isArray(logs)) {
             console.warn("⚠️ No valid logs found. Setting empty table.");
@@ -566,35 +590,38 @@ async function loadLogs() {
         }
 
         const logTable = document.querySelector("#logTable tbody");
-        console.log("📌 Checking logTable:", logTable); // Debug table selection
+        console.log("📌 Checking logTable:", logTable);
         logTable.innerHTML = ""; // Clear existing logs
 
         let cleaningStatus = {};
 
         logs.forEach(log => {
-            console.log("📌 Log Entry:", log); // Debug individual log entries
+            console.log("📌 Log Entry:", log);
 
-            let roomNumber = log.roomNumber || "N/A";
-            let logDate = log.startTime ? new Date(log.startTime).toISOString().split('T')[0] : null;
-            
+            let roomNumber = log.roomNumber ? log.roomNumber.toString().padStart(3, '0') : "N/A";
+            let startTime = log.startTime ? new Date(log.startTime).toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' }) : "N/A";
+            let startedBy = log.startedBy || "-";
+            let finishTime = log.finishTime ? new Date(log.finishTime).toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' }) : "In Progress...";
+            let finishedBy = log.finishedBy || "-";
+
             // Store cleaning status
             cleaningStatus[roomNumber] = {
                 started: log.status === "in_progress",
                 finished: log.status === "finished",
             };
 
-            // ✅ Update Button Colors Based on Status
-            updateButtonStatus(roomNumber, log.status);
-
             let row = document.createElement("tr");
             row.innerHTML = `
                 <td>${roomNumber}</td>
-                <td>${log.startTime || "N/A"}</td>
-                <td>${log.startedBy || "-"}</td>
-                <td>${log.finishTime ? log.finishTime : "In Progress..."}</td>
-                <td>${log.finishedBy || "-"}</td>
+                <td>${startTime}</td>
+                <td>${startedBy}</td>
+                <td>${finishTime}</td>
+                <td>${finishedBy}</td>
             `;
             logTable.appendChild(row);
+
+            // Ensure buttons are updated
+            updateButtonStatus(roomNumber, log.status);
         });
 
         localStorage.setItem("cleaningStatus", JSON.stringify(cleaningStatus));
@@ -606,6 +633,7 @@ async function loadLogs() {
         console.error("❌ Error loading logs:", error);
     }
 }
+
 
 
  // ✅ Function to Clear Logs and Reset Buttons
