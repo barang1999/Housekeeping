@@ -508,7 +508,8 @@ async function toggleDoNotDisturb(roomNumber) {
     const isDNDActive = dndButton.classList.contains("active-dnd");
     const newStatus = isDNDActive ? "available" : "dnd";
 
-    updateDNDStatus(roomNumber, newStatus); // ✅ Update UI immediately
+    // Update UI first to give instant feedback
+    updateDNDStatus(roomNumber, newStatus);
 
     try {
         const res = await fetch(`${apiUrl}/logs/dnd`, {
@@ -524,9 +525,9 @@ async function toggleDoNotDisturb(roomNumber) {
             console.error("❌ Failed to update DND status:", data);
         }
 
-        // ✅ Emit update to WebSocket so all devices sync
+        // Emit update via WebSocket to notify other clients
         safeEmit("dndUpdate", { roomNumber, status: newStatus });
-        
+
     } catch (error) {
         console.error("❌ Error updating DND status:", error);
     }
@@ -632,43 +633,43 @@ function updateDNDStatus(roomNumber, status) {
     }
 
     if (status === "dnd") {
+        // Set buttons to disabled (greyed out) when DND is active
         dndButton.classList.add("active-dnd");
         dndButton.style.backgroundColor = "red";
-
-        // ✅ Disable Start and Finish when DND is active
         startButton.style.backgroundColor = "grey";
         startButton.disabled = true;
         finishButton.style.backgroundColor = "grey";
         finishButton.disabled = true;
     } else {
+        // Restore button state when DND is turned off
         dndButton.classList.remove("active-dnd");
         dndButton.style.backgroundColor = "blue";
 
-        // ✅ Fetch latest cleaning status from logs to determine if buttons should remain disabled
+        // Fetch room status from logs to decide whether the start button should be enabled
         fetch(`${apiUrl}/logs`)
-            .then(res => res.json())
+            .then(response => response.json())
             .then(logs => {
-                const roomLog = logs.find(log => log.roomNumber.toString() === formattedRoom);
-                if (roomLog) {
-                    if (roomLog.status === "in_progress") {
-                        startButton.style.backgroundColor = "grey";  // Keep Start button disabled
+                const log = logs.find(log => log.roomNumber.toString().padStart(3, '0') === formattedRoom);
+                if (log) {
+                    if (log.status === "in_progress") {
+                        startButton.style.backgroundColor = "grey";
                         startButton.disabled = true;
-                        finishButton.style.backgroundColor = "blue"; // Enable Finish button
+                        finishButton.style.backgroundColor = "blue";
                         finishButton.disabled = false;
-                    } else if (roomLog.status === "finished") {
-                        startButton.style.backgroundColor = "grey";  // Keep Start button disabled
+                    } else if (log.status === "finished") {
+                        startButton.style.backgroundColor = "grey";
                         startButton.disabled = true;
-                        finishButton.style.backgroundColor = "green"; // Keep Finish button green
+                        finishButton.style.backgroundColor = "green";
                         finishButton.disabled = true;
                     } else {
-                        startButton.style.backgroundColor = "blue";  // Enable Start button only if no cleaning in progress
+                        startButton.style.backgroundColor = "blue";
                         startButton.disabled = false;
-                        finishButton.style.backgroundColor = "grey"; // Disable Finish button
+                        finishButton.style.backgroundColor = "grey";
                         finishButton.disabled = true;
                     }
                 }
             })
-            .catch(err => console.error("❌ Error fetching logs:", err));
+            .catch(error => console.error("❌ Error fetching logs:", error));
     }
 }
 
