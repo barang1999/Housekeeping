@@ -521,24 +521,19 @@ function updateButtonStatus(roomNumber, status) {
     const startButton = document.getElementById(`start-${roomNumber}`);
     const finishButton = document.getElementById(`finish-${roomNumber}`);
 
+    if (!startButton || !finishButton) {
+        console.warn(`❌ Buttons not found for Room ${roomNumber}`);
+        return;
+    }
+
     if (status === "in_progress") {
-        if (startButton) {
-            startButton.disabled = true;
-            startButton.style.backgroundColor = "grey";
-        }
-        if (finishButton) {
-            finishButton.disabled = false;
-            finishButton.style.backgroundColor = "blue";
-        }
+        startButton.style.backgroundColor = "grey";  // Change start button to grey
+        startButton.disabled = true;                 // Disable start button
+        finishButton.style.backgroundColor = "blue"; // Enable finish button
+        finishButton.disabled = false;
     } else if (status === "finished") {
-        if (startButton) {
-            startButton.disabled = true;
-            startButton.style.backgroundColor = "grey";
-        }
-        if (finishButton) {
-            finishButton.disabled = true;
-            finishButton.style.backgroundColor = "green";
-        }
+        finishButton.style.backgroundColor = "green"; // Mark finished button as green
+        finishButton.disabled = true;
     }
 }
 
