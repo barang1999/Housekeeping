@@ -683,8 +683,9 @@ async function loadLogs() {
 
             // Store cleaning status
             cleaningStatus[roomNumber] = {
-                started: log.status === "in_progress",
-                finished: log.status === "finished",
+                started: status === "in_progress",
+                finished: status === "finished",
+                dnd: dndStatus === "dnd"
             };
 
             let row = document.createElement("tr");
@@ -698,7 +699,7 @@ async function loadLogs() {
             logTable.appendChild(row);
 
             // ✅ Ensure buttons update based on logs
-            updateButtonStatus(roomNumber, status);
+            updateButtonStatus(roomNumber, status,dndStatus);
         });
 
         if (!logTable.innerHTML.trim()) {
@@ -714,13 +715,20 @@ function updateButtonStatus(roomNumber, status) {
     let formattedRoom = roomNumber.toString().padStart(3, '0'); // Ensure consistent format
     const startButton = document.getElementById(`start-${formattedRoom}`);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
+    const dndButton = document.getElementById(`dnd-${formattedRoom}`);
 
     if (!startButton || !finishButton) {
         console.warn(`❌ Buttons not found for Room ${formattedRoom}`);
         return;
     }
 
-    if (status === "in_progress") {
+   if (dndStatus === "dnd") {
+        startButton.style.backgroundColor = "grey";  // Grey out start button
+        startButton.disabled = true;                 // Disable start button
+        finishButton.style.backgroundColor = "grey"; // Grey out finish button
+        finishButton.disabled = true;
+        dndButton.style.backgroundColor = "red";     // Mark DND button as active
+    } else if (status === "in_progress") {
         startButton.style.backgroundColor = "grey";  // Change start button to grey
         startButton.disabled = true;                 // Disable start button
         finishButton.style.backgroundColor = "blue"; // Enable finish button
