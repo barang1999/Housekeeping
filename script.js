@@ -375,14 +375,6 @@ function storeTokens(accessToken, refreshToken) {
     });
 }
 
-function updateButtonStatus(roomNumber, status) {
-    const startButton = document.getElementById(`start-${roomNumber}`);
-    const finishButton = document.getElementById(`finish-${roomNumber}`);
-    if (!startButton || !finishButton) return;
-
-    startButton.disabled = (status === "in_progress" || status === "finished");
-    finishButton.disabled = (status !== "in_progress");
-}
 
 
 
@@ -442,7 +434,6 @@ async function restoreCleaningStatus() {
 
 async function startCleaning(roomNumber) {
     try {
-        // Ensure roomNumber is sent as a number
         const numericRoomNumber = parseInt(roomNumber, 10);
         const username = localStorage.getItem("username");
 
@@ -485,14 +476,13 @@ async function startCleaning(roomNumber) {
         if (data.message.includes("started")) {
             updateButtonStatus(numericRoomNumber, "in_progress");
             safeEmit("update", { roomNumber: numericRoomNumber, status: "in_progress" });
-            loadLogs(); // ✅ Ensure UI reflects latest status
+            loadLogs();
         }
     } catch (error) {
         console.error("❌ Error starting cleaning:", error);
         alert("❌ Failed to start cleaning. Please try again.");
     }
 }
-
 
 async function finishCleaning(roomNumber) {
     try {
@@ -528,7 +518,7 @@ async function finishCleaning(roomNumber) {
             }
             updateButtonStatus(numericRoomNumber, "finished");
             safeEmit("update", { roomNumber: numericRoomNumber, status: "finished" });
-            loadLogs(); // ✅ Ensure UI reflects latest status
+            loadLogs();
         }
     } catch (error) {
         console.error("❌ Error finishing cleaning:", error);
@@ -536,6 +526,30 @@ async function finishCleaning(roomNumber) {
     }
 }
 
+function updateButtonStatus(roomNumber, status) {
+    const startButton = document.getElementById(`start-${roomNumber}`);
+    const finishButton = document.getElementById(`finish-${roomNumber}`);
+
+    if (status === "in_progress") {
+        if (startButton) {
+            startButton.disabled = true;
+            startButton.style.backgroundColor = "grey";
+        }
+        if (finishButton) {
+            finishButton.disabled = false;
+            finishButton.style.backgroundColor = "blue";
+        }
+    } else if (status === "finished") {
+        if (startButton) {
+            startButton.disabled = true;
+            startButton.style.backgroundColor = "grey";
+        }
+        if (finishButton) {
+            finishButton.disabled = true;
+            finishButton.style.backgroundColor = "green";
+        }
+    }
+}
 
 function logout() {
     console.log("🔴 Logging out...");
