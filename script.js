@@ -612,7 +612,7 @@ async function finishCleaning(roomNumber) {
         const res = await fetch(`${apiUrl}/logs/finish`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roomNumber, status: "finished" })
+            body: JSON.stringify({ roomNumber,username, status: "finished" })
         });
 
         const data = await res.json();
