@@ -410,11 +410,14 @@ app.post("/logs/reset-cleaning", async (req, res) => {
 // ✅ Graceful Shutdown: Close DB Connection on Exit
 process.on("SIGINT", async () => {
     if (db) {
-        console.log("🔴 Closing MongoDB Connection...");
+        console.log("🔴 Closing MongoDB Client Connection...");
         await db.close();
     }
+    console.log("🔴 Closing Mongoose Connection...");
+    await mongoose.connection.close();
     process.exit(0);
 });
+
 
 // 🚀 Start Cleaning
 
@@ -530,17 +533,18 @@ module.exports = CleaningLog;
 async function fixRoomNumbers() {
     try {
         console.log("🔄 Fixing room number formats in database...");
-
-        const result = await CleaningLog.updateMany({}, [
-            { $set: { roomNumber: { $toInt: "$roomNumber" } } }
-        ]);
-
-        console.log(`✅ Fixed ${result.modifiedCount} room numbers.`);
+        const logs = await CleaningLog.find();
+        for (let log of logs) {
+            if (typeof log.roomNumber !== "number") {
+                log.roomNumber = parseInt(log.roomNumber, 10);
+                await log.save();
+            }
+        }
+        console.log(`✅ Fixed room numbers successfully.`);
     } catch (error) {
         console.error("❌ Error fixing room numbers:", error);
     }
 }
-
 
 app.get("/logs", async (req, res) => {
     try {
