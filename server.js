@@ -512,11 +512,20 @@ const logSchema = new mongoose.Schema({
 const CleaningLog = mongoose.models.CleaningLog || mongoose.model("CleaningLog", logSchema);
 module.exports = CleaningLog;
 
-// 📄 Get All Cleaning Logs
 app.get("/logs", async (req, res) => {
     try {
         const logs = await CleaningLog.find();
-        res.json(logs);
+
+        // ✅ Print logs to check stored room number format
+        console.log("🔍 Logs from Database:", logs.map(log => ({ roomNumber: log.roomNumber, status: log.status })));
+
+        // ✅ Ensure all room numbers are returned as numbers
+        const fixedLogs = logs.map(log => ({
+            ...log.toObject(),
+            roomNumber: Number(log.roomNumber) // ✅ Force Number
+        }));
+
+        res.json(fixedLogs);
     } catch (error) {
         res.status(500).json({ message: "Server error", error });
     }
