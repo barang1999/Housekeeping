@@ -54,11 +54,10 @@ async function connectWebSocket() {
         return;
     }
 
-    if (newToken) {
-    console.log("🔄 Using refreshed token for WebSocket reconnection...");
-    window.socket.disconnect();
-    connectWebSocket(); // ✅ Ensure new token takes effect
-}
+    if (window.socket) {
+        window.socket.disconnect();
+    }
+
     window.socket = io(apiUrl, {
         auth: { token },
         reconnectionAttempts: MAX_RECONNECT_ATTEMPTS,
@@ -76,10 +75,10 @@ async function connectWebSocket() {
             reconnectAttempts++;
             await new Promise(res => setTimeout(res, 2000)); // Wait before retrying
             
-            const newToken = await refreshToken();
-            if (newToken) {
+            const refreshedToken = await refreshToken();
+            if (refreshedToken) {
                 console.log("🔄 Using refreshed token for WebSocket reconnection...");
-                window.socket.auth = { token: newToken };
+                window.socket.auth = { token: refreshedToken };
                 window.socket.connect();
             } else {
                 console.error("🔴 Max reconnect attempts reached. WebSocket disabled.");
@@ -93,9 +92,10 @@ async function connectWebSocket() {
         console.warn("🔴 WebSocket disconnected:", reason);
         if (reason !== "io client disconnect") {
             console.log("🔄 Attempting WebSocket reconnect...");
-            setTimeout(connectWebSocket, 5000); // Try reconnecting after disconnect
+            setTimeout(connectWebSocket, 5000);
         }
     });
+}
 
     // ✅ Ensure WebSocket events are attached **only once**
         if (!window.socket.hasListeners("dndUpdate")) {
