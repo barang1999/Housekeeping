@@ -632,12 +632,15 @@ function updateButtonStatus(roomNumber, status, dndStatus) {
     }
 
     if (dndStatus === "dnd") {
+        // ✅ Disable everything when DND is active
         startButton.style.backgroundColor = "grey";
         startButton.disabled = true;
         finishButton.style.backgroundColor = "grey";
         finishButton.disabled = true;
         dndButton.style.backgroundColor = "red";
     } else {
+        dndButton.style.backgroundColor = "blue";
+
         if (status === "in_progress") {
             startButton.style.backgroundColor = "grey";
             startButton.disabled = true;
@@ -649,7 +652,7 @@ function updateButtonStatus(roomNumber, status, dndStatus) {
             finishButton.style.backgroundColor = "green";
             finishButton.disabled = true;
         } else {
-            // ✅ Reset the start cleaning button properly when DND is OFF
+            // ✅ Reset to default state if no active cleaning session
             startButton.style.backgroundColor = "blue";
             startButton.disabled = false;
             finishButton.style.backgroundColor = "grey";
@@ -699,7 +702,7 @@ async function loadLogs() {
             let status = log.finishTime ? "finished" : "in_progress";
             let dndStatus = log.dndStatus ? "dnd" : "available"; // ✅ Read DND status from DB
 
-            updateDNDStatus(log.roomNumber, log.dndStatus);
+            updateDNDStatus(log.roomNumber, dndStatus);
             
             // Store cleaning status
             cleaningStatus[roomNumber] = {
@@ -788,17 +791,35 @@ function clearLogs() {
     console.log("🧹 Clearing logs...");
     document.querySelector("#logTable tbody").innerHTML = "";
 
-    localStorage.clear(); // ✅ Clears all storage related to housekeeping
-
+     // ✅ Reset all button states
     document.querySelectorAll(".room button").forEach(button => {
-        button.disabled = button.id.startsWith("finish-");
+        if (button.id.startsWith("start-")) {
+            button.style.backgroundColor = "blue";
+            button.disabled = false;
+        } else if (button.id.startsWith("finish-")) {
+            button.style.backgroundColor = "grey";
+            button.disabled = true;
+        } else if (button.id.startsWith("dnd-")) {
+            button.style.backgroundColor = "blue";
+            button.classList.remove("active-dnd");
+        }
     });
 
+    localStorage.clear(); // ✅ Clears all storage related to housekeeping
+    
     safeEmit("clearLogs");
 
-    fetch(`${apiUrl}/logs/clear`, { method: "POST" })
-        .then(() => console.log("✅ Logs cleared on server"))
-        .catch(error => console.error("❌ Error clearing logs:", error));
+    // ✅ API request to clear logs from the database
+    try {
+        const res = await fetch(`${apiUrl}/logs/clear`, { method: "POST" });
+        if (res.ok) {
+            console.log("✅ Logs cleared successfully on server.");
+        } else {
+            console.error("❌ Error clearing logs on server.", await res.json());
+        }
+    } catch (error) {
+        console.error("❌ Error clearing logs:", error);
+    }
 }
        function exportLogs() {
     const { jsPDF } = window.jspdf;
