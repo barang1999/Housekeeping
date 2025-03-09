@@ -540,6 +540,32 @@ function updateRoomUI(roomNumber, status, previousStatus = null) {
     }
 }
 
+async function resetCleaningStatus(roomNumber) {
+    const formattedRoom = roomNumber.toString().padStart(3, '0');
+    console.log(`🔄 Resetting cleaning status for Room ${formattedRoom}...`);
+
+    try {
+        const res = await fetch(`${apiUrl}/logs/reset-cleaning`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ roomNumber })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            console.error("❌ Failed to reset cleaning status:", data);
+            alert(`❌ Reset Cleaning Failed: ${data.message}`);
+            return;
+        }
+
+        console.log(`✅ Cleaning status reset successfully for Room ${formattedRoom}.`);
+        await loadLogs(); // Refresh logs to reflect changes
+    } catch (error) {
+        console.error("❌ Error resetting cleaning status:", error);
+    }
+}
+
 
 async function toggleDoNotDisturb(roomNumber) {
     const formattedRoom = roomNumber.toString().padStart(3, '0');
