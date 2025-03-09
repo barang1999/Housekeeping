@@ -263,6 +263,13 @@ app.post("/logs/dnd", async (req, res) => {
 
 module.exports = router;
 
+app.post("/logs/reset-cleaning", async (req, res) => {
+    const { roomNumber } = req.body;
+    await db.updateOne({ roomNumber }, { $set: { status: "available" } });
+    res.json({ message: "Cleaning status reset successfully." });
+});
+
+
 // 🚀 Start Cleaning
 
 app.post("/logs/start", async (req, res) => {
