@@ -695,7 +695,7 @@ async function loadLogs() {
         const logTable = document.querySelector("#logTable tbody");
         logTable.innerHTML = ""; // Clear existing logs
 
-         let cleaningStatus = {};
+        let cleaningStatus = {};
 
         // ✅ Sort logs: "In Progress" first, then latest logs first
         logs.sort((a, b) => {
@@ -707,7 +707,6 @@ async function loadLogs() {
             // Prioritize "In Progress", then sort by latest time
             return statusB - statusA || timeB - timeA;
         });
-
 
         logs.forEach(log => {
             console.log("📌 Log Entry:", log); // Debug individual log entries
@@ -739,16 +738,19 @@ async function loadLogs() {
             `;
             logTable.appendChild(row);
             
+            // ✅ Prevent unnecessary DND updates
             if (log.dndStatus !== "dnd") {
                 console.log(`🔍 Skipping DND update for Room ${log.roomNumber}, already available.`);
             } else {
                 updateDNDStatus(log.roomNumber, "dnd");
             }
+        });
 
-
+        // ✅ If no logs are found, display a default message
         if (!logTable.innerHTML.trim()) {
             logTable.innerHTML = "<tr><td colspan='5'>No logs found.</td></tr>";
         }
+        
     } catch (error) {
         console.error("❌ Error loading logs:", error);
     }
