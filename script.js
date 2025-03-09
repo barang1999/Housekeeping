@@ -1,5 +1,4 @@
 const apiUrl = "https://housekeeping-production.up.railway.app";
-const token = localStorage.getItem("token");
 
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 3;
@@ -488,11 +487,11 @@ async function restoreCleaningStatus() {
         }
 
         logs.forEach(log => {
-            let formattedRoom = formatRoomNumber(roomNumber);
+            let formattedRoom = formatRoomNumber(log.roomNumber); // ✅ Correct usage
             const status = log.finishTime ? "finished" : log.startTime ? "in_progress" : "available";
             const dndStatus = log.dndStatus ? "dnd" : "available"; // ✅ Retrieve DND status
 
-            updateButtonStatus(formatRoomNumber(roomNumber), status, dndStatus);
+            updateButtonStatus(formatRoomNumber(log.roomNumber), status, dndStatus);
         });
 
         console.log("✅ All buttons updated after page load.");
