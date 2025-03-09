@@ -382,7 +382,7 @@ process.on("SIGINT", async () => {
 
 // 🚀 Start Cleaning
 
-aapp.post("/logs/start", async (req, res) => {
+app.post("/logs/start", async (req, res) => {
     try {
         let { roomNumber, username } = req.body;
         if (!roomNumber || isNaN(roomNumber) || !username ) {
