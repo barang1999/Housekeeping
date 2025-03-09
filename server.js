@@ -12,6 +12,46 @@ const CleaningLog = require("./CleaningLog"); // ✅ Import Model
 // ✅ Initialize Express
 const app = express();
 app.use(express.json());
+app.use(cors()); // ✅ Allow frontend requests
+
+// ✅ Connect to MongoDB
+const uri = process.env.MONGO_URI || "your_mongodb_connection_string";
+let db = null;
+
+// ✅ MongoDB Connection Function with Retry Mechanism
+async function connectDB(retries = 5, delay = 5000) {
+    try {
+        console.log("🔍 Connecting to MongoDB...");
+        const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+        await client.connect();
+        db = client.db("housekeeping"); // ✅ Ensure `db` is assigned here
+        console.log("✅ Connected to MongoDB");
+    } catch (error) {
+        console.error("❌ Error connecting to MongoDB:", error);
+        if (retries > 0) {
+            console.log(`🔄 Retrying connection in ${delay / 1000} seconds... (${retries} attempts left)`);
+            setTimeout(() => connectDB(retries - 1, delay), delay);
+        } else {
+            console.error("❌ Maximum retry attempts reached. Exiting...");
+            process.exit(1);
+        }
+    }
+}
+
+// ✅ Call Database Connection Function
+(async () => {
+    await connectDB();
+})();
+
+// ✅ Middleware to Ensure DB Connection Before Processing Requests
+app.use((req, res, next) => {
+    if (!db) {
+        console.error("❌ Database is not connected.");
+        return res.status(500).json({ message: "Database not connected" });
+    }
+    req.db = db; // ✅ Store database instance in request object
+    next();
+});
 
 // ✅ CORS Configuration (Fixed Redundancies)
 app.use(cors({
@@ -263,36 +303,32 @@ app.post("/logs/dnd", async (req, res) => {
 
 module.exports = router;
 
-// ✅ Reset cleaning status when DND is turned off
+// ✅ Reset Cleaning Status When DND is Turned Off
 app.post("/logs/reset-cleaning", async (req, res) => {
     try {
         let { roomNumber } = req.body;
 
         if (!roomNumber) {
-            return res.status(400).json({ message: "Room number is required" });
+            return res.status(400).json({ message: "❌ Room number is required" });
         }
 
-        roomNumber = parseInt(roomNumber, 10); // ✅ Ensure it's a number
+        roomNumber = parseInt(roomNumber, 10); // ✅ Ensure it's a valid number
         if (isNaN(roomNumber)) {
-            return res.status(400).json({ message: "Invalid room number" });
+            return res.status(400).json({ message: "❌ Invalid room number" });
         }
 
-        // ✅ Ensure database connection is available
-        if (!db || !db.collection) {
-            console.error("❌ Database connection is not established.");
-            return res.status(500).json({ message: "Database connection error" });
-        }
+        const db = req.db; // ✅ Use `req.db` from middleware
 
-        // ✅ Check if room exists
+        // ✅ Check if Room Exists
         const room = await db.collection("logs").findOne({ roomNumber });
         if (!room) {
             console.warn(`⚠️ Room ${roomNumber} not found in database.`);
-            return res.status(404).json({ message: "Room not found" });
+            return res.status(404).json({ message: "⚠️ Room not found" });
         }
 
         console.log(`🔄 Resetting cleaning status for Room ${roomNumber}...`);
 
-        // ✅ Reset cleaning status
+        // ✅ Reset Cleaning Status & Set `status: available`
         const result = await db.collection("logs").updateOne(
             { roomNumber },
             { $set: { status: "available", startTime: null, finishTime: null } }
@@ -300,16 +336,25 @@ app.post("/logs/reset-cleaning", async (req, res) => {
 
         if (result.modifiedCount === 0) {
             console.warn(`⚠️ No changes made for Room ${roomNumber}.`);
-            return res.status(500).json({ message: "Failed to reset cleaning status" });
+            return res.status(500).json({ message: "⚠️ Failed to reset cleaning status" });
         }
 
         console.log(`✅ Cleaning status reset successfully for Room ${roomNumber}`);
-        res.json({ message: `Cleaning status reset successfully for Room ${roomNumber}` });
+        res.json({ message: `✅ Cleaning status reset successfully for Room ${roomNumber}` });
 
     } catch (error) {
         console.error("❌ Error resetting cleaning status:", error);
-        res.status(500).json({ message: "Internal server error", error: error.message });
+        res.status(500).json({ message: "❌ Internal server error", error: error.message });
     }
+});
+
+// ✅ Graceful Shutdown: Close DB Connection on Exit
+process.on("SIGINT", async () => {
+    if (db) {
+        console.log("🔴 Closing MongoDB Connection...");
+        await db.close();
+    }
+    process.exit(0);
 });
 
 // 🚀 Start Cleaning
