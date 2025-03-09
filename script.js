@@ -608,7 +608,7 @@ async function toggleDoNotDisturb(roomNumber) {
         }
 
         console.log(`✅ Room ${formattedRoom} DND status updated.`);
-        safeEmit("dndUpdate", { roomNumber, status: newStatus });
+        safeEmit("dndUpdate", { roomNumber, status: "dnd" });
 
         // ✅ Force UI update by reloading logs
         await loadLogs();
