@@ -535,16 +535,36 @@ function updateRoomUI(roomNumber, status, previousStatus = null) {
 
 async function resetCleaningStatus(roomNumber) {
     const formattedRoom = roomNumber.toString().padStart(3, '0');
+    const numericRoomNumber = parseInt(roomNumber, 10);
+
+    if (isNaN(numericRoomNumber)) {
+        console.error("❌ Invalid room number:", roomNumber);
+        alert("❌ Room number is invalid.");
+        return;
+    }
+
     console.log(`🔄 Resetting cleaning status for Room ${formattedRoom}...`);
 
     try {
+        // Check if room exists in logs before sending request
+        const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
+        const roomLog = logs.find(log => log.roomNumber === numericRoomNumber);
+
+        if (!roomLog) {
+            console.warn(`⚠️ No log entry found for Room ${formattedRoom}`);
+            alert(`❌ Reset Cleaning Failed: Room ${formattedRoom} not found in logs.`);
+            return;
+        }
+
         const res = await fetch(`${apiUrl}/logs/reset-cleaning`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roomNumber }),
+            body: JSON.stringify({ roomNumber: numericRoomNumber }),
         });
 
         const data = await res.json();
+        console.log("🔍 Raw API Response:", res);
+
         if (!res.ok) {
             console.error("❌ Failed to reset cleaning status:", data);
             alert(`❌ Reset Cleaning Failed: ${data.message}`);
@@ -553,15 +573,16 @@ async function resetCleaningStatus(roomNumber) {
 
         console.log(`✅ Cleaning status reset successfully for Room ${formattedRoom}.`);
 
-        // ✅ Immediately update UI so the Start Cleaning button is clickable
-        updateButtonStatus(roomNumber, "available", "available");
+        // ✅ Immediately update UI
+        updateButtonStatus(formattedRoom, "available", "available");
 
-        // ✅ Ensure fresh logs are loaded
+        // ✅ Refresh logs
         await loadLogs();
     } catch (error) {
         console.error("❌ Error resetting cleaning status:", error);
     }
 }
+
 
 async function toggleDoNotDisturb(roomNumber) {
     const formattedRoom = roomNumber.toString().padStart(3, '0');
