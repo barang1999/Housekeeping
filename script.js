@@ -54,27 +54,32 @@ async function connectWebSocket() {
         return;
     }
 
+    // Disconnect existing socket before reconnecting
     if (window.socket) {
         window.socket.disconnect();
     }
 
+    // Initialize WebSocket connection
     window.socket = io(apiUrl, {
         auth: { token },
         reconnectionAttempts: MAX_RECONNECT_ATTEMPTS,
         timeout: 5000
     });
 
+    // ✅ WebSocket Successfully Connected
     window.socket.on("connect", () => {
         console.log("✅ WebSocket connected successfully.");
         reconnectAttempts = 0;
     });
 
+    // ❌ Handle WebSocket Connection Errors & Reconnect
     window.socket.on("connect_error", async (err) => {
         console.warn("❌ WebSocket connection error:", err.message);
         if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
             reconnectAttempts++;
             await new Promise(res => setTimeout(res, 2000)); // Wait before retrying
             
+            // Try to refresh token if needed
             const refreshedToken = await refreshToken();
             if (refreshedToken) {
                 console.log("🔄 Using refreshed token for WebSocket reconnection...");
@@ -88,6 +93,7 @@ async function connectWebSocket() {
         }
     });
 
+    // 🔴 Handle WebSocket Disconnection & Auto-Reconnect
     window.socket.on("disconnect", (reason) => {
         console.warn("🔴 WebSocket disconnected:", reason);
         if (reason !== "io client disconnect") {
@@ -95,19 +101,19 @@ async function connectWebSocket() {
             setTimeout(connectWebSocket, 5000);
         }
     });
-}
 
+    // ✅ Ensure WebSocket Events Are Registered **Only Once**
     if (!window.socket.hasListeners("roomUpdate")) {
-    window.socket.on("roomUpdate", async ({ roomNumber, status, previousStatus }) => {
-        console.log(`📡 WebSocket: Room ${roomNumber} status updated to ${status}`);
-        
-        updateRoomUI(roomNumber, status, previousStatus || "available");
-        await loadLogs();
-        updateButtonStatus(roomNumber, status);
-    });
+        window.socket.on("roomUpdate", async ({ roomNumber, status, previousStatus }) => {
+            console.log(`📡 WebSocket: Room ${roomNumber} status updated to ${status}`);
+            
+            updateRoomUI(roomNumber, status, previousStatus || "available");
+            await loadLogs();
+            updateButtonStatus(roomNumber, status);
+        });
+    }
 }
 
-}
 
 /** ✅ Ensure WebSocket Connection is Available Before Emitting Events */
 function safeEmit(event, data = {}) {
