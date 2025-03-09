@@ -554,7 +554,7 @@ function updateRoomUI(roomNumber, status, previousStatus = null) {
 
 
 async function resetCleaningStatus(roomNumber) {
-    const numericRoomNumber = parseInt(roomNumber, 10);
+   const numericRoomNumber = Number(roomNumber); // ✅ Force Number Conversion
 
     if (isNaN(numericRoomNumber)) {
         console.error("❌ Invalid room number:", roomNumber);
@@ -577,10 +577,10 @@ async function resetCleaningStatus(roomNumber) {
 
         console.log(`✅ Room ${numericRoomNumber} found. Sending reset request...`);
 
-        const res = await fetch(`${apiUrl}/logs/reset-cleaning`, {
+         const res = await fetch(`${apiUrl}/logs/reset-cleaning`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roomNumber: numericRoomNumber }),
+            body: JSON.stringify({ roomNumber: numericRoomNumber }), // ✅ Ensure number
         });
 
         const data = await res.json();
@@ -783,10 +783,11 @@ async function finishCleaning(roomNumber) {
 }
 
 function updateButtonStatus(roomNumber, status, dndStatus = "available") {
-    let formattedRoom = roomNumber.toString().padStart(3, '0');
-    const startButton = document.getElementById(`start-${formattedRoom}`);
-    const finishButton = document.getElementById(`finish-${formattedRoom}`);
-    const dndButton = document.getElementById(`dnd-${formattedRoom}`);
+     let numericRoom = Number(roomNumber); // ✅ Ensure numeric format
+    
+    const startButton = document.getElementById(`start-${numericRoom}`);
+    const finishButton = document.getElementById(`finish-${numericRoom}`);
+    const dndButton = document.getElementById(`dnd-${numericRoom}`);
 
     if (!startButton || !finishButton || !dndButton) {
         console.warn(`❌ Buttons not found for Room ${formattedRoom}`);
@@ -850,7 +851,7 @@ async function loadLogs() {
         logs.forEach(log => {
             console.log("📌 Log Entry:", log); // Debug individual log entries
 
-            let roomNumber = log.roomNumber ? log.roomNumber.toString().padStart(3, '0') : "N/A";
+            let roomNumber = String(log.roomNumber).padStart(3, "0"); // ✅ Ensure consistent 3-digit format
             let startTime = log.startTime ? new Date(log.startTime).toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' }) : "N/A";
             let startedBy = log.startedBy || "-";
             let finishTime = log.finishTime ? new Date(log.finishTime).toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' }) : "In Progress...";
