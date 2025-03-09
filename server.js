@@ -292,6 +292,7 @@ app.get("/logs/status", async (req, res) => {
 const router = express.Router();
 
 // ✅ Toggle DND Mode
+// ✅ Toggle DND Mode - Prevent Unnecessary WebSocket Updates
 app.post("/logs/dnd", async (req, res) => {
     try {
         const { roomNumber, status } = req.body;
@@ -300,33 +301,42 @@ app.post("/logs/dnd", async (req, res) => {
             return res.status(400).json({ message: "Room number is required." });
         }
 
-        // ✅ Ensure `status` is either `dnd` or `available`
         const isDND = status === "dnd";
 
-        const log = await CleaningLog.findOneAndUpdate(
+        // ✅ Check if the current status is already the same, avoid unnecessary updates
+        const currentLog = await CleaningLog.findOne({ roomNumber });
+
+        if (currentLog && currentLog.dndStatus === isDND) {
+            console.log(`🔄 No change in DND mode for Room ${roomNumber}. Skipping WebSocket emit.`);
+            return res.status(200).json({ message: `No change: Room ${roomNumber} already in ${status} mode.` });
+        }
+
+        // ✅ Only update if status has actually changed
+        const updatedLog = await CleaningLog.findOneAndUpdate(
             { roomNumber },
             {
                 dndStatus: isDND,
-                status: isDND ? "dnd" : "available" // ✅ Set correct status
+                status: isDND ? "dnd" : "available"
             },
-            { new: true, upsert: true }
+            { new: true, upsert: true } // ✅ Ensure the log exists or gets created
         );
 
-        if (!log) {
+        if (!updatedLog) {
             return res.status(500).json({ message: "Failed to update DND status." });
         }
 
-        console.log(`✅ DND mode ${status} for Room ${roomNumber}`);
+        console.log(`✅ DND mode updated: Room ${roomNumber} -> ${status}`);
 
-        // ✅ Emit WebSocket event to sync UI in real-time
+        // ✅ Emit WebSocket only if there's an actual change
         io.emit("dndUpdate", { roomNumber, status });
 
-        res.json({ message: `DND mode ${status} for Room ${roomNumber}`, room: log });
+        res.json({ message: `DND mode ${status} for Room ${roomNumber}`, room: updatedLog });
     } catch (error) {
         console.error("❌ Error updating DND status:", error);
         res.status(500).json({ message: "Internal server error." });
     }
 });
+
 
 module.exports = router;
 
