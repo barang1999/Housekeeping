@@ -294,38 +294,39 @@ const router = express.Router();
 // ✅ Toggle DND Mode - Prevent Unnecessary WebSocket Updates
 app.post("/logs/dnd", async (req, res) => {
     try {
-        let { roomNumber, status } = req.body;
-
+        const { roomNumber, status } = req.body;
         if (!roomNumber) {
             return res.status(400).json({ message: "Room number is required." });
         }
 
-        roomNumber = parseInt(roomNumber, 10); // ✅ Ensure roomNumber is always stored as an integer
         const isDND = status === "dnd";
 
-        // ✅ Use a single query to check and update if necessary
-        const updatedLog = await CleaningLog.findOneAndUpdate(
-            { roomNumber, dndStatus: { $ne: isDND } }, // ✅ Only update if dndStatus is different
-            {
-                dndStatus: isDND,
-                status: isDND ? "dnd" : "available"
-            },
-            { new: true, upsert: true } // ✅ Ensure the log exists or gets created
-        );
-
-        if (!updatedLog) {
-            console.log(`🔄 No change in DND mode for Room ${roomNumber}. Skipping WebSocket emit.`);
+        // 🔍 Check if the current status is the same
+        const currentLog = await CleaningLog.findOne({ roomNumber });
+        if (currentLog && currentLog.dndStatus === isDND) {
+            console.log(`🔄 No change for Room ${roomNumber}. Skipping WebSocket emit.`);
             return res.status(200).json({ message: `No change: Room ${roomNumber} already in ${status} mode.` });
         }
 
-        console.log(`✅ [${new Date().toLocaleString()}] DND mode updated: Room ${roomNumber} -> ${status}`);
+        // ✅ Update DND status
+        const updatedLog = await CleaningLog.findOneAndUpdate(
+            { roomNumber },
+            { dndStatus: isDND, status: isDND ? "dnd" : "available" },
+            { new: true, upsert: true }
+        );
 
-        // ✅ Emit WebSocket event only if the status was updated
+        if (!updatedLog) {
+            return res.status(500).json({ message: "Failed to update DND status." });
+        }
+
+        console.log(`✅ Room ${roomNumber} DND mode updated -> ${status}`);
+
+        // ✅ Emit WebSocket event only on change
         io.emit("dndUpdate", { roomNumber, status });
 
         res.json({ message: `DND mode ${status} for Room ${roomNumber}`, room: updatedLog });
     } catch (error) {
-        console.error(`❌ [${new Date().toLocaleString()}] Error updating DND status:`, error);
+        console.error("❌ Error updating DND status:", error);
         res.status(500).json({ message: "Internal server error." });
     }
 });
