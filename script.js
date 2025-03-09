@@ -527,10 +527,10 @@ function updateRoomUI(roomNumber, status, previousStatus = null) {
         if (previousStatus === "in_progress") {
             startButton.disabled = true;
             finishButton.disabled = false;
-            finishButton.style.backgroundColor = "blue"; // Restore finish button if room was being cleaned
+            finishButton.style.backgroundColor = "#008CFF"; // Restore finish button if room was being cleaned
         } else {
             startButton.disabled = false;
-            startButton.style.backgroundColor = "blue"; // Normal start state
+            startButton.style.backgroundColor = "#008CFF"; // Normal start state
             finishButton.disabled = true;
             finishButton.style.backgroundColor = "grey";
         }
@@ -543,7 +543,7 @@ function updateRoomUI(roomNumber, status, previousStatus = null) {
         startButton.disabled = true;
         startButton.style.backgroundColor = "grey";
         finishButton.disabled = false;
-        finishButton.style.backgroundColor = "blue";
+        finishButton.style.backgroundColor = "#008CFF";
     } else {
         startButton.disabled = true;
         startButton.style.backgroundColor = "grey";
@@ -618,7 +618,7 @@ async function toggleDoNotDisturb(roomNumber) {
         }
 
         startButton.disabled = false;
-        startButton.style.backgroundColor = "blue";
+        startButton.style.backgroundColor = "#008CFF";
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "grey";
     }
@@ -632,7 +632,7 @@ async function toggleDoNotDisturb(roomNumber) {
     } else {
         console.log(`✅ DND turned off for Room ${formattedRoom}`);
         dndButton.classList.remove("active-dnd");
-        dndButton.style.backgroundColor = "blue";
+        dndButton.style.backgroundColor = "#008CFF";
     }
 
     try {
@@ -693,7 +693,7 @@ async function startCleaning(roomNumber) {
     startButton.disabled = true;
     startButton.style.backgroundColor = "grey";
     finishButton.disabled = false;
-    finishButton.style.backgroundColor = "blue";
+    finishButton.style.backgroundColor = "#008CFF";
 
     // ✅ Send API request to update backend
     try {
@@ -789,14 +789,14 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         dndButton.style.backgroundColor = "red";
         dndButton.classList.add("active-dnd");
     } else {
-        dndButton.style.backgroundColor = "blue";
+        dndButton.style.backgroundColor = "#008CFF";
         dndButton.classList.remove("active-dnd");
 
         if (status === "in_progress") {
             startButton.disabled = true;
             startButton.style.backgroundColor = "grey";
             finishButton.disabled = false;
-            finishButton.style.backgroundColor = "blue";
+            finishButton.style.backgroundColor = "#008CFF";
         } else if (status === "finished") {
             startButton.disabled = true;
             startButton.style.backgroundColor = "grey";
@@ -804,7 +804,7 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
             finishButton.style.backgroundColor = "green";
         } else {
             startButton.disabled = false;
-            startButton.style.backgroundColor = "#008CFF"; // Sky Blue color
+            startButton.style.backgroundColor = "#008CFF"; // Sky #008CFF color
             finishButton.disabled = true;
             finishButton.style.backgroundColor = "grey";
         }
@@ -920,7 +920,7 @@ function updateDNDStatus(roomNumber, status) {
     } else {
         console.log(`✅ Room ${formattedRoom} is available`);
         dndButton.classList.remove("active-dnd");
-        dndButton.style.backgroundColor = "blue";
+        dndButton.style.backgroundColor = "#008CFF";
 
         // ✅ Fetch the latest status from logs
         fetch(`${apiUrl}/logs`)
@@ -959,13 +959,13 @@ async function clearLogs() {
     // ✅ Reset all button states
     document.querySelectorAll(".room button").forEach(button => {
         if (button.id.startsWith("start-")) {
-            button.style.backgroundColor = "blue";
+            button.style.backgroundColor = "#008CFF";
             button.disabled = false;
         } else if (button.id.startsWith("finish-")) {
             button.style.backgroundColor = "grey";
             button.disabled = true;
         } else if (button.id.startsWith("dnd-")) {
-            button.style.backgroundColor = "blue";
+            button.style.backgroundColor = "#008CFF";
             button.classList.remove("active-dnd");
         }
     });
