@@ -739,9 +739,12 @@ async function loadLogs() {
             `;
             logTable.appendChild(row);
             
-            // ✅ Ensure buttons update based on logs
-            updateButtonStatus(roomNumber, status, dndStatus);
-        });
+            if (log.dndStatus !== "dnd") {
+                console.log(`🔍 Skipping DND update for Room ${log.roomNumber}, already available.`);
+            } else {
+                updateDNDStatus(log.roomNumber, "dnd");
+            }
+
 
         if (!logTable.innerHTML.trim()) {
             logTable.innerHTML = "<tr><td colspan='5'>No logs found.</td></tr>";
@@ -763,15 +766,20 @@ function updateDNDStatus(roomNumber, status) {
         console.warn(`⚠️ Buttons not found for Room ${formattedRoom}.`);
         return;
     }
+    // ✅ Only update if the status is actually changing
+    if (dndButton.classList.contains("active-dnd") && status === "available") {
+        console.log(`✅ No change for Room ${formattedRoom}, skipping DND update.`);
+        return;
+    }
 
     if (status === "dnd") {
+        console.log(`🚨 Setting DND mode for Room ${formattedRoom}`);
         dndButton.classList.add("active-dnd");
         dndButton.style.backgroundColor = "red";
-        startButton.style.backgroundColor = "grey";
         startButton.disabled = true;
-        finishButton.style.backgroundColor = "grey";
         finishButton.disabled = true;
     } else {
+        console.log(`✅ Room ${formattedRoom} is available`);
         dndButton.classList.remove("active-dnd");
         dndButton.style.backgroundColor = "blue";
 
