@@ -603,6 +603,15 @@ async function finishCleaning(roomNumber) {
         return;
     }
 
+    // Ensure roomNumber is converted properly
+    const numericRoomNumber = parseInt(roomNumber, 10);
+    if (isNaN(numericRoomNumber)) {
+        console.error("❌ Invalid room number:", roomNumber);
+        alert("❌ Room number is invalid.");
+        return;
+    }
+
+
     // Disable Finish Button and Change Color to Green
     finishButton.disabled = true;
     finishButton.style.backgroundColor = "green";
@@ -612,7 +621,7 @@ async function finishCleaning(roomNumber) {
         const res = await fetch(`${apiUrl}/logs/finish`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roomNumber,username, status: "finished" })
+            body: JSON.stringify({ roomNumber: numericRoomNumber,username, status: "finished" })
         });
 
         const data = await res.json();
