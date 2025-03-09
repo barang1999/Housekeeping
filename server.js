@@ -263,10 +263,29 @@ app.post("/logs/dnd", async (req, res) => {
 
 module.exports = router;
 
+// ✅ Reset cleaning status when DND is turned off
 app.post("/logs/reset-cleaning", async (req, res) => {
-    const { roomNumber } = req.body;
-    await db.updateOne({ roomNumber }, { $set: { status: "available" } });
-    res.json({ message: "Cleaning status reset successfully." });
+    try {
+        let { roomNumber } = req.body;
+        roomNumber = parseInt(roomNumber, 10); // ✅ Ensure it's a number
+
+        if (isNaN(roomNumber)) {
+            return res.status(400).json({ message: "Invalid room number" });
+        }
+
+        // ✅ Ensure room exists before updating
+        const room = await db.findOne({ roomNumber });
+        if (!room) {
+            return res.status(404).json({ message: "Room not found" });
+        }
+
+        await db.updateOne({ roomNumber }, { $set: { status: "available" } });
+
+        res.json({ message: `Cleaning status reset successfully for Room ${roomNumber}` });
+    } catch (error) {
+        console.error("❌ Error resetting cleaning status:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
 });
 
 
