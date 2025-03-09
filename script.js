@@ -480,18 +480,18 @@ async function loadDNDStatus() {
     console.log("🔄 Fetching DND status...");
 
     try {
-        const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
+        const dndData = await fetchWithErrorHandling(`${apiUrl}/logs/dnd/all`); // Fetch all DND statuses
         
-        if (!logs || !Array.isArray(logs)) {
-            console.warn("⚠️ No valid logs found for DND status.");
+        if (!dndData || !Array.isArray(dndData)) {
+            console.warn("⚠️ No valid DND data found.");
             return;
         }
 
-        logs.forEach(log => {
-            let formattedRoom = formatRoomNumber(log.roomNumber);
-            let dndStatus = log.dndStatus ? "dnd" : "available"; // ✅ Read from DB
+        dndData.forEach(room => {
+            let formattedRoom = formatRoomNumber(room.roomNumber);
+            let dndStatus = room.dndStatus ? "dnd" : "available"; // ✅ Read from DND database
 
-            // ✅ Update button UI
+            // ✅ Update button UI immediately
             updateDNDStatus(formattedRoom, dndStatus);
         });
 
@@ -500,6 +500,11 @@ async function loadDNDStatus() {
         console.error("❌ Error loading DND status:", error);
     }
 }
+
+// ✅ Ensure this function runs when the page loads
+document.addEventListener("DOMContentLoaded", async () => {
+    await loadDNDStatus(); // Fetch and update DND status after page refresh
+});
 
 async function restoreCleaningStatus() {
     try {
@@ -918,7 +923,22 @@ function updateDNDStatus(roomNumber, status) {
     const startButton = document.getElementById(`start-${formattedRoom}`);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
 
-    if (!dndButton || !startButton || !finishButton) {
+    if (!dndButton) {
+        console.warn(`⚠️ DND button missing for Room ${formattedRoom}. Recreating it.`);
+        
+        // ✅ If button is missing, re-add it dynamically
+        const roomDiv = document.querySelector(`#room-${formattedRoom}`);
+        if (roomDiv) {
+            let newButton = document.createElement("button");
+            newButton.id = `dnd-${formattedRoom}`;
+            newButton.classList.add("dnd-btn");
+            newButton.innerText = "DND";
+            newButton.onclick = () => toggleDoNotDisturb(roomNumber);
+            roomDiv.appendChild(newButton);
+        }
+    }
+
+    if (!startButton || !finishButton || !dndButton) {
         console.warn(`⚠️ Buttons not found for Room ${formattedRoom}.`);
         return;
     }
