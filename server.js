@@ -312,24 +312,29 @@ app.post("/logs/dnd", async (req, res) => {
 
         const isDND = status === "dnd";
 
-        // ✅ Fetch current DND status (without modifying logs)
+        // ✅ Fetch the current log for the room
         const currentLog = await CleaningLog.findOne({ roomNumber });
 
-        if (currentLog && currentLog.dndStatus === isDND) {
-            console.log(`🔄 No change for Room ${roomNumber}. Skipping WebSocket emit.`);
+        if (!currentLog) {
+            return res.status(404).json({ message: `Room ${roomNumber} not found.` });
+        }
+
+        // ✅ Only update if there is an actual change
+        if (currentLog.dndStatus === isDND) {
+            console.log(`🔄 No change for Room ${roomNumber}. Skipping update.`);
             return res.status(200).json({ message: `No change: Room ${roomNumber} already in ${status} mode.` });
         }
 
-        // ✅ Only update the DND field in the database (No impact on cleaning logs)
+        // ✅ Update only `dndStatus` in the database (persists after refresh)
         await CleaningLog.updateOne(
             { roomNumber },
-            { $set: { dndStatus: isDND } }, // Only modify DND mode
+            { $set: { dndStatus: isDND } }, // ✅ Keeps cleaning status unchanged
             { upsert: true }
         );
 
         console.log(`✅ Room ${roomNumber} DND mode updated -> ${status}`);
 
-        // ✅ Emit WebSocket event only if status changed
+        // ✅ Emit WebSocket event to update all connected clients
         io.emit("dndUpdate", { roomNumber, status });
 
         res.json({ message: `DND mode ${status} for Room ${roomNumber}` });
