@@ -337,14 +337,24 @@ module.exports = router;
 app.post("/logs/reset-cleaning", async (req, res) => {
     try {
         let { roomNumber } = req.body;
-        if (!roomNumber) {
-            return res.status(400).json({ message: "Room number is required" });
+
+        // ✅ Ensure `roomNumber` is a valid number
+        if (!roomNumber || isNaN(roomNumber)) {
+            return res.status(400).json({ message: "Room number is required and must be a valid number." });
         }
 
-        roomNumber = parseInt(roomNumber, 10);
+        roomNumber = parseInt(roomNumber, 10); // Convert roomNumber to an integer
 
-        console.log(`🔄 Resetting cleaning status for Room ${roomNumber}...`);
+        console.log(`🔄 Attempting to reset cleaning status for Room ${roomNumber}...`);
 
+        // ✅ Check if the room exists in the database before updating
+        const existingLog = await CleaningLog.findOne({ roomNumber });
+        if (!existingLog) {
+            console.warn(`⚠️ Room ${roomNumber} not found in logs. Cannot reset.`);
+            return res.status(400).json({ message: `Room ${roomNumber} not found in logs.` });
+        }
+
+        // ✅ Perform the reset operation
         const result = await CleaningLog.updateOne(
             { roomNumber },
             {
@@ -359,14 +369,22 @@ app.post("/logs/reset-cleaning", async (req, res) => {
             }
         );
 
+        // ✅ Verify if the update was successful
         if (result.modifiedCount === 0) {
+            console.error(`❌ No records were updated. Room ${roomNumber} might be invalid.`);
             return res.status(500).json({ message: "No records were updated. Possible invalid room number." });
         }
 
-        // ✅ Notify WebSocket Clients
-        io.emit("resetCleaning", { roomNumber, status: "available" });
+        console.log(`✅ Cleaning status reset successfully for Room ${roomNumber}.`);
+
+        // ✅ Delay WebSocket update to ensure DB sync
+        setTimeout(() => {
+            io.emit("resetCleaning", { roomNumber, status: "available" });
+            console.log(`📡 WebSocket: Cleaning reset broadcasted for Room ${roomNumber}`);
+        }, 500);
 
         res.json({ message: `✅ Cleaning status reset for Room ${roomNumber}` });
+
     } catch (error) {
         console.error("❌ Error resetting cleaning status:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
@@ -481,13 +499,16 @@ app.post("/logs/finish", async (req, res) => {
     }
 });
 const logSchema = new mongoose.Schema({
-    roomNumber: { type: Number, required: true },
+    roomNumber: { type: Number, required: true }, // ✅ Ensure roomNumber is a Number
     startTime: { type: String, default: null },
     startedBy: { type: String, default: null },
     finishTime: { type: String, default: null },
     finishedBy: { type: String, default: null },
-    dndStatus: { type: Boolean, default: false } // ✅ DND Mode
+    dndStatus: { type: Boolean, default: false }, // ✅ DND Mode
+    status: { type: String, default: "available" }
 });
+
+// ✅ Apply the schema changes to the model
 const CleaningLog = mongoose.models.CleaningLog || mongoose.model("CleaningLog", logSchema);
 module.exports = CleaningLog;
 
