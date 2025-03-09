@@ -608,6 +608,7 @@ async function toggleDoNotDisturb(roomNumber) {
 
     console.log(`🔄 Toggling DND mode for Room ${formattedRoom}`);
 
+    // ✅ Update UI Immediately
     updateDNDStatus(roomNumber, newStatus);
 
     try {
@@ -617,29 +618,18 @@ async function toggleDoNotDisturb(roomNumber) {
             body: JSON.stringify({ roomNumber, status: newStatus }),
         });
 
-        const data = await res.json();
         if (!res.ok) {
-            console.error("❌ DND API Error:", data.message);
-            alert(`❌ DND Update Failed: ${data.message}`);
+            console.error("❌ DND API Error:", await res.json());
+            alert("❌ DND Update Failed. Try again.");
             return;
         }
 
         console.log(`✅ Room ${formattedRoom} DND status updated.`);
-
-        // ✅ If DND is turned off and was previously "in_progress", reset cleaning
-        if (newStatus === "available" && dndButton.dataset.previousStatus === "in_progress") {
-            console.log(`🔄 Resetting cleaning status for Room ${formattedRoom} after DND removal`);
-            setTimeout(async () => {
-                await resetCleaningStatus(formattedRoom);
-            }, 1000);
-        }
-
         safeEmit("dndUpdate", { roomNumber, status: newStatus });
 
         await loadLogs();
     } catch (error) {
         console.error("❌ Error updating DND status:", error);
-        alert("An error occurred while updating DND mode.");
     }
 }
 
