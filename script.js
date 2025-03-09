@@ -534,11 +534,10 @@ async function toggleDoNotDisturb(roomNumber) {
         console.error("❌ Error updating DND status:", error);
     }
 }
-
 async function startCleaning(roomNumber) {
     try {
         const numericRoomNumber = parseInt(roomNumber, 10);
-        const username = localStorage.getItem("username"); // Ensure username is retrieved
+        const username = localStorage.getItem("username");
 
         if (!username) {
             console.error("❌ No username found in localStorage. Cannot start cleaning.");
@@ -568,7 +567,7 @@ async function startCleaning(roomNumber) {
         }
 
         if (data.message.includes("started")) {
-            updateButtonStatus(numericRoomNumber, "in_progress");
+            updateButtonStatus(numericRoomNumber, "in_progress", "available"); // ✅ Ensure UI updates immediately
             safeEmit("update", { roomNumber: numericRoomNumber, status: "in_progress" });
             loadLogs(); // ✅ Ensure UI reflects latest status
         }
@@ -632,27 +631,24 @@ function updateButtonStatus(roomNumber, status, dndStatus) {
     }
 
     if (dndStatus === "dnd") {
-        // ✅ Disable everything when DND is active
         startButton.style.backgroundColor = "grey";
         startButton.disabled = true;
         finishButton.style.backgroundColor = "grey";
         finishButton.disabled = true;
         dndButton.style.backgroundColor = "red";
     } else {
-        dndButton.style.backgroundColor = "blue";
-
         if (status === "in_progress") {
             startButton.style.backgroundColor = "grey";
             startButton.disabled = true;
-            finishButton.style.backgroundColor = "blue";
-            finishButton.disabled = false;
+            finishButton.style.backgroundColor = "blue"; // ✅ Ensure finish button turns blue
+            finishButton.disabled = false; // ✅ Ensure finish button is enabled
         } else if (status === "finished") {
             startButton.style.backgroundColor = "grey";
             startButton.disabled = true;
             finishButton.style.backgroundColor = "green";
             finishButton.disabled = true;
         } else {
-            // ✅ Reset to default state if no active cleaning session
+            // ✅ Reset to normal when status is not in progress or finished
             startButton.style.backgroundColor = "blue";
             startButton.disabled = false;
             finishButton.style.backgroundColor = "grey";
@@ -660,6 +656,7 @@ function updateButtonStatus(roomNumber, status, dndStatus) {
         }
     }
 }
+
 
 
 // Ensure updateButtonStatus is being called after fetching logs
@@ -815,6 +812,7 @@ async function clearLogs() {
         const res = await fetch(`${apiUrl}/logs/clear`, { method: "POST" });
         if (res.ok) {
             console.log("✅ Logs cleared successfully on server.");
+            await loadLogs(); // ✅ Reload logs to ensure UI consistency
         } else {
             console.error("❌ Error clearing logs on server.", await res.json());
         }
