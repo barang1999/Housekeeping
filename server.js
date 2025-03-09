@@ -41,6 +41,17 @@ async function connectDB(retries = 5, delay = 5000) {
     await connectDB();
 })();
 
+// ✅ New DND Schema
+const dndSchema = new mongoose.Schema({
+    roomNumber: { type: Number, required: true, unique: true }, // Ensure unique room numbers
+    dndStatus: { type: Boolean, default: false }, // True = DND Active
+});
+
+// ✅ Ensure model is only defined once
+const RoomDND = mongoose.models.RoomDND || mongoose.model("RoomDND", dndSchema);
+
+module.exports = RoomDND;
+
 // ✅ Middleware to Ensure DB Connection Before Processing Requests
 app.use(async (req, res, next) => {
     if (!db) {
@@ -302,7 +313,8 @@ app.get("/logs/status", async (req, res) => {
 
 const router = express.Router();
 
-// ✅ Toggle DND Mode - Prevent Unnecessary WebSocket Updates
+const RoomDND = require("./models/RoomDND"); // Import the new model
+
 app.post("/logs/dnd", async (req, res) => {
     try {
         const { roomNumber, status } = req.body;
@@ -312,29 +324,16 @@ app.post("/logs/dnd", async (req, res) => {
 
         const isDND = status === "dnd";
 
-        // ✅ Fetch the current log for the room
-        const currentLog = await CleaningLog.findOne({ roomNumber });
-
-        if (!currentLog) {
-            return res.status(404).json({ message: `Room ${roomNumber} not found.` });
-        }
-
-        // ✅ Only update if there is an actual change
-        if (currentLog.dndStatus === isDND) {
-            console.log(`🔄 No change for Room ${roomNumber}. Skipping update.`);
-            return res.status(200).json({ message: `No change: Room ${roomNumber} already in ${status} mode.` });
-        }
-
-        // ✅ Update only `dndStatus` in the database (persists after refresh)
-        await CleaningLog.updateOne(
+        // ✅ Update DND status in a separate collection
+        const updatedDND = await RoomDND.findOneAndUpdate(
             { roomNumber },
-            { $set: { dndStatus: isDND } }, // ✅ Keeps cleaning status unchanged
-            { upsert: true }
+            { $set: { dndStatus: isDND } }, // Only update DND status
+            { new: true, upsert: true }
         );
 
-        console.log(`✅ Room ${roomNumber} DND mode updated -> ${status}`);
+        console.log(`✅ Room ${roomNumber} DND status updated -> ${status}`);
 
-        // ✅ Emit WebSocket event to update all connected clients
+        // ✅ Emit WebSocket event for real-time updates across devices
         io.emit("dndUpdate", { roomNumber, status });
 
         res.json({ message: `DND mode ${status} for Room ${roomNumber}` });
