@@ -788,8 +788,8 @@ function updateButtonStatus(roomNumber, status, dndStatus) {
             finishButton.style.backgroundColor = "green";
             finishButton.disabled = true;
         } else {
-            // ✅ Reset to normal when status is not in progress or finished
-            startButton.style.backgroundColor = "blue";
+            // ✅ Reset to original sky blue color when room is available
+            startButton.style.backgroundColor = "#00aaff"; // Sky Blue color
             startButton.disabled = false;
             finishButton.style.backgroundColor = "grey";
             finishButton.disabled = true;
