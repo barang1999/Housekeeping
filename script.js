@@ -80,10 +80,17 @@ async function connectWebSocket() {
     });
 
     window.socket.on("dndUpdate", async ({ roomNumber, status }) => {
-        console.log(`📡 WebSocket: DND mode changed for Room ${roomNumber} -> ${status}`);
-        updateRoomUI(roomNumber, status);
-        await loadLogs();
-    });
+    console.log(`📡 WebSocket: DND mode changed for Room ${roomNumber} -> ${status}`);
+
+    // ✅ Update UI Immediately
+    updateDNDStatus(roomNumber, status);
+
+    // ✅ Load logs again to reflect changes
+    await loadLogs();
+
+    // ✅ Ensure button state updates correctly
+    updateButtonStatus(roomNumber, "available"); // Assume room is now available
+});
 }
 
 
@@ -575,26 +582,6 @@ async function toggleDoNotDisturb(roomNumber) {
     const isDNDActive = dndButton.classList.contains("active-dnd");
     const newStatus = isDNDActive ? "available" : "dnd";
 
-    if (newStatus === "available") {
-        console.log(`🔄 Resetting cleaning status for Room ${formattedRoom}`);
-        try {
-            const resetRes = await fetch(`${apiUrl}/logs/reset-cleaning`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ roomNumber })
-            });
-
-            const resetData = await resetRes.json();
-            if (!resetRes.ok) {
-                console.error("❌ Failed to reset cleaning status:", resetData);
-                return;
-            }
-            console.log(`✅ Cleaning status reset for Room ${formattedRoom}`);
-        } catch (error) {
-            console.error("❌ Error resetting cleaning status:", error);
-        }
-    }
-
     try {
         const res = await fetch(`${apiUrl}/logs/dnd`, {
             method: "POST",
@@ -612,8 +599,8 @@ async function toggleDoNotDisturb(roomNumber) {
         console.log(`✅ Room ${formattedRoom} DND status updated.`);
         safeEmit("dndUpdate", { roomNumber, status: newStatus });
 
-        // ✅ Instead of manually modifying UI, call updateRoomUI
-        updateRoomUI(formattedRoom, newStatus);
+        // ✅ Instead of manually modifying UI, call updateDNDStatus
+        updateDNDStatus(formattedRoom, newStatus);
 
         // ✅ Ensure logs reflect new DND status
         await loadLogs();
@@ -892,10 +879,17 @@ async function updateDNDStatus(roomNumber, status) {
         console.log(`✅ Room ${formattedRoom} is available`);
         dndButton.classList.remove("active-dnd");
         dndButton.style.backgroundColor = "#008CFF";
+
+        // ✅ Enable Start Cleaning Button when DND is disabled
+        startButton.disabled = false;
+        startButton.style.backgroundColor = "#008CFF";
+        finishButton.disabled = true;
+        finishButton.style.backgroundColor = "grey";
     }
 
     // ✅ Instead of fetching logs separately, refresh all logs
     await loadLogs();
+    updateButtonStatus(roomNumber, status);
 }
 
 function logout() {
