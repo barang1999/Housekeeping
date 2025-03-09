@@ -19,6 +19,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     console.log("🎯 Cleaning status restored successfully.");
 
+    checkAuth();
+    loadRooms();
+
     const token = localStorage.getItem("token");
     const username = localStorage.getItem("username");
 
@@ -116,11 +119,11 @@ async function connectWebSocket() {
 
 /** ✅ Ensure WebSocket Connection is Available Before Emitting Events */
 function safeEmit(event, data = {}) {
-    ensureWebSocketConnection(); // Ensure WebSocket is connected before emitting
     if (window.socket && window.socket.connected) {
         window.socket.emit(event, data);
     } else {
-        console.warn(`⛔ WebSocket is not connected. Cannot emit ${event}`);
+        console.warn(`⛔ WebSocket is not connected. Attempting reconnect...`);
+        connectWebSocket();
     }
 }
 
@@ -140,22 +143,6 @@ function ensureWebSocketConnection() {
         }, 2000);
     }
 }
-
-document.addEventListener("DOMContentLoaded", async () => {
-    console.log("🔄 Initializing housekeeping system...");
-
-    await ensureValidToken();
-    ensureWebSocketConnection();
-
-    console.log("⏳ Fetching logs...");
-    await loadLogs(); // ✅ Ensure logs are loaded first
-
-    console.log("✅ Logs loaded. Restoring cleaning status...");
-    await restoreCleaningStatus(); // ✅ Now restore UI based on logs
-
-    console.log("🎯 Cleaning status restored successfully.");
-});
-
 
 // ✅ Ensure buttons update after logs are loaded
 async function updateButtonsFromLogs() {
@@ -770,9 +757,7 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
 
     if (dndStatus === "dnd") {
         startButton.disabled = true;
-        startButton.style.backgroundColor = "grey";
         finishButton.disabled = true;
-        finishButton.style.backgroundColor = "grey";
         dndButton.style.backgroundColor = "red";
         dndButton.classList.add("active-dnd");
     } else {
@@ -781,22 +766,19 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
 
         if (status === "in_progress") {
             startButton.disabled = true;
-            startButton.style.backgroundColor = "grey";
             finishButton.disabled = false;
             finishButton.style.backgroundColor = "#008CFF";
         } else if (status === "finished") {
             startButton.disabled = true;
-            startButton.style.backgroundColor = "grey";
             finishButton.disabled = true;
             finishButton.style.backgroundColor = "green";
         } else {
             startButton.disabled = false;
-            startButton.style.backgroundColor = "#008CFF"; // Sky #008CFF color
             finishButton.disabled = true;
             finishButton.style.backgroundColor = "grey";
         }
     }
-
+}
 
 // Ensure updateButtonStatus is being called after fetching logs
 async function loadLogs() {
@@ -880,7 +862,7 @@ async function loadLogs() {
 }
 
 
-function updateDNDStatus(roomNumber, status) {
+async function updateDNDStatus(roomNumber, status) {
     console.log(`Updating DND status for Room ${roomNumber} to: ${status}`);
 
     let formattedRoom = roomNumber.toString().padStart(3, '0');
@@ -892,6 +874,7 @@ function updateDNDStatus(roomNumber, status) {
         console.warn(`⚠️ Buttons not found for Room ${formattedRoom}.`);
         return;
     }
+
     // ✅ Only update if the status is actually changing
     if (dndButton.classList.contains("active-dnd") && status === "available") {
         console.log(`✅ No change for Room ${formattedRoom}, skipping DND update.`);
@@ -908,18 +891,10 @@ function updateDNDStatus(roomNumber, status) {
         console.log(`✅ Room ${formattedRoom} is available`);
         dndButton.classList.remove("active-dnd");
         dndButton.style.backgroundColor = "#008CFF";
-
-        // ✅ Fetch the latest status from logs
-        fetch(`${apiUrl}/logs`)
-            .then(response => response.json())
-            .then(logs => {
-                const log = logs.find(log => log.roomNumber.toString().padStart(3, '0') === formattedRoom);
-                if (log) {
-                    updateButtonStatus(log.roomNumber, log.status, log.dndStatus);
-                }
-            })
-            .catch(error => console.error("❌ Error fetching logs:", error));
     }
+
+    // ✅ Instead of fetching logs separately, refresh all logs
+    await loadLogs();
 }
 
 function logout() {
