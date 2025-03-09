@@ -888,7 +888,10 @@ async function loadLogs() {
             let finishTime = log.finishTime ? new Date(log.finishTime).toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' }) : "In Progress...";
             let finishedBy = log.finishedBy || "-";
             let status = log.finishTime ? "finished" : "in_progress";
-            let dndStatus = log.dndStatus ? "dnd" : "available"; // ✅ Read DND status from DB
+            
+
+            // ✅ Check DND status from MongoDB
+            const dndStatus = dndLogs?.find(dnd => dnd.roomNumber === log.roomNumber)?.dndStatus ? "dnd" : "available";
 
             // ✅ Update button status but do NOT override DND mode
             updateButtonStatus(roomNumber, status, dndStatus);
