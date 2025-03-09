@@ -312,8 +312,6 @@ app.get("/logs/status", async (req, res) => {
 
 const router = express.Router();
 
-const RoomDND = require("./RoomDND"); // Import the new model
-
 app.post("/logs/dnd", async (req, res) => {
     try {
         const { roomNumber, status } = req.body;
@@ -344,6 +342,17 @@ app.post("/logs/dnd", async (req, res) => {
 });
 
 module.exports = router;
+
+app.get("/logs/dnd/all", async (req, res) => {
+    try {
+        const dndRooms = await RoomDND.find();
+        res.json(dndRooms);
+    } catch (error) {
+        console.error("❌ Error fetching DND status:", error);
+        res.status(500).json({ message: "Server error." });
+    }
+});
+
 
 // ✅ Reset Cleaning Status When DND is Turned Off
 app.post("/logs/reset-cleaning", async (req, res) => {
