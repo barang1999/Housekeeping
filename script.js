@@ -560,6 +560,8 @@ async function resetCleaningStatus(roomNumber) {
         }
 
         console.log(`✅ Cleaning status reset successfully for Room ${formattedRoom}.`);
+         // Ensure UI updates immediately
+        updateButtonStatus(roomNumber, "available", "available"); // Re-enable Start Cleaning button
         await loadLogs(); // Refresh logs to reflect changes
     } catch (error) {
         console.error("❌ Error resetting cleaning status:", error);
