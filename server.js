@@ -101,12 +101,6 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model("User", userSchema);
 
-
-// ✅ Run the fix once when the server starts
-mongoose.connection.once("open", async () => {
-    console.log("✅ Database connected. Running room number fix...");
-    await fixRoomNumbers();
-});
 // ✅ WebSocket Authentication Middleware
 io.use(async (socket, next) => {
     try {
@@ -536,17 +530,33 @@ async function fixRoomNumbers() {
     try {
         console.log("🔄 Fixing room number formats in database...");
         const logs = await CleaningLog.find();
+        let updatedCount = 0;
+
         for (let log of logs) {
-            if (typeof log.roomNumber !== "number") {
+            if (typeof log.roomNumber !== "number" || isNaN(log.roomNumber)) {
                 log.roomNumber = parseInt(log.roomNumber, 10);
-                await log.save();
+
+                if (!isNaN(log.roomNumber)) { // Ensure it's a valid number
+                    await log.save();
+                    updatedCount++;
+                    console.log(`✅ Updated Room: ${log.roomNumber}`);
+                } else {
+                    console.warn(`⚠️ Skipping invalid room number: ${log.roomNumber}`);
+                }
             }
         }
-        console.log(`✅ Fixed room numbers successfully.`);
+
+        console.log(`✅ Fixed ${updatedCount} room numbers successfully.`);
     } catch (error) {
         console.error("❌ Error fixing room numbers:", error);
     }
 }
+
+// ✅ Run this function AFTER connecting to MongoDB
+mongoose.connection.once("open", async () => {
+    console.log("✅ Database connected. Running room number fix...");
+    await fixRoomNumbers();
+});
 
 app.get("/logs", async (req, res) => {
     try {
