@@ -509,18 +509,24 @@ async function toggleDoNotDisturb(roomNumber) {
     const isDNDActive = dndButton.classList.contains("active-dnd");
     const newStatus = isDNDActive ? "available" : "dnd";
 
-    if (newStatus === "dnd") {
-        // ✅ DND Mode: Disable Start & Finish, Turn Button Red
-        startButton.disabled = true;
-        finishButton.disabled = true;
-        dndButton.classList.add("active-dnd");
-        dndButton.style.backgroundColor = "red";
-    } else {
-        // ✅ Reset to Normal: Enable Start & Reset Finish Button
+    // ✅ Reset cleaning status if DND is turned off
+    if (newStatus === "available") {
+        console.log(`🔄 Resetting cleaning status for Room ${formattedRoom}`);
         startButton.disabled = false;
         startButton.style.backgroundColor = "blue";
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "grey";
+    }
+
+    // ✅ Apply DND Mode
+    if (newStatus === "dnd") {
+        console.log(`🚨 Applying DND mode for Room ${formattedRoom}`);
+        dndButton.classList.add("active-dnd");
+        dndButton.style.backgroundColor = "red";
+        startButton.disabled = true;
+        finishButton.disabled = true;
+    } else {
+        console.log(`✅ DND turned off for Room ${formattedRoom}`);
         dndButton.classList.remove("active-dnd");
         dndButton.style.backgroundColor = "blue";
     }
@@ -542,6 +548,9 @@ async function toggleDoNotDisturb(roomNumber) {
 
         console.log(`✅ Room ${formattedRoom} DND status updated.`);
         safeEmit("dndUpdate", { roomNumber, status: newStatus });
+
+        // ✅ Force reload logs to avoid API status conflicts
+        await loadLogs();
 
     } catch (error) {
         console.error("❌ Error updating DND status:", error);
