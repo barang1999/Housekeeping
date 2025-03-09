@@ -267,19 +267,30 @@ module.exports = router;
 app.post("/logs/reset-cleaning", async (req, res) => {
     try {
         let { roomNumber } = req.body;
-        roomNumber = parseInt(roomNumber, 10); // ✅ Ensure it's a number
 
+        if (!roomNumber) {
+            return res.status(400).json({ message: "Room number is required" });
+        }
+
+        roomNumber = parseInt(roomNumber, 10); // ✅ Ensure it's a number
         if (isNaN(roomNumber)) {
             return res.status(400).json({ message: "Invalid room number" });
         }
 
-        // ✅ Ensure room exists before updating
-        const room = await db.findOne({ roomNumber });
+        const room = await db.collection("logs").findOne({ roomNumber });
         if (!room) {
             return res.status(404).json({ message: "Room not found" });
         }
 
-        await db.updateOne({ roomNumber }, { $set: { status: "available" } });
+        // ✅ Reset cleaning status
+        const result = await db.collection("logs").updateOne(
+            { roomNumber },
+            { $set: { status: "available", startTime: null, finishTime: null } }
+        );
+
+        if (result.modifiedCount === 0) {
+            return res.status(500).json({ message: "Failed to reset cleaning status" });
+        }
 
         res.json({ message: `Cleaning status reset successfully for Room ${roomNumber}` });
     } catch (error) {
@@ -287,7 +298,6 @@ app.post("/logs/reset-cleaning", async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 });
-
 
 // 🚀 Start Cleaning
 
