@@ -6,13 +6,17 @@ const MAX_RECONNECT_ATTEMPTS = 3;
 window.socket = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
-    const validToken = await ensureValidToken();
-    if (validToken) connectWebSocket();
+    console.log("🔄 Initializing housekeeping system...");
+    
+    await ensureValidToken();
+    connectWebSocket(); // ✅ Connect WebSocket only once
+    
     checkAuth();
     loadRooms();
 });
 
 
+/** ✅ Improved WebSocket Connection with Proper Handling */
 async function connectWebSocket() {
     let token = await ensureValidToken();
     if (!token) {
@@ -21,7 +25,8 @@ async function connectWebSocket() {
     }
 
     if (window.socket) {
-        window.socket.disconnect(); // Ensure clean disconnection before reconnecting
+        window.socket.disconnect();
+        window.socket = null; // ✅ Ensure clean disconnect before reconnecting
     }
 
     window.socket = io(apiUrl, {
@@ -39,13 +44,15 @@ async function connectWebSocket() {
         console.warn("❌ WebSocket connection error:", err.message);
         if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
             reconnectAttempts++;
-            await new Promise(res => setTimeout(res, 2000));
+            await new Promise(res => setTimeout(res, 2000)); // Wait before retrying
+            
             const newToken = await refreshToken();
             if (newToken) {
+                console.log("🔄 Using refreshed token for WebSocket reconnection...");
                 window.socket.auth = { token: newToken };
                 window.socket.connect();
             } else {
-                console.error("🔴 Max reconnect attempts reached. Disabling WebSocket.");
+                console.error("🔴 Max reconnect attempts reached. WebSocket disabled.");
                 window.socket = null;
                 logout();
             }
@@ -54,42 +61,58 @@ async function connectWebSocket() {
 
     window.socket.on("disconnect", (reason) => {
         console.warn("🔴 WebSocket disconnected:", reason);
-        setTimeout(connectWebSocket, 5000); // Try reconnecting after disconnect
+        if (reason !== "io client disconnect") {
+            console.log("🔄 Attempting WebSocket reconnect...");
+            setTimeout(connectWebSocket, 5000); // Try reconnecting after disconnect
+        }
     });
 
-      socket.on("dndUpdate", async ({ roomNumber, status }) => {
-    console.log(`📡 WebSocket: DND mode changed for Room ${roomNumber} -> ${status}`);
+    // ✅ Ensure WebSocket events are attached **only once**
+    if (!window.socket.hasListeners("dndUpdate")) {
+        window.socket.on("dndUpdate", async ({ roomNumber, status }) => {
+            console.log(`📡 WebSocket: DND mode changed for Room ${roomNumber} -> ${status}`);
 
-    // Fetch latest logs to determine previous state
-    const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
-    const roomLog = logs.find(log => log.roomNumber.toString().padStart(3, '0') === roomNumber);
+            // ✅ Fetch latest logs to determine previous state
+            const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
+            const roomLog = logs.find(log => log.roomNumber.toString().padStart(3, '0') === roomNumber);
 
-    let previousStatus = "available";
-    if (roomLog) {
-        previousStatus = roomLog.finishTime ? "finished" : roomLog.startTime ? "in_progress" : "available";
+            let previousStatus = "available";
+            if (roomLog) {
+                previousStatus = roomLog.finishTime ? "finished" : roomLog.startTime ? "in_progress" : "available";
+            }
+
+            // ✅ Update UI correctly
+            updateRoomUI(roomNumber, status, previousStatus);
+            await loadLogs();
+            updateButtonStatus(roomNumber, status);
+        });
     }
-
-    // Update UI with proper state restoration
-    updateRoomUI(roomNumber, status, previousStatus);
-
-    // Fetch logs again to ensure UI is in sync
-    await loadLogs();
-    updateButtonStatus(roomNumber, status);
-});
 }
 
-// Initialize WebSocket on page load
-document.addEventListener("DOMContentLoaded", async () => {
-    connectWebSocket();
-});
-
-
+/** ✅ Ensure WebSocket Connection is Available Before Emitting Events */
 function safeEmit(event, data = {}) {
     ensureWebSocketConnection(); // Ensure WebSocket is connected before emitting
     if (window.socket && window.socket.connected) {
         window.socket.emit(event, data);
     } else {
-        console.warn(`WebSocket is not connected. Cannot emit ${event}`);
+        console.warn(`⛔ WebSocket is not connected. Cannot emit ${event}`);
+    }
+}
+
+/** ✅ Ensure WebSocket is Properly Connected Before Usage */
+function ensureWebSocketConnection() {
+    if (!window.socket || !window.socket.connected) {
+        console.warn("⛔ WebSocket is not connected. Attempting reconnect...");
+        
+        connectWebSocket();
+        
+        setTimeout(() => {
+            if (!window.socket || !window.socket.connected) {
+                console.error("⛔ WebSocket reconnection failed.");
+            } else {
+                console.log("✅ WebSocket reconnected successfully.");
+            }
+        }, 2000);
     }
 }
 
@@ -130,23 +153,6 @@ async function updateButtonsFromLogs() {
 }
 
 
-function ensureWebSocketConnection() {
-    if (!window.socket || !window.socket.connected) {
-        console.warn("⛔ WebSocket is not connected. Attempting reconnect...");
-        
-        // Attempt reconnection
-        connectWebSocket();
-        
-        // Wait 2 seconds and check again
-        setTimeout(() => {
-            if (!window.socket || !window.socket.connected) {
-                console.error("⛔ WebSocket reconnection failed.");
-            } else {
-                console.log("✅ WebSocket reconnected successfully.");
-            }
-        }, 2000);
-    }
-}
 async function fetchWithErrorHandling(url, options = {}) {
     try {
         console.log(`🔍 Fetching: ${url}`);
