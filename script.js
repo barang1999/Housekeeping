@@ -9,9 +9,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.log("🔄 Initializing housekeeping system...");
 
     await ensureValidToken();
-
-    console.log("⏳ Establishing WebSocket connection...");
-    await connectWebSocket(); // Ensure WebSocket is initialized correctly
+    await connectWebSocket(); // ✅ Ensure WebSocket connects
 
     console.log("⏳ Fetching logs...");
     await loadLogs();
@@ -20,7 +18,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     await restoreCleaningStatus();
 
     console.log("🎯 Cleaning status restored successfully.");
-
     checkAuth();
     loadRooms();
 
@@ -45,25 +42,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         document.getElementById("auth-section").style.display = "block";
         document.getElementById("dashboard").style.display = "none";
     }
-
-    // ✅ Ensure WebSocket listens for real-time updates after initialization
-    if (window.socket) {
-        window.socket.on("roomUpdate", async ({ roomNumber, status, previousStatus }) => {
-            console.log(`📡 WebSocket: Room ${roomNumber} status updated to ${status}`);
-            updateRoomUI(roomNumber, status, previousStatus || "available");
-            await loadLogs();
-            updateButtonStatus(roomNumber, status);
-        });
-
-        window.socket.on("dndUpdate", async ({ roomNumber, status }) => {
-            console.log(`📡 WebSocket: DND mode changed for Room ${roomNumber} -> ${status}`);
-            updateRoomUI(roomNumber, status);
-            await loadLogs();
-        });
-    }
 });
 
-/** ✅ Improved WebSocket Connection with Proper Handling */
+/** ✅ WebSocket Connection & Event Handling */
 async function connectWebSocket() {
     let token = await ensureValidToken();
     if (!token) {
@@ -71,9 +52,9 @@ async function connectWebSocket() {
         return;
     }
 
-    // Disconnect existing socket if any
+    // ✅ Disconnect and clean up existing socket to prevent duplicates
     if (window.socket) {
-        window.socket.off(); // Remove all existing listeners to prevent duplicates
+        window.socket.off(); 
         window.socket.disconnect();
     }
 
@@ -84,7 +65,7 @@ async function connectWebSocket() {
     });
 
     window.socket.on("connect", () => {
-        console.log("✅ WebSocket connected successfully.");
+        console.log("✅ WebSocket connected.");
         reconnectAttempts = 0;
     });
 
@@ -92,7 +73,7 @@ async function connectWebSocket() {
         console.warn("❌ WebSocket connection error:", err.message);
         if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
             reconnectAttempts++;
-            await new Promise(res => setTimeout(res, reconnectAttempts * 2000)); // Exponential backoff
+            await new Promise(res => setTimeout(res, reconnectAttempts * 2000));
 
             const refreshedToken = await refreshToken();
             if (refreshedToken) {
@@ -115,8 +96,15 @@ async function connectWebSocket() {
         }
     });
 
-    // ✅ Ensure WebSocket events are attached only once
-    window.socket.on("roomUpdate", async ({ roomNumber, status, previousStatus }) => {
+    // ✅ Ensure WebSocket events are set **only once**
+    setupWebSocketListeners();
+}
+
+/** ✅ Set WebSocket Listeners Only Once */
+function setupWebSocketListeners() {
+    if (!window.socket) return;
+
+    window.socket.off("roomUpdate").on("roomUpdate", async ({ roomNumber, status, previousStatus }) => {
         console.log(`📡 WebSocket: Room ${roomNumber} status updated to ${status}`);
         
         updateRoomUI(roomNumber, status, previousStatus || "available");
@@ -124,17 +112,14 @@ async function connectWebSocket() {
         updateButtonStatus(roomNumber, status);
     });
 
-    window.socket.on("dndUpdate", async ({ roomNumber, status }) => {
+    window.socket.off("dndUpdate").on("dndUpdate", async ({ roomNumber, status }) => {
         console.log(`📡 WebSocket: DND mode changed for Room ${roomNumber} -> ${status}`);
-
         updateRoomUI(roomNumber, status);
         await loadLogs();
     });
 }
 
-
-
-/** ✅ Ensure WebSocket Connection is Available Before Emitting Events */
+/** ✅ Ensure WebSocket is Available Before Emitting */
 function safeEmit(event, data = {}) {
     if (!window.socket || !window.socket.connected) {
         console.warn(`⛔ WebSocket is not connected. Cannot emit ${event}`);
@@ -143,8 +128,6 @@ function safeEmit(event, data = {}) {
     
     window.socket.emit(event, data);
 }
-
-
 
 /** ✅ Ensure WebSocket is Properly Connected Before Usage */
 function ensureWebSocketConnection() {
