@@ -369,7 +369,7 @@ process.on("SIGINT", async () => {
 app.post("/logs/start", async (req, res) => {
     try {
         let { roomNumber, username } = req.body;
-        if (!roomNumber || isNaN(roomNumber)) {
+        if (!roomNumber || isNaN(roomNumber) || !username ) {
             return res.status(400).json({ message: "❌ Invalid room number" });
         }
 
