@@ -74,6 +74,7 @@ async function connectWebSocket() {
 
     // Fetch logs again to ensure UI is in sync
     await loadLogs();
+    updateButtonStatus(roomNumber, status);
 });
 }
 
@@ -638,7 +639,9 @@ async function startCleaning(roomNumber) {
     // ✅ Fetch latest logs before sending request
     const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
     const roomLog = logs.find(log => log.roomNumber.toString().padStart(3, '0') === formattedRoom);
-    
+    if (!roomLog) {
+    console.warn(`⚠️ No log entry found for Room ${formattedRoom}`);
+    }
     if (roomLog && roomLog.startTime && !roomLog.finishTime) {
         alert(`⚠ Room ${formattedRoom} is already being cleaned.`);
         return;
