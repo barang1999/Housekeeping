@@ -446,6 +446,19 @@ function storeTokens(accessToken, refreshToken) {
 }
 
 
+// ✅ Convert all stored `roomNumber` values to integers in MongoDB
+async function fixRoomNumbers() {
+    console.log("🔄 Fixing room number formats in database...");
+
+    const result = await CleaningLog.updateMany({}, [
+        { $set: { roomNumber: { $toInt: "$roomNumber" } } }
+    ]);
+
+    console.log(`✅ Fixed ${result.modifiedCount} room numbers.`);
+}
+
+// ✅ Run the fix once when the server starts
+fixRoomNumbers();
 
 
 function formatRoomNumber(roomNumber) {
@@ -541,8 +554,7 @@ function updateRoomUI(roomNumber, status, previousStatus = null) {
 
 
 async function resetCleaningStatus(roomNumber) {
-    const formattedRoom = roomNumber.toString().padStart(3, '0');
-    const numericRoomNumber = parseInt(roomNumber, 10);
+    const numericRoomNumber = parseInt(roomNumber, 10); // ✅ Convert to number
 
     if (isNaN(numericRoomNumber)) {
         console.error("❌ Invalid room number:", roomNumber);
@@ -550,27 +562,17 @@ async function resetCleaningStatus(roomNumber) {
         return;
     }
 
-    console.log(`🔄 Resetting cleaning status for Room ${formattedRoom}...`);
+    console.log(`🔄 Resetting cleaning status for Room ${numericRoomNumber}...`);
 
     try {
-        // Check if room exists in logs before sending request
-        const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
-        const roomLog = logs.find(log => log.roomNumber === numericRoomNumber);
-
-        if (!roomLog) {
-            console.warn(`⚠️ No log entry found for Room ${formattedRoom}`);
-            alert(`❌ Reset Cleaning Failed: Room ${formattedRoom} not found in logs.`);
-            return;
-        }
-
         const res = await fetch(`${apiUrl}/logs/reset-cleaning`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roomNumber: formattedRoom }),
+            body: JSON.stringify({ roomNumber: numericRoomNumber }), // ✅ Ensure it's a number
         });
 
         const data = await res.json();
-        console.log("🔍 Raw API Response:", res);
+        console.log("🔍 API Response:", res);
 
         if (!res.ok) {
             console.error("❌ Failed to reset cleaning status:", data);
@@ -578,10 +580,10 @@ async function resetCleaningStatus(roomNumber) {
             return;
         }
 
-        console.log(`✅ Cleaning status reset successfully for Room ${formattedRoom}.`);
+        console.log(`✅ Cleaning status reset successfully for Room ${numericRoomNumber}.`);
 
         // ✅ Immediately update UI
-        updateButtonStatus(formattedRoom, "available", "available");
+        updateButtonStatus(numericRoomNumber, "available", "available");
 
         // ✅ Refresh logs
         await loadLogs();
@@ -589,7 +591,6 @@ async function resetCleaningStatus(roomNumber) {
         console.error("❌ Error resetting cleaning status:", error);
     }
 }
-
 
 async function toggleDoNotDisturb(roomNumber) {
     const formattedRoom = roomNumber.toString().padStart(3, '0');
