@@ -314,25 +314,25 @@ app.post("/logs/dnd", async (req, res) => {
 
         const isDND = status === "dnd";
 
-        // ✅ Update DND status in a separate collection
-        const updatedDND = await RoomDND.findOneAndUpdate(
+        // ✅ Update the DND status in MongoDB
+        await RoomDND.findOneAndUpdate(
             { roomNumber },
-            { $set: { dndStatus: isDND } }, // Only update DND status
-            { new: true, upsert: true }
+            { dndStatus: isDND },
+            { upsert: true, new: true }
         );
 
-        console.log(`✅ Room ${roomNumber} DND status updated -> ${status}`);
+        console.log(`✅ Room ${roomNumber} DND mode updated -> ${status}`);
 
-        // ✅ Emit WebSocket event for real-time updates across devices
+        // ✅ Broadcast to all WebSocket clients
         io.emit("dndUpdate", { roomNumber, status });
 
         res.json({ message: `DND mode ${status} for Room ${roomNumber}` });
-
     } catch (error) {
         console.error("❌ Error updating DND status:", error);
         res.status(500).json({ message: "Internal server error." });
     }
 });
+
 
 module.exports = router;
 
