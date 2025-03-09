@@ -476,6 +476,31 @@ function toggleFloor(floorId) {
         }).format(new Date());
     }
 
+async function loadDNDStatus() {
+    console.log("🔄 Fetching DND status...");
+
+    try {
+        const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
+        
+        if (!logs || !Array.isArray(logs)) {
+            console.warn("⚠️ No valid logs found for DND status.");
+            return;
+        }
+
+        logs.forEach(log => {
+            let formattedRoom = formatRoomNumber(log.roomNumber);
+            let dndStatus = log.dndStatus ? "dnd" : "available"; // ✅ Read from DB
+
+            // ✅ Update button UI
+            updateDNDStatus(formattedRoom, dndStatus);
+        });
+
+        console.log("✅ DND status restored after refresh.");
+    } catch (error) {
+        console.error("❌ Error loading DND status:", error);
+    }
+}
+
 async function restoreCleaningStatus() {
     try {
         console.log("🔄 Fetching cleaning logs...");
@@ -633,10 +658,21 @@ async function toggleDoNotDisturb(roomNumber) {
         startButton.disabled = false;
     }
 
-    // ✅ No new logs are added when toggling DND
-    safeEmit("dndUpdate", { roomNumber, status: newStatus });
+    // ✅ Send update to the server (so it persists)
+    try {
+        await fetch(`${apiUrl}/logs/dnd`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ roomNumber, status: newStatus }),
+        });
 
-    console.log(`✅ Room ${formattedRoom} DND toggled: ${newStatus}`);
+        // ✅ Emit WebSocket event (real-time update)
+        safeEmit("dndUpdate", { roomNumber, status: newStatus });
+
+    } catch (error) {
+        console.error("❌ Error updating DND status:", error);
+        alert("An error occurred while updating DND mode.");
+    }
 }
 
 async function startCleaning(roomNumber) {
@@ -874,7 +910,7 @@ async function loadLogs() {
     }
 }
 
-async function updateDNDStatus(roomNumber, status) {
+function updateDNDStatus(roomNumber, status) {
     console.log(`🚨 Updating DND status for Room ${roomNumber} to: ${status}`);
 
     let formattedRoom = formatRoomNumber(roomNumber);
@@ -899,13 +935,7 @@ async function updateDNDStatus(roomNumber, status) {
         dndButton.classList.remove("active-dnd");
         dndButton.style.backgroundColor = "#008CFF";
         startButton.disabled = false;
-        startButton.style.backgroundColor = "#008CFF";
-        finishButton.disabled = true;
-        finishButton.style.backgroundColor = "grey";
     }
-
-    // ✅ Ensure logs refresh to reflect the latest status
-    await loadLogs();
 }
 
 function logout() {
