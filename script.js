@@ -1015,5 +1015,4 @@ async function clearLogs() {
     });
 
     pdf.save("cleaning_logs_today.pdf");
-}
-       
+}     
