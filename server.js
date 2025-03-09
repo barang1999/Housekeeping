@@ -48,7 +48,6 @@ const dndSchema = new mongoose.Schema({
 });
 
 // ✅ Ensure model is only defined once
-const RoomDND = mongoose.models.RoomDND || mongoose.model("RoomDND", dndSchema);
 
 module.exports = RoomDND;
 
@@ -313,7 +312,7 @@ app.get("/logs/status", async (req, res) => {
 
 const router = express.Router();
 
-const RoomDND = require("./models/RoomDND"); // Import the new model
+const RoomDND = require("./RoomDND"); // Import the new model
 
 app.post("/logs/dnd", async (req, res) => {
     try {
