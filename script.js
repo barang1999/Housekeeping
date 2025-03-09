@@ -509,12 +509,11 @@ async function toggleDoNotDisturb(roomNumber) {
     const isDNDActive = dndButton.classList.contains("active-dnd");
     const newStatus = isDNDActive ? "available" : "dnd";
 
-    // ✅ Reset cleaning status when DND is turned off
     if (newStatus === "available") {
         console.log(`🔄 Resetting cleaning status for Room ${formattedRoom}`);
 
         try {
-            const resetRes = await fetch(`${apiUrl}/logs/reset-cleaning`, {  // ✅ Add an API endpoint to reset cleaning status
+            const resetRes = await fetch(`${apiUrl}/logs/reset-cleaning`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ roomNumber })
@@ -536,7 +535,6 @@ async function toggleDoNotDisturb(roomNumber) {
         finishButton.style.backgroundColor = "grey";
     }
 
-    // ✅ Apply DND Mode
     if (newStatus === "dnd") {
         console.log(`🚨 Applying DND mode for Room ${formattedRoom}`);
         dndButton.classList.add("active-dnd");
@@ -549,7 +547,6 @@ async function toggleDoNotDisturb(roomNumber) {
         dndButton.style.backgroundColor = "blue";
     }
 
-    // ✅ Send API request to update backend
     try {
         const res = await fetch(`${apiUrl}/logs/dnd`, {
             method: "POST",
@@ -567,14 +564,11 @@ async function toggleDoNotDisturb(roomNumber) {
         console.log(`✅ Room ${formattedRoom} DND status updated.`);
         safeEmit("dndUpdate", { roomNumber, status: newStatus });
 
-        // ✅ Force reload logs to avoid API status conflicts
         await loadLogs();
-
     } catch (error) {
         console.error("❌ Error updating DND status:", error);
     }
 }
-
 
 async function startCleaning(roomNumber) {
     const formattedRoom = roomNumber.toString().padStart(3, '0');
