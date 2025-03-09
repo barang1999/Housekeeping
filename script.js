@@ -97,7 +97,7 @@ async function connectWebSocket() {
     });
 }
 
-    /if (!window.socket.hasListeners("roomUpdate")) {
+    if (!window.socket.hasListeners("roomUpdate")) {
     window.socket.on("roomUpdate", async ({ roomNumber, status, previousStatus }) => {
         console.log(`📡 WebSocket: Room ${roomNumber} status updated to ${status}`);
         
