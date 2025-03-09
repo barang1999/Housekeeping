@@ -317,7 +317,7 @@ app.post("/logs/reset-cleaning", async (req, res) => {
             return res.status(500).json({ message: "Database not initialized yet" });
         }
 
-        let room = await db.collection("logs").findOne({ roomNumber });
+        const room = await db.collection("logs").findOne({ roomNumber: Number(roomNumber) });
 
         if (!room) {
             console.warn(`⚠️ Room ${roomNumber} not found. Auto-inserting.`);
