@@ -312,34 +312,39 @@ app.post("/logs/reset-cleaning", async (req, res) => {
         if (!roomNumber) {
             return res.status(400).json({ message: "Room number is required" });
         }
-        roomNumber = parseInt(roomNumber, 10);
 
-        console.log(`🔍 Searching for Room ${roomNumber} in the database...`);
+        roomNumber = parseInt(roomNumber, 10); // Ensure it's a number
 
-        if (!db) {
-            return res.status(500).json({ message: "Database not initialized yet" });
+        console.log(`🔍 Attempting to reset cleaning status for Room ${roomNumber}...`);
+
+        // Ensure MongoDB is connected
+        if (!mongoose.connection.readyState) {
+            console.error("❌ Database is not connected.");
+            return res.status(500).json({ message: "Database connection lost" });
         }
 
-        // ✅ Reset room status properly
-        const result = await db.collection("logs").updateOne(
+        // ✅ Update the cleaning status in MongoDB
+        const result = await CleaningLog.updateOne(
             { roomNumber },
-            { $set: { status: "available", startTime: null, finishTime: null, startedBy: null, finishedBy: null } }
+            { $set: { startTime: null, finishTime: null, startedBy: null, finishedBy: null, dndStatus: false } }
         );
 
         if (result.modifiedCount === 0) {
-            console.warn(`⚠️ Room ${roomNumber} was not updated. Possible DB issue.`);
+            console.warn(`⚠️ No logs were updated for Room ${roomNumber}. Possible DB issue.`);
             return res.status(500).json({ message: "Failed to reset cleaning status" });
         }
 
         console.log(`✅ Cleaning status reset successfully for Room ${roomNumber}`);
-        res.json({ message: `✅ Cleaning status reset successfully for Room ${roomNumber}` });
 
+        // Notify all WebSocket clients
+        io.emit("resetCleaning", { roomNumber });
+
+        res.json({ message: `✅ Cleaning status reset for Room ${roomNumber}` });
     } catch (error) {
         console.error("❌ Error resetting cleaning status:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 });
-
 
 
 
