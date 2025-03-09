@@ -554,7 +554,7 @@ function updateRoomUI(roomNumber, status, previousStatus = null) {
 
 
 async function resetCleaningStatus(roomNumber) {
-    const numericRoomNumber = parseInt(roomNumber, 10); // ✅ Convert to number
+    const numericRoomNumber = parseInt(roomNumber, 10);
 
     if (isNaN(numericRoomNumber)) {
         console.error("❌ Invalid room number:", roomNumber);
@@ -562,17 +562,29 @@ async function resetCleaningStatus(roomNumber) {
         return;
     }
 
-    console.log(`🔄 Resetting cleaning status for Room ${numericRoomNumber}...`);
+    console.log(`🔄 Verifying Room ${numericRoomNumber} exists in logs before resetting...`);
 
     try {
+        // Check if room exists in logs before sending request
+        const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
+        const roomLog = logs.find(log => log.roomNumber === numericRoomNumber);
+
+        if (!roomLog) {
+            console.warn(`⚠️ No log entry found for Room ${numericRoomNumber}`);
+            alert(`❌ Reset Cleaning Failed: Room ${numericRoomNumber} not found in logs.`);
+            return;
+        }
+
+        console.log(`✅ Room ${numericRoomNumber} found. Sending reset request...`);
+
         const res = await fetch(`${apiUrl}/logs/reset-cleaning`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roomNumber: numericRoomNumber }), // ✅ Ensure it's a number
+            body: JSON.stringify({ roomNumber: numericRoomNumber }),
         });
 
         const data = await res.json();
-        console.log("🔍 API Response:", res);
+        console.log("🔍 API Response:", data);
 
         if (!res.ok) {
             console.error("❌ Failed to reset cleaning status:", data);
@@ -591,6 +603,7 @@ async function resetCleaningStatus(roomNumber) {
         console.error("❌ Error resetting cleaning status:", error);
     }
 }
+
 
 async function toggleDoNotDisturb(roomNumber) {
     const formattedRoom = roomNumber.toString().padStart(3, '0');
