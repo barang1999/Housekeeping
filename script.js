@@ -71,10 +71,17 @@ async function connectWebSocket() {
         console.warn("🔴 WebSocket disconnected:", reason);
     });
 
-     window.socket.on("roomUpdate", async ({ roomNumber, status }) => {
+        window.socket.on("roomUpdate", async ({ roomNumber, status }) => {
         console.log(`📡 WebSocket: Room ${roomNumber} status updated to ${status}`);
+        
         updateRoomUI(roomNumber, status);
         await loadLogs();
+    
+        if (status === "available") {
+            console.log(`🔄 Ensuring cleaning reset after update for Room ${roomNumber}`);
+            await resetCleaningStatus(roomNumber);
+        }
+    
         updateButtonStatus(roomNumber, status);
     });
        window.socket.on("dndUpdate", async ({ roomNumber, status }) => {
@@ -559,7 +566,7 @@ async function resetCleaningStatus(roomNumber) {
         const res = await fetch(`${apiUrl}/logs/reset-cleaning`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roomNumber: numericRoomNumber }),
+            body: JSON.stringify({ roomNumber: formattedRoom }),
         });
 
         const data = await res.json();
@@ -619,10 +626,14 @@ async function toggleDoNotDisturb(roomNumber) {
         console.log(`✅ Room ${formattedRoom} DND status updated.`);
 
         // ✅ If DND is turned off, reset cleaning status in the backend
-        if (newStatus === "available") {
+       if (newStatus === "available") {
             console.log(`🔄 Resetting cleaning status for Room ${formattedRoom} after DND removal`);
-            await resetCleaningStatus(formattedRoom);
+            
+            setTimeout(async () => {
+                await resetCleaningStatus(formattedRoom);
+            }, 1000); // 1-second delay before checking logs
         }
+
 
         // ✅ Ensure WebSocket emits the correct event
         safeEmit("dndUpdate", { roomNumber, status: newStatus });
