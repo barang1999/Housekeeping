@@ -480,8 +480,9 @@ async function loadDNDStatus() {
     console.log("🔄 Fetching DND status...");
 
     try {
-        const dndData = await fetchWithErrorHandling(`${apiUrl}/logs/dnd/all`); // Fetch all DND statuses
-        
+        const response = await fetch("https://housekeeping-production.up.railway.app/logs/dnd/all"); // Fetch from server
+        const dndData = await response.json();
+
         if (!dndData || !Array.isArray(dndData)) {
             console.warn("⚠️ No valid DND data found.");
             return;
@@ -489,7 +490,7 @@ async function loadDNDStatus() {
 
         dndData.forEach(room => {
             let formattedRoom = formatRoomNumber(room.roomNumber);
-            let dndStatus = room.dndStatus ? "dnd" : "available"; // ✅ Read from DND database
+            let dndStatus = room.dndStatus ? "dnd" : "available"; // ✅ Read from API
 
             // ✅ Update button UI immediately
             updateDNDStatus(formattedRoom, dndStatus);
@@ -500,6 +501,11 @@ async function loadDNDStatus() {
         console.error("❌ Error loading DND status:", error);
     }
 }
+
+// ✅ Call this function on page load
+document.addEventListener("DOMContentLoaded", async () => {
+    await loadDNDStatus(); // Fetch and update DND status after page refresh
+});
 
 // ✅ Ensure this function runs when the page loads
 document.addEventListener("DOMContentLoaded", async () => {
