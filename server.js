@@ -277,10 +277,20 @@ app.post("/logs/reset-cleaning", async (req, res) => {
             return res.status(400).json({ message: "Invalid room number" });
         }
 
+        // ✅ Ensure database connection is available
+        if (!db || !db.collection) {
+            console.error("❌ Database connection is not established.");
+            return res.status(500).json({ message: "Database connection error" });
+        }
+
+        // ✅ Check if room exists
         const room = await db.collection("logs").findOne({ roomNumber });
         if (!room) {
+            console.warn(`⚠️ Room ${roomNumber} not found in database.`);
             return res.status(404).json({ message: "Room not found" });
         }
+
+        console.log(`🔄 Resetting cleaning status for Room ${roomNumber}...`);
 
         // ✅ Reset cleaning status
         const result = await db.collection("logs").updateOne(
@@ -289,13 +299,16 @@ app.post("/logs/reset-cleaning", async (req, res) => {
         );
 
         if (result.modifiedCount === 0) {
+            console.warn(`⚠️ No changes made for Room ${roomNumber}.`);
             return res.status(500).json({ message: "Failed to reset cleaning status" });
         }
 
+        console.log(`✅ Cleaning status reset successfully for Room ${roomNumber}`);
         res.json({ message: `Cleaning status reset successfully for Room ${roomNumber}` });
+
     } catch (error) {
         console.error("❌ Error resetting cleaning status:", error);
-        res.status(500).json({ message: "Internal server error" });
+        res.status(500).json({ message: "Internal server error", error: error.message });
     }
 });
 
