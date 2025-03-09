@@ -509,9 +509,27 @@ async function toggleDoNotDisturb(roomNumber) {
     const isDNDActive = dndButton.classList.contains("active-dnd");
     const newStatus = isDNDActive ? "available" : "dnd";
 
-    // ✅ Reset cleaning status if DND is turned off
+    // ✅ Reset cleaning status when DND is turned off
     if (newStatus === "available") {
         console.log(`🔄 Resetting cleaning status for Room ${formattedRoom}`);
+
+        try {
+            const resetRes = await fetch(`${apiUrl}/logs/reset-cleaning`, {  // ✅ Add an API endpoint to reset cleaning status
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ roomNumber })
+            });
+
+            const resetData = await resetRes.json();
+            if (!resetRes.ok) {
+                console.error("❌ Failed to reset cleaning status:", resetData);
+                return;
+            }
+            console.log(`✅ Cleaning status reset for Room ${formattedRoom}`);
+        } catch (error) {
+            console.error("❌ Error resetting cleaning status:", error);
+        }
+
         startButton.disabled = false;
         startButton.style.backgroundColor = "blue";
         finishButton.disabled = true;
@@ -556,6 +574,7 @@ async function toggleDoNotDisturb(roomNumber) {
         console.error("❌ Error updating DND status:", error);
     }
 }
+
 
 async function startCleaning(roomNumber) {
     const formattedRoom = roomNumber.toString().padStart(3, '0');
