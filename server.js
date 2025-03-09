@@ -347,25 +347,25 @@ app.post("/logs/reset-cleaning", async (req, res) => {
     try {
         let { roomNumber } = req.body;
 
-        // ✅ Ensure `roomNumber` is a valid number
         if (!roomNumber || isNaN(roomNumber)) {
-            return res.status(400).json({ message: "Room number is required and must be a valid number." });
+            return res.status(400).json({ message: "Room number must be a valid number." });
         }
 
-        roomNumber = parseInt(roomNumber, 10); // Convert roomNumber to an integer
+        roomNumber = parseInt(roomNumber, 10); // Convert to a number
 
         console.log(`🔄 Attempting to reset cleaning status for Room ${roomNumber}...`);
 
-        // ✅ Check if the room exists in the database before updating
-        const existingLog = await CleaningLog.findOne({ roomNumber });
+        // ✅ Ensure MongoDB finds the room number as a number
+        const existingLog = await CleaningLog.findOne({ roomNumber: roomNumber });
+
         if (!existingLog) {
             console.warn(`⚠️ Room ${roomNumber} not found in logs. Cannot reset.`);
             return res.status(400).json({ message: `Room ${roomNumber} not found in logs.` });
         }
 
         // ✅ Perform the reset operation
-        const result = await CleaningLog.updateOne(
-            { roomNumber },
+        await CleaningLog.updateOne(
+            { _id: existingLog._id },
             {
                 $set: {
                     startTime: null,
@@ -378,19 +378,9 @@ app.post("/logs/reset-cleaning", async (req, res) => {
             }
         );
 
-        // ✅ Verify if the update was successful
-        if (result.modifiedCount === 0) {
-            console.error(`❌ No records were updated. Room ${roomNumber} might be invalid.`);
-            return res.status(500).json({ message: "No records were updated. Possible invalid room number." });
-        }
-
         console.log(`✅ Cleaning status reset successfully for Room ${roomNumber}.`);
 
-        // ✅ Delay WebSocket update to ensure DB sync
-        setTimeout(() => {
-            io.emit("resetCleaning", { roomNumber, status: "available" });
-            console.log(`📡 WebSocket: Cleaning reset broadcasted for Room ${roomNumber}`);
-        }, 500);
+        io.emit("resetCleaning", { roomNumber, status: "available" });
 
         res.json({ message: `✅ Cleaning status reset for Room ${roomNumber}` });
 
