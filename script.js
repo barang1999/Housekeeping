@@ -82,7 +82,7 @@ async function connectWebSocket() {
             await resetCleaningStatus(roomNumber);
         }
     
-        updateButtonStatus(formattedRoom, status);
+        updateButtonStatus(formatRoomNumber(roomNumber), status);
     });
        window.socket.on("dndUpdate", async ({ roomNumber, status }) => {
         console.log(`📡 WebSocket: DND mode changed for Room ${roomNumber} -> ${status}`);
@@ -104,7 +104,7 @@ function setupWebSocketListeners() {
         
         updateRoomUI(roomNumber, status, previousStatus || "available");
         await loadLogs();
-        updateButtonStatus(formattedRoom, status);
+        updateButtonStatus(formatRoomNumber(roomNumber), status);
     });
 
     window.socket.off("dndUpdate").on("dndUpdate", async ({ roomNumber, status }) => {
@@ -126,18 +126,24 @@ function safeEmit(event, data = {}) {
 
 /** ✅ Ensure WebSocket is Properly Connected Before Usage */
 function ensureWebSocketConnection() {
+    let retryInterval = 1000; // Start with 1 second delay
+
     if (!window.socket || !window.socket.connected) {
-        console.warn("⛔ WebSocket is not connected. Attempting reconnect...");
-        
-        setTimeout(() => {
-            if (!window.socket || !window.socket.connected) {
-                console.error("⛔ WebSocket reconnection failed.");
+        console.warn("⛔ WebSocket disconnected. Attempting reconnect...");
+
+        const reconnect = setInterval(() => {
+            if (window.socket && window.socket.connected) {
+                console.log("✅ WebSocket reconnected.");
+                clearInterval(reconnect);
             } else {
-                console.log("✅ WebSocket reconnected successfully.");
+                console.warn(`🔄 Retrying WebSocket connection in ${retryInterval / 1000} seconds...`);
+                retryInterval *= 2; // Exponential backoff
+                connectWebSocket(); // Attempt reconnection
             }
-        }, 2000);
+        }, retryInterval);
     }
 }
+
 
 // ✅ Ensure buttons update after logs are loaded
 async function updateButtonsFromLogs() {
@@ -150,10 +156,10 @@ async function updateButtonsFromLogs() {
     }
 
     logs.forEach(log => {
-        const roomNumber = log.roomNumber.toString().padStart(3, '0');
+        let roomNumber = formatRoomNumber(log.roomNumber); // FIX: Corrected variable reference
         const status = log.status || "pending";
 
-        updateButtonStatus(formatRoomNumber(roomNumber), status);
+        updateButtonStatus(roomNumber, status, dndStatus);
     });
 
     console.log("✅ Buttons updated based on logs.");
@@ -164,13 +170,13 @@ async function fetchWithErrorHandling(url, options = {}) {
     try {
         console.log(`🔍 Fetching: ${url}`);
         const res = await fetch(url, options);
+        const data = await res.json();
 
         if (!res.ok) {
-            console.error(`❌ Request failed with status ${res.status}`);
-            return null; // Return null instead of crashing
+            console.error(`❌ Request failed with status ${res.status}:`, data);
+            return null;
         }
 
-        const data = await res.json();
         console.log("✅ API Response Data:", data);
         return data;
     } catch (error) {
@@ -482,11 +488,11 @@ async function restoreCleaningStatus() {
         }
 
         logs.forEach(log => {
-            let formattedRoom = formatRoomNumber(log.roomNumber);
+            let formattedRoom = formatRoomNumber(roomNumber);
             const status = log.finishTime ? "finished" : log.startTime ? "in_progress" : "available";
             const dndStatus = log.dndStatus ? "dnd" : "available"; // ✅ Retrieve DND status
 
-            updateButtonStatus(formatRoomNumber(log.roomNumber), status, dndStatus);
+            updateButtonStatus(formatRoomNumber(roomNumber), status, dndStatus);
         });
 
         console.log("✅ All buttons updated after page load.");
@@ -570,7 +576,7 @@ async function resetCleaningStatus(roomNumber) {
          const res = await fetch(`${apiUrl}/logs/reset-cleaning`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roomNumber: numericRoomNumber }), // ✅ Ensure number
+            body: JSON.stringify({ roomNumber: formatRoomNumber(roomNumber) }), // ✅ Ensure number
         });
 
         const data = await res.json();
@@ -585,7 +591,7 @@ async function resetCleaningStatus(roomNumber) {
         console.log(`✅ Cleaning status reset successfully for Room ${numericRoomNumber}.`);
 
         // ✅ Immediately update UI
-        updateButtonStatus(formattedRoom(roomNumber), "available", "available");
+        updateButtonStatus(formatRoomNumber(roomNumber), "available", "available");
 
         // ✅ Refresh logs
         await loadLogs();
@@ -617,7 +623,7 @@ async function toggleDoNotDisturb(roomNumber) {
         const res = await fetch(`${apiUrl}/logs/dnd`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roomNumber, status: newStatus }),
+            body: JSON.stringify({  roomNumber: formatRoomNumber(roomNumber), status: newStatus }),
         });
 
         const data = await res.json();
@@ -640,7 +646,7 @@ async function toggleDoNotDisturb(roomNumber) {
 
 
         // ✅ Ensure WebSocket emits the correct event
-        safeEmit("dndUpdate", { roomNumber, status: newStatus });
+        safeEmit("dndUpdate", { roomNumber: formattedRoom, status: newStatus });
 
         // ✅ Reload Logs to ensure the update is reflected
         await loadLogs();
@@ -651,7 +657,7 @@ async function toggleDoNotDisturb(roomNumber) {
 }
 
 async function startCleaning(roomNumber) {
-    let formattedRoom = formatRoomNumber(log.roomNumber);
+    let formattedRoom = formatRoomNumber(roomNumber);
     let numericRoomNumber = Number(roomNumber);
     const startButton = document.getElementById(`start-${formattedRoom}`);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
@@ -676,9 +682,10 @@ async function startCleaning(roomNumber) {
     console.warn(`⚠️ No log entry found for Room ${formattedRoom}`);
     }
     if (roomLog && roomLog.startTime && !roomLog.finishTime) {
-        alert(`⚠ Room ${formattedRoom} is already being cleaned.`);
-        return;
+    alert(`⚠ Room ${formattedRoom} is already being cleaned.`);
+    return;
     }
+
 
     // Disable Start Cleaning and Enable Finish Cleaning
     startButton.disabled = true;
@@ -691,7 +698,7 @@ async function startCleaning(roomNumber) {
         const res = await fetch(`${apiUrl}/logs/start`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roomNumber: numericRoomNumber, username })
+            body: JSON.stringify({ roomNumber: formatRoomNumber(roomNumber), username })
         });
 
         const data = await res.json();
@@ -706,7 +713,7 @@ async function startCleaning(roomNumber) {
 
          // ✅ Update UI Immediately
         updateRoomUI(roomNumber, "in_progress", "available");
-        updateButtonStatus(formattedRoom, "in_progress");
+        updateButtonStatus(formatRoomNumber(roomNumber), "in_progress");
 
         // ✅ Ensure fresh logs are loaded
         await loadLogs();
@@ -717,7 +724,7 @@ async function startCleaning(roomNumber) {
 }
 
 async function finishCleaning(roomNumber) {
-    const formattedRoom = formatRoomNumber(log.roomNumber);
+    const formattedRoom = formatRoomNumber(roomNumber);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
     const username = localStorage.getItem("username"); 
     if (!username) {
@@ -749,7 +756,7 @@ async function finishCleaning(roomNumber) {
         const res = await fetch(`${apiUrl}/logs/finish`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roomNumber: numericRoomNumber,username, status: "finished" })
+            body: JSON.stringify({  roomNumber: formatRoomNumber(roomNumber),username, status: "finished" })
         });
 
         const data = await res.json();
@@ -763,7 +770,7 @@ async function finishCleaning(roomNumber) {
 
         // ✅ Update UI Immediately
         updateRoomUI(roomNumber, "finished", "in_progress");
-        updateButtonStatus(formattedRoom, "finished");
+        updateButtonStatus(formatRoomNumber(roomNumber), "finished");
 
         // ✅ Ensure fresh logs are loaded
         await loadLogs();
@@ -831,13 +838,9 @@ async function loadLogs() {
 
         // ✅ Sort logs: "In Progress" first, then latest logs first
         logs.sort((a, b) => {
-            const statusA = a.status === "in_progress" ? 1 : 0;
-            const statusB = b.status === "in_progress" ? 1 : 0;
-            const timeA = a.startTime ? new Date(a.startTime).getTime() : 0;
-            const timeB = b.startTime ? new Date(b.startTime).getTime() : 0;
-            
-            // Prioritize "In Progress", then sort by latest time
-            return statusB - statusA || timeB - timeA;
+            if (a.status === "in_progress" && b.status !== "in_progress") return -1;
+            if (b.status === "in_progress" && a.status !== "in_progress") return 1;
+            return new Date(b.startTime || 0) - new Date(a.startTime || 0);
         });
 
         logs.forEach(log => {
@@ -851,7 +854,7 @@ async function loadLogs() {
             let status = log.finishTime ? "finished" : "in_progress";
             let dndStatus = log.dndStatus ? "dnd" : "available"; // ✅ Read DND status from DB
 
-            updateButtonStatus(formatRoomNumber(log.roomNumber), status, dndStatus);
+            updateButtonStatus(formatRoomNumber(roomNumber), status, dndStatus);
 
             // ✅ Only update DND status if it has actually changed
             const dndButton = document.getElementById(`dnd-${roomNumber}`);
@@ -1001,7 +1004,9 @@ async function clearLogs() {
         let logStartTime = rowData[1].trim(); // Example: "2024-03-04 10:30 AM"
 
         // Convert to proper Date format if possible
-        let logDate = logStartTime ? new Date(logStartTime).toISOString().split('T')[0] : "";
+        let logDate = logStartTime
+    ? new Date(logStartTime).toLocaleDateString('en-CA', { timeZone: 'Asia/Phnom_Penh' }) // YYYY-MM-DD
+    : "";
 
         console.log(`Checking Log: ${logDate} vs Today: ${today}`); // Debugging Output
 
