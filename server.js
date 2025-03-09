@@ -418,7 +418,7 @@ app.post("/logs/start", async (req, res) => {
     }
 });
 
-// ✅ Finish Cleaning
+// ✅ Finish Cleaning - FIXED
 app.post("/logs/finish", async (req, res) => {
     console.log("📥 Received Finish Request:", req.body);
 
@@ -435,29 +435,48 @@ app.post("/logs/finish", async (req, res) => {
 
     try {
         console.log(`🔍 Checking for unfinished log for Room ${roomNumber}...`);
+        
+        // ✅ Fetch log to get previousStatus before updating
         const log = await CleaningLog.findOne({ roomNumber, finishTime: null });
+        
         if (!log) {
             console.warn(`⚠️ Log not found or already finished for Room ${roomNumber}`);
             return res.status(400).json({ message: "Log not found or already finished" });
         }
 
-        // ✅ Updating the log with finish details
-        log.finishTime = finishTime;
-        log.finishedBy = username;
-        await log.save();
+        // ✅ Capture previous status before updating
+        let previousStatus = log.startTime ? "in_progress" : "available";
+
+        // ✅ Update Cleaning Log in Database
+        const updatedLog = await CleaningLog.findOneAndUpdate(
+            { roomNumber, finishTime: null },
+            {
+                $set: {
+                    finishTime,
+                    finishedBy: username,
+                    status: "finished"
+                }
+            },
+            { new: true }
+        );
+
+        if (!updatedLog) {
+            console.error("❌ Database update failed.");
+            return res.status(500).json({ message: "Failed to update cleaning status." });
+        }
 
         console.log(`✅ Room ${roomNumber} finished by ${username} at ${finishTime}`);
 
-        // ✅ Notify other clients via WebSocket
-        io.emit("roomUpdate", { roomNumber, status, previousStatus });
+        // ✅ Notify all WebSocket clients
+        io.emit("roomUpdate", { roomNumber, status: "finished", previousStatus });
 
         res.status(200).json({ message: `Room ${roomNumber} finished by ${username}` });
+
     } catch (error) {
         console.error("❌ Finish Cleaning Error:", error);
-        res.status(500).json({ message: "Server error", error });
+        res.status(500).json({ message: "Server error", error: error.message });
     }
 });
-
 const logSchema = new mongoose.Schema({
     roomNumber: { type: Number, required: true },
     startTime: { type: String, default: null },
