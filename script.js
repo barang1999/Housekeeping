@@ -678,8 +678,6 @@ function updateButtonStatus(roomNumber, status, dndStatus) {
     }
 }
 
-
-
 // Ensure updateButtonStatus is being called after fetching logs
 async function loadLogs() {
     console.log("🔄 Fetching cleaning logs...");
@@ -689,6 +687,7 @@ async function loadLogs() {
 
         if (!logs || !Array.isArray(logs)) {
             console.warn("⚠️ No valid logs found. Setting empty table.");
+            document.querySelector("#logTable tbody").innerHTML = "<tr><td colspan='5'>No logs found.</td></tr>";
             return;
         }
 
@@ -701,8 +700,8 @@ async function loadLogs() {
         logs.sort((a, b) => {
             const statusA = a.status === "in_progress" ? 1 : 0;
             const statusB = b.status === "in_progress" ? 1 : 0;
-            const timeA = new Date(a.startTime).getTime();
-            const timeB = new Date(b.startTime).getTime();
+            const timeA = a.startTime ? new Date(a.startTime).getTime() : 0;
+            const timeB = b.startTime ? new Date(b.startTime).getTime() : 0;
             
             // Prioritize "In Progress", then sort by latest time
             return statusB - statusA || timeB - timeA;
@@ -710,7 +709,7 @@ async function loadLogs() {
 
         logs.forEach(log => {
             console.log("📌 Log Entry:", log); // Debug individual log entries
-            
+
             let roomNumber = log.roomNumber ? log.roomNumber.toString().padStart(3, '0') : "N/A";
             let startTime = log.startTime ? new Date(log.startTime).toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' }) : "N/A";
             let startedBy = log.startedBy || "-";
@@ -723,7 +722,7 @@ async function loadLogs() {
             const dndButton = document.getElementById(`dnd-${roomNumber}`);
             if (dndButton) {
                 const isDNDActive = dndButton.classList.contains("active-dnd");
-        
+
                 if (isDNDActive && dndStatus === "available") {
                     console.log(`🔍 Skipping DND update for Room ${roomNumber}, already available.`);
                 } else if (!isDNDActive && dndStatus === "dnd") {
@@ -731,8 +730,8 @@ async function loadLogs() {
                     updateDNDStatus(roomNumber, "dnd");
                 }
             }
-            
-            // Store cleaning status
+
+            // ✅ Store cleaning status
             cleaningStatus[roomNumber] = {
                 started: status === "in_progress",
                 finished: status === "finished",
@@ -748,17 +747,18 @@ async function loadLogs() {
                 <td>${finishedBy}</td>
             `;
             logTable.appendChild(row);
-            
+        });
 
         // ✅ If no logs are found, display a default message
-        if (!logTable.innerHTML.trim()) {
-            logTable.innerHTML = "<tr><td colspan='5'>No logs found.</td></tr>";
-        }
-        
+        if (!logTable.innerHTML.trim()) { 
+            logTable.innerHTML = "<tr><td colspan='5'>No logs found.</td></tr>"; 
+        } 
+
     } catch (error) {
         console.error("❌ Error loading logs:", error);
     }
 }
+
 
 function updateDNDStatus(roomNumber, status) {
     console.log(`Updating DND status for Room ${roomNumber} to: ${status}`);
