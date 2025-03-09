@@ -561,7 +561,7 @@ async function resetCleaningStatus(roomNumber) {
 
         console.log(`✅ Cleaning status reset successfully for Room ${formattedRoom}.`);
         
-          // ✅ Immediately update UI so the Start Cleaning button is clickable
+        // ✅ Immediately update UI so the Start Cleaning button is clickable
         updateButtonStatus(roomNumber, "available", "available"); 
         
         // ✅ Ensure fresh logs are loaded
@@ -570,7 +570,6 @@ async function resetCleaningStatus(roomNumber) {
         console.error("❌ Error resetting cleaning status:", error);
     }
 }
-
 
 async function toggleDoNotDisturb(roomNumber) {
     const formattedRoom = roomNumber.toString().padStart(3, '0');
@@ -789,13 +788,14 @@ function updateButtonStatus(roomNumber, status, dndStatus) {
             finishButton.disabled = true;
         } else {
             // ✅ Reset to original sky blue color when room is available
-            startButton.style.backgroundColor = "#00aaff"; // Sky Blue color
+            startButton.style.backgroundColor = "#008CFF"; // Sky Blue color
             startButton.disabled = false;
             finishButton.style.backgroundColor = "grey";
             finishButton.disabled = true;
         }
     }
 }
+
 
 // Ensure updateButtonStatus is being called after fetching logs
 async function loadLogs() {
