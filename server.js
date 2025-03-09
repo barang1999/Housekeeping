@@ -312,8 +312,7 @@ app.post("/logs/reset-cleaning", async (req, res) => {
         if (!roomNumber) {
             return res.status(400).json({ message: "Room number is required" });
         }
-
-        roomNumber = Number(roomNumber); // Ensure it's a number
+        roomNumber = parseInt(roomNumber, 10);
 
         console.log(`🔍 Searching for Room ${roomNumber} in the database...`);
 
@@ -321,27 +320,15 @@ app.post("/logs/reset-cleaning", async (req, res) => {
             return res.status(500).json({ message: "Database not initialized yet" });
         }
 
-        const room = await db.collection("cleaninglogs").findOne({ roomNumber });
-
-        if (!room) {
-            console.warn(`⚠️ Room ${roomNumber} not found. Auto-inserting.`);
-            await db.collection("cleaninglogs").insertOne({
-                roomNumber,
-                status: "available",
-                startTime: null,
-                finishTime: null
-            });
-        }
-
-        console.log(`✅ Room ${roomNumber} found! Resetting cleaning status...`);
-
-        const result = await db.collection("cleaninglogs").updateOne(
+        // ✅ Reset room status properly
+        const result = await db.collection("logs").updateOne(
             { roomNumber },
-            { $set: { status: "available", startTime: null, finishTime: null } }
+            { $set: { status: "available", startTime: null, finishTime: null, startedBy: null, finishedBy: null } }
         );
 
         if (result.modifiedCount === 0) {
-            return res.status(500).json({ message: "⚠️ Failed to reset cleaning status" });
+            console.warn(`⚠️ Room ${roomNumber} was not updated. Possible DB issue.`);
+            return res.status(500).json({ message: "Failed to reset cleaning status" });
         }
 
         console.log(`✅ Cleaning status reset successfully for Room ${roomNumber}`);
@@ -352,6 +339,7 @@ app.post("/logs/reset-cleaning", async (req, res) => {
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 });
+
 
 
 
