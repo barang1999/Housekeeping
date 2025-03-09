@@ -446,7 +446,7 @@ app.post("/logs/finish", async (req, res) => {
         console.log(`✅ Room ${roomNumber} finished by ${username} at ${finishTime}`);
 
         // ✅ Notify other clients via WebSocket
-        io.emit("update", { roomNumber, status });
+        io.emit("roomUpdate", { roomNumber, status, previousStatus });
 
         res.status(200).json({ message: `Room ${roomNumber} finished by ${username}` });
     } catch (error) {
