@@ -58,17 +58,23 @@ async function connectWebSocket() {
     });
 
       socket.on("dndUpdate", async ({ roomNumber, status }) => {
-        console.log(`📡 WebSocket: DND mode changed for Room ${roomNumber} -> ${status}`);
-    
-        // Determine the new room status based on DND state
-        const newStatus = status === "dnd" ? "dnd" : "available";
-    
-        // Update the room UI based on new status
-        updateRoomUI(roomNumber, newStatus);
-    
-        // Fetch logs again to ensure UI is in sync
-        await loadLogs(); // Ensures that logs are fully updated before proceeding
-    });
+    console.log(`📡 WebSocket: DND mode changed for Room ${roomNumber} -> ${status}`);
+
+    // Fetch latest logs to determine previous state
+    const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
+    const roomLog = logs.find(log => log.roomNumber.toString().padStart(3, '0') === roomNumber);
+
+    let previousStatus = "available";
+    if (roomLog) {
+        previousStatus = roomLog.finishTime ? "finished" : roomLog.startTime ? "in_progress" : "available";
+    }
+
+    // Update UI with proper state restoration
+    updateRoomUI(roomNumber, status, previousStatus);
+
+    // Fetch logs again to ensure UI is in sync
+    await loadLogs();
+});
 }
 
 function safeEmit(event, data = {}) {
@@ -498,30 +504,41 @@ async function restoreCleaningStatus() {
     }
 }
 
-function updateRoomUI(roomNumber, status) {
+function updateRoomUI(roomNumber, status, previousStatus = null) {
     const startButton = document.querySelector(`#start-cleaning-${roomNumber}`);
     const finishButton = document.querySelector(`#finish-cleaning-${roomNumber}`);
 
     if (!startButton || !finishButton) return; // Ensure elements exist
 
     if (status === "available") {
-        startButton.disabled = false;
-        startButton.classList.remove("disabled");
-        startButton.classList.add("enabled");
-        finishButton.disabled = true;
-        finishButton.classList.add("disabled");
+        if (previousStatus === "in_progress") {
+            startButton.disabled = true;
+            finishButton.disabled = false;
+            finishButton.style.backgroundColor = "blue"; // Restore finish button if room was being cleaned
+        } else {
+            startButton.disabled = false;
+            startButton.style.backgroundColor = "blue"; // Normal start state
+            finishButton.disabled = true;
+            finishButton.style.backgroundColor = "grey";
+        }
     } else if (status === "dnd") {
         startButton.disabled = true;
-        startButton.classList.add("disabled");
         finishButton.disabled = true;
-        finishButton.classList.add("disabled");
+        startButton.style.backgroundColor = "grey";
+        finishButton.style.backgroundColor = "grey";
+    } else if (status === "in_progress") {
+        startButton.disabled = true;
+        startButton.style.backgroundColor = "grey";
+        finishButton.disabled = false;
+        finishButton.style.backgroundColor = "blue";
     } else {
         startButton.disabled = true;
-        startButton.classList.add("disabled");
-        finishButton.disabled = false;
-        finishButton.classList.remove("disabled");
+        startButton.style.backgroundColor = "grey";
+        finishButton.disabled = true;
+        finishButton.style.backgroundColor = "green";
     }
 }
+
 
 async function toggleDoNotDisturb(roomNumber) {
     const formattedRoom = roomNumber.toString().padStart(3, '0');
