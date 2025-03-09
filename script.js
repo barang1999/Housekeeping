@@ -546,10 +546,8 @@ function updateRoomUI(roomNumber, status, previousStatus = null) {
     }
 }
 
-
-
 async function resetCleaningStatus(roomNumber) {
-   const numericRoomNumber = Number(roomNumber); // ✅ Force Number Conversion
+    const numericRoomNumber = parseInt(roomNumber, 10); // ✅ Ensure it's a Number
 
     if (isNaN(numericRoomNumber)) {
         console.error("❌ Invalid room number:", roomNumber);
@@ -560,9 +558,8 @@ async function resetCleaningStatus(roomNumber) {
     console.log(`🔄 Verifying Room ${numericRoomNumber} exists in logs before resetting...`);
 
     try {
-        // Check if room exists in logs before sending request
         const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
-        const roomLog = logs.find(log => log.roomNumber === numericRoomNumber);
+        const roomLog = logs.find(log => log.roomNumber === numericRoomNumber); // ✅ Compare as number
 
         if (!roomLog) {
             console.warn(`⚠️ No log entry found for Room ${numericRoomNumber}`);
@@ -572,10 +569,10 @@ async function resetCleaningStatus(roomNumber) {
 
         console.log(`✅ Room ${numericRoomNumber} found. Sending reset request...`);
 
-         const res = await fetch(`${apiUrl}/logs/reset-cleaning`, {
+        const res = await fetch(`${apiUrl}/logs/reset-cleaning`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roomNumber: formatRoomNumber(roomNumber) }), // ✅ Ensure number
+            body: JSON.stringify({ roomNumber: numericRoomNumber }) // ✅ Send as number
         });
 
         const data = await res.json();
@@ -589,16 +586,13 @@ async function resetCleaningStatus(roomNumber) {
 
         console.log(`✅ Cleaning status reset successfully for Room ${numericRoomNumber}.`);
 
-        // ✅ Immediately update UI
-        updateButtonStatus(formatRoomNumber(roomNumber), "available", "available");
+        updateButtonStatus(numericRoomNumber, "available", "available");
 
-        // ✅ Refresh logs
         await loadLogs();
     } catch (error) {
         console.error("❌ Error resetting cleaning status:", error);
     }
 }
-
 
 async function toggleDoNotDisturb(roomNumber) {
     const formattedRoom = formatRoomNumber(roomNumber);
@@ -614,15 +608,13 @@ async function toggleDoNotDisturb(roomNumber) {
 
     console.log(`🔄 Toggling DND mode for Room ${formattedRoom}`);
 
-    // ✅ Update UI Immediately
-    updateDNDStatus(formattedRoom, newStatus);
+    updateDNDStatus(roomNumber, newStatus);
 
     try {
-        console.log(`🔍 Sending DND update to API for Room ${formattedRoom} -> ${newStatus}`);
         const res = await fetch(`${apiUrl}/logs/dnd`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({  roomNumber: formatRoomNumber(roomNumber), status: newStatus }),
+            body: JSON.stringify({ roomNumber, status: newStatus }),
         });
 
         const data = await res.json();
@@ -634,20 +626,16 @@ async function toggleDoNotDisturb(roomNumber) {
 
         console.log(`✅ Room ${formattedRoom} DND status updated.`);
 
-        // ✅ If DND is turned off, reset cleaning status in the backend
-       if (newStatus === "available") {
+        // ✅ If DND is turned off and was previously "in_progress", reset cleaning
+        if (newStatus === "available" && dndButton.dataset.previousStatus === "in_progress") {
             console.log(`🔄 Resetting cleaning status for Room ${formattedRoom} after DND removal`);
-            
             setTimeout(async () => {
                 await resetCleaningStatus(formattedRoom);
-            }, 1000); // 1-second delay before checking logs
+            }, 1000);
         }
 
+        safeEmit("dndUpdate", { roomNumber, status: newStatus });
 
-        // ✅ Ensure WebSocket emits the correct event
-        safeEmit("dndUpdate", { roomNumber: formattedRoom, status: newStatus });
-
-        // ✅ Reload Logs to ensure the update is reflected
         await loadLogs();
     } catch (error) {
         console.error("❌ Error updating DND status:", error);
