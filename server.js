@@ -142,13 +142,15 @@ io.on("connection", (socket) => {
 
     console.log(`🔐 WebSocket Authenticated: ${socket.user.username}`);
 
-    // ✅ Handle DND updates securely
+    // ✅ Handle DND updates securely (UI only, no logs modified)
     socket.on("dndUpdate", ({ roomNumber, status }) => {
         if (!roomNumber) {
             console.warn("⚠️ Invalid DND update request");
             return;
         }
         console.log(`📡 Broadcasting DND update for Room ${roomNumber} to ${status}`);
+
+        // ✅ Broadcast event WITHOUT modifying database logs
         io.emit("dndUpdate", { roomNumber, status });
     });
 
@@ -310,6 +312,7 @@ app.post("/logs/dnd", async (req, res) => {
 
         const isDND = status === "dnd";
 
+        // ✅ Fetch current DND status (without modifying logs)
         const currentLog = await CleaningLog.findOne({ roomNumber });
 
         if (currentLog && currentLog.dndStatus === isDND) {
@@ -317,28 +320,25 @@ app.post("/logs/dnd", async (req, res) => {
             return res.status(200).json({ message: `No change: Room ${roomNumber} already in ${status} mode.` });
         }
 
-        const updatedLog = await CleaningLog.findOneAndUpdate(
+        // ✅ Only update the DND field in the database (No impact on cleaning logs)
+        await CleaningLog.updateOne(
             { roomNumber },
-            { dndStatus: isDND, status: isDND ? "dnd" : "available" },
-            { new: true, upsert: true }
+            { $set: { dndStatus: isDND } }, // Only modify DND mode
+            { upsert: true }
         );
-
-        if (!updatedLog) {
-            return res.status(500).json({ message: "Failed to update DND status." });
-        }
 
         console.log(`✅ Room ${roomNumber} DND mode updated -> ${status}`);
 
         // ✅ Emit WebSocket event only if status changed
         io.emit("dndUpdate", { roomNumber, status });
 
-        res.json({ message: `DND mode ${status} for Room ${roomNumber}`, room: updatedLog });
+        res.json({ message: `DND mode ${status} for Room ${roomNumber}` });
+
     } catch (error) {
         console.error("❌ Error updating DND status:", error);
         res.status(500).json({ message: "Internal server error." });
     }
 });
-
 
 module.exports = router;
 
@@ -353,17 +353,17 @@ app.post("/logs/reset-cleaning", async (req, res) => {
 
         roomNumber = parseInt(roomNumber, 10); // Convert to a number
 
-        console.log(`🔄 Attempting to reset cleaning status for Room ${roomNumber}...`);
+        console.log(`🔄 Resetting cleaning status for Room ${roomNumber}...`);
 
-        // ✅ Ensure MongoDB finds the room number as a number
-        const existingLog = await CleaningLog.findOne({ roomNumber: roomNumber });
+        // ✅ Fetch log without modifying DND mode
+        const existingLog = await CleaningLog.findOne({ roomNumber });
 
         if (!existingLog) {
             console.warn(`⚠️ Room ${roomNumber} not found in logs. Cannot reset.`);
             return res.status(400).json({ message: `Room ${roomNumber} not found in logs.` });
         }
 
-        // ✅ Perform the reset operation
+        // ✅ Only reset cleaning status (Do NOT change DND mode)
         await CleaningLog.updateOne(
             { _id: existingLog._id },
             {
@@ -372,7 +372,6 @@ app.post("/logs/reset-cleaning", async (req, res) => {
                     finishTime: null,
                     startedBy: null,
                     finishedBy: null,
-                    dndStatus: false,
                     status: "available"
                 }
             }
