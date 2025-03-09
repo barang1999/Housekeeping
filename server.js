@@ -8,8 +8,6 @@ const { Server } = require("socket.io");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-const CleaningLog = require("./CleaningLog"); // ✅ Import Model
-
 // ✅ Initialize Express
 const app = express();
 app.use(express.json());
