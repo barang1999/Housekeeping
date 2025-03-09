@@ -8,6 +8,9 @@ const { Server } = require("socket.io");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
+const RoomDND = require("./RoomDND"); // ✅ Ensure RoomDND is imported before using it
+
+
 // ✅ Initialize Express
 const app = express();
 app.use(express.json());
@@ -40,16 +43,6 @@ async function connectDB(retries = 5, delay = 5000) {
 (async () => {
     await connectDB();
 })();
-
-// ✅ New DND Schema
-const dndSchema = new mongoose.Schema({
-    roomNumber: { type: Number, required: true, unique: true }, // Ensure unique room numbers
-    dndStatus: { type: Boolean, default: false }, // True = DND Active
-});
-
-// ✅ Ensure model is only defined once
-
-module.exports = RoomDND;
 
 // ✅ Middleware to Ensure DB Connection Before Processing Requests
 app.use(async (req, res, next) => {
