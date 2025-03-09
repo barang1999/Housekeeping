@@ -609,11 +609,13 @@ async function toggleDoNotDisturb(roomNumber) {
         console.log(`✅ Room ${formattedRoom} DND status updated.`);
         safeEmit("dndUpdate", { roomNumber, status: newStatus });
 
+        // ✅ Force UI update by reloading logs
         await loadLogs();
     } catch (error) {
         console.error("❌ Error updating DND status:", error);
     }
 }
+
 
 async function startCleaning(roomNumber) {
     const formattedRoom = roomNumber.toString().padStart(3, '0');
