@@ -47,7 +47,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 /** ✅ WebSocket Connection & Event Handling */
 async function connectWebSocket() {
     if (window.socket) {
-        window.socket.off("roomUpdate"); // Remove existing listeners to prevent duplicates
         window.socket.off("dndUpdate");
         window.socket.disconnect();
     }
@@ -81,6 +80,19 @@ async function connectWebSocket() {
 
     window.socket.on("dndUpdate", async ({ roomNumber, status }) => {
     console.log(`📡 WebSocket: DND mode changed for Room ${roomNumber} -> ${status}`);
+
+        // ✅ Fix: Prevent duplicate events by using `off()` before `on()`
+    window.socket.off("dndUpdate").on("dndUpdate", async ({ roomNumber, status }) => {
+        console.log(`📡 WebSocket: DND mode changed for Room ${roomNumber} -> ${status}`);
+
+        // ✅ Prevent unnecessary UI updates if status hasn't changed
+        const dndButton = document.getElementById(`dnd-${roomNumber}`);
+        const isCurrentlyActive = dndButton?.classList.contains("active-dnd");
+
+        if ((status === "dnd" && isCurrentlyActive) || (status === "available" && !isCurrentlyActive)) {
+            console.log(`🔍 No UI change needed for Room ${roomNumber}. Skipping.`);
+            return;
+        }
 
     // ✅ Update UI Immediately
     updateDNDStatus(roomNumber, status);
@@ -605,16 +617,6 @@ async function toggleDoNotDisturb(roomNumber) {
         // ✅ Instead of manually modifying UI, call updateDNDStatus
         updateDNDStatus(formattedRoom, newStatus);
 
-        if (newStatus === "available") {
-            console.log(`🔄 Re-enabling Start Cleaning for Room ${formattedRoom}`);
-            startButton.disabled = false;
-            startButton.style.backgroundColor = "#008CFF"; // Restore blue color
-        } else {
-            console.log(`🚨 Setting Room ${formattedRoom} to DND mode`);
-            startButton.disabled = true;
-            finishButton.disabled = true;
-        }
-
         // ✅ Ensure logs reflect new DND status
         await loadLogs();
     } catch (error) {
@@ -876,9 +878,10 @@ async function updateDNDStatus(roomNumber, status) {
         return;
     }
 
-    // ✅ Only update if the status is actually changing
-    if (dndButton.classList.contains("active-dnd") && status === "available") {
-        console.log(`✅ No change for Room ${formattedRoom}, skipping DND update.`);
+     // ✅ Prevent unnecessary toggling
+    const isCurrentlyActive = dndButton.classList.contains("active-dnd");
+    if ((status === "dnd" && isCurrentlyActive) || (status === "available" && !isCurrentlyActive)) {
+        console.log(`✅ No change needed for Room ${formattedRoom}, skipping.`);
         return;
     }
 
