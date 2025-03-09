@@ -313,9 +313,9 @@ app.post("/logs/reset-cleaning", async (req, res) => {
             return res.status(400).json({ message: "Room number is required" });
         }
 
-        roomNumber = parseInt(roomNumber, 10); // Ensure it's a number
+        roomNumber = parseInt(roomNumber, 10);
 
-        console.log(`🔍 Attempting to reset cleaning status for Room ${roomNumber}...`);
+        console.log(`🔍 Resetting cleaning status for Room ${roomNumber}...`);
 
         // Ensure MongoDB is connected
         if (!mongoose.connection.readyState) {
@@ -333,11 +333,11 @@ app.post("/logs/reset-cleaning", async (req, res) => {
                     startedBy: null,
                     finishedBy: null,
                     dndStatus: false,
-                    status: "available" // ✅ Ensure the status is reset correctly
+                    status: "available" // ✅ Ensure status is set to "available"
                 }
             }
         );
-        
+
         if (result.modifiedCount === 0) {
             console.warn(`⚠️ No logs were updated for Room ${roomNumber}. Possible DB issue.`);
             return res.status(500).json({ message: "Failed to reset cleaning status" });
@@ -347,15 +347,13 @@ app.post("/logs/reset-cleaning", async (req, res) => {
 
         // Notify all WebSocket clients
         io.emit("resetCleaning", { roomNumber, status: "available" });
-        
+
         res.json({ message: `✅ Cleaning status reset for Room ${roomNumber}` });
     } catch (error) {
         console.error("❌ Error resetting cleaning status:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 });
-
-
 
 // ✅ Graceful Shutdown: Close DB Connection on Exit
 process.on("SIGINT", async () => {
