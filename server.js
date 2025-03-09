@@ -133,14 +133,31 @@ io.use(async (socket, next) => {
 io.on("connection", (socket) => {
     console.log(`⚡ WebSocket Client Connected: ${socket.id}`);
 
-    // ✅ Handle DND updates
+    // Verify if the client is authenticated
+    if (!socket.user) {
+        console.warn("❌ Unauthorized WebSocket Connection Attempt");
+        socket.disconnect();
+        return;
+    }
+
+    console.log(`🔐 WebSocket Authenticated: ${socket.user.username}`);
+
+    // ✅ Handle DND updates securely
     socket.on("dndUpdate", ({ roomNumber, status }) => {
+        if (!roomNumber) {
+            console.warn("⚠️ Invalid DND update request");
+            return;
+        }
         console.log(`📡 Broadcasting DND update for Room ${roomNumber} to ${status}`);
         io.emit("dndUpdate", { roomNumber, status });
     });
 
-    // ✅ Handle Cleaning Reset
+    // ✅ Handle Cleaning Reset securely
     socket.on("resetCleaning", ({ roomNumber }) => {
+        if (!roomNumber) {
+            console.warn("⚠️ Invalid Cleaning Reset request");
+            return;
+        }
         console.log(`🔄 Cleaning Reset Event Received for Room ${roomNumber}`);
         io.emit("resetCleaning", { roomNumber, status: "available" });
     });
@@ -150,8 +167,6 @@ io.on("connection", (socket) => {
         console.warn(`🔴 WebSocket Client Disconnected: ${reason}`);
     });
 });
-
-
 
 // ✅ Store `io` in Express for later use
 app.set("io", io);
