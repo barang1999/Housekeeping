@@ -573,9 +573,12 @@ async function resetCleaningStatus(roomNumber) {
 async function toggleDoNotDisturb(roomNumber) {
     const formattedRoom = roomNumber.toString().padStart(3, '0');
     const dndButton = document.getElementById(`dnd-${formattedRoom}`);
+    const startButton = document.getElementById(`start-${formattedRoom}`);
+    const finishButton = document.getElementById(`finish-${formattedRoom}`);
 
-    if (!dndButton) {
-        console.error(`❌ DND button not found for Room ${formattedRoom}`);
+
+     if (!dndButton || !startButton || !finishButton) {
+        console.error(`❌ Buttons not found for Room ${formattedRoom}`);
         return;
     }
 
@@ -601,6 +604,16 @@ async function toggleDoNotDisturb(roomNumber) {
 
         // ✅ Instead of manually modifying UI, call updateDNDStatus
         updateDNDStatus(formattedRoom, newStatus);
+
+        if (newStatus === "available") {
+            console.log(`🔄 Re-enabling Start Cleaning for Room ${formattedRoom}`);
+            startButton.disabled = false;
+            startButton.style.backgroundColor = "#008CFF"; // Restore blue color
+        } else {
+            console.log(`🚨 Setting Room ${formattedRoom} to DND mode`);
+            startButton.disabled = true;
+            finishButton.disabled = true;
+        }
 
         // ✅ Ensure logs reflect new DND status
         await loadLogs();
