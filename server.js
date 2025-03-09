@@ -25,7 +25,7 @@ async function connectDB(retries = 5, delay = 5000) {
         console.log("🔍 Connecting to MongoDB...");
         client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true }); // Assign to global client
         await client.connect();
-        db = client.db("housekeeping"); // Assign db globally
+        db = client.db("Housekeeping"); // Assign db globally
         console.log("✅ Connected to MongoDB");
     } catch (error) {
         console.error("❌ Error connecting to MongoDB:", error);
