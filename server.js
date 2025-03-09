@@ -316,12 +316,17 @@ app.post("/logs/reset-cleaning", async (req, res) => {
         if (!db) {
             return res.status(500).json({ message: "Database not initialized yet" });
         }
-        
-        const room = await db.collection("logs").findOne({ roomNumber });
+
+        let room = await db.collection("logs").findOne({ roomNumber });
 
         if (!room) {
-            console.warn(`⚠️ Room ${roomNumber} not found in database.`);
-            return res.status(404).json({ message: "⚠️ Room not found" });
+            console.warn(`⚠️ Room ${roomNumber} not found. Auto-inserting.`);
+            await db.collection("logs").insertOne({
+                roomNumber,
+                status: "available",
+                startTime: null,
+                finishTime: null
+            });
         }
 
         console.log(`✅ Room ${roomNumber} found! Resetting cleaning status...`);
@@ -343,6 +348,7 @@ app.post("/logs/reset-cleaning", async (req, res) => {
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 });
+
 
 // ✅ Graceful Shutdown: Close DB Connection on Exit
 process.on("SIGINT", async () => {
