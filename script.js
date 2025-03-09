@@ -569,42 +569,45 @@ async function toggleDoNotDisturb(roomNumber) {
     const dndButton = document.getElementById(`dnd-${formattedRoom}`);
 
     if (!dndButton) {
-        console.error(`❌ Button not found for Room ${formattedRoom}`);
+        console.error(`❌ DND Button not found for Room ${formattedRoom}`);
         return;
     }
 
     const isDNDActive = dndButton.classList.contains("active-dnd");
     const newStatus = isDNDActive ? "available" : "dnd";
 
+    console.log(`🔄 Applying DND mode for Room ${formattedRoom}`);
+
+    // ✅ Update UI Immediately to prevent stuck state
+    updateDNDStatus(formattedRoom, newStatus);
+
     try {
-        console.log(`🔄 Toggling DND mode for Room ${formattedRoom} -> ${newStatus}`);
-
-        // ✅ Update UI Immediately
-        updateDNDStatus(formattedRoom, newStatus);
-
+        console.log(`🔍 Sending DND update to API for Room ${formattedRoom} -> ${newStatus}`);
         const res = await fetch(`${apiUrl}/logs/dnd`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roomNumber, status: newStatus })
+            body: JSON.stringify({ roomNumber, status: newStatus }),
         });
 
         const data = await res.json();
         if (!res.ok) {
-            alert(`❌ Failed: ${data.message}`);
+            console.error("❌ DND API Error:", data.message);
+            alert(`❌ DND Update Failed: ${data.message}`);
             return;
         }
 
-        console.log(`✅ Room ${formattedRoom} DND status updated in backend.`);
+        console.log(`✅ Room ${formattedRoom} DND status updated in database.`);
+
+        // ✅ Ensure WebSocket emits the correct event
         safeEmit("dndUpdate", { roomNumber, status: newStatus });
 
-        await loadLogs(); // 🔄 Ensure logs are updated
+        // ✅ Reload Logs to ensure the update is reflected
+        await loadLogs();
     } catch (error) {
         console.error("❌ Error updating DND status:", error);
+        alert("An error occurred while updating DND mode.");
     }
 }
-
-
-
 async function startCleaning(roomNumber) {
     const formattedRoom = roomNumber.toString().padStart(3, '0');
     const startButton = document.getElementById(`start-${formattedRoom}`);
@@ -846,7 +849,7 @@ async function loadLogs() {
 
 
 async function updateDNDStatus(roomNumber, status) {
-    console.log(`Updating DND status for Room ${roomNumber} to: ${status}`);
+    console.log(`🚨 Updating DND status for Room ${roomNumber} to: ${status}`);
 
     let formattedRoom = roomNumber.toString().padStart(3, '0');
     const dndButton = document.getElementById(`dnd-${formattedRoom}`);
@@ -858,13 +861,7 @@ async function updateDNDStatus(roomNumber, status) {
         return;
     }
 
-     // ✅ Prevent unnecessary toggling
-    const isCurrentlyActive = dndButton.classList.contains("active-dnd");
-    if ((status === "dnd" && isCurrentlyActive) || (status === "available" && !isCurrentlyActive)) {
-        console.log(`✅ No change needed for Room ${formattedRoom}, skipping.`);
-        return;
-    }
-
+    // ✅ Ensure class toggling for active state
     if (status === "dnd") {
         console.log(`🚨 Setting DND mode for Room ${formattedRoom}`);
         dndButton.classList.add("active-dnd");
@@ -875,17 +872,14 @@ async function updateDNDStatus(roomNumber, status) {
         console.log(`✅ Room ${formattedRoom} is available`);
         dndButton.classList.remove("active-dnd");
         dndButton.style.backgroundColor = "#008CFF";
-
-        // ✅ Enable Start Cleaning Button when DND is disabled
         startButton.disabled = false;
         startButton.style.backgroundColor = "#008CFF";
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "grey";
     }
 
-    // ✅ Instead of fetching logs separately, refresh all logs
+    // ✅ Ensure logs refresh to reflect the latest status
     await loadLogs();
-    updateButtonStatus(roomNumber, status);
 }
 
 function logout() {
