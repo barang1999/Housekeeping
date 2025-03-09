@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
-const mongoose = require("mongoose");
+const { MongoClient } = require("mongodb");
+const mongoose = require("mongoose"); // ✅ Ensure mongoose is included
 const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -15,14 +16,15 @@ app.use(express.json());
 app.use(cors()); // ✅ Allow frontend requests
 
 // ✅ Connect to MongoDB
-const uri = process.env.MONGO_URI || "your_mongodb_connection_string";
+const uri = process.env.MONGO_URI || "mongodb+srv://barangbusiness:siFOl85qZCxkFsuD@cluster0.hcn2f.mongodb.net/Housekeeping?retryWrites=true&w=majority&appName=Cluster0";
+let client = null; // Store MongoClient instance
 let db = null;
-
 // ✅ MongoDB Connection Function with Retry Mechanism
 async function connectDB(retries = 5, delay = 5000) {
     try {
         console.log("🔍 Connecting to MongoDB...");
         const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+
         await client.connect();
         db = client.db("housekeeping"); // ✅ Ensure `db` is assigned here
         console.log("✅ Connected to MongoDB");
