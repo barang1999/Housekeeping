@@ -92,11 +92,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     await ensureValidToken();
     ensureWebSocketConnection();
-    
-    // ✅ Immediately fetch logs and update buttons
-    await loadLogs();
-    await restoreCleaningStatus();
+
+    console.log("⏳ Fetching logs...");
+    await loadLogs(); // ✅ Ensure logs are loaded first
+
+    console.log("✅ Logs loaded. Restoring cleaning status...");
+    await restoreCleaningStatus(); // ✅ Now restore UI based on logs
+
+    console.log("🎯 Cleaning status restored successfully.");
 });
+
 
 // ✅ Ensure buttons update after logs are loaded
 async function updateButtonsFromLogs() {
@@ -482,21 +487,16 @@ async function restoreCleaningStatus() {
         const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
 
         if (!logs || !Array.isArray(logs)) {
-            console.warn("⚠️ No valid logs found. Setting empty array.");
+            console.warn("⚠️ No valid logs found. Skipping status restoration.");
             return;
         }
 
         logs.forEach(log => {
             const roomNumber = log.roomNumber.toString().padStart(3, '0');  
-            const status = log.finishTime ? "finished" : log.startTime ? "in_progress" : "pending";
+            const status = log.finishTime ? "finished" : log.startTime ? "in_progress" : "available";
             const dndStatus = log.dndStatus ? "dnd" : "available"; // ✅ Retrieve DND status
 
-            if (!roomNumber) {
-                console.warn("⚠️ Skipping log entry with missing room number:", log);
-                return;
-            }
-
-            updateButtonStatus(roomNumber, status, dndStatus); // ✅ Pass `dndStatus`
+            updateButtonStatus(roomNumber, status, dndStatus);
         });
 
         console.log("✅ All buttons updated after page load.");
@@ -504,6 +504,7 @@ async function restoreCleaningStatus() {
         console.error("❌ Error fetching logs:", error);
     }
 }
+
 
 function updateRoomUI(roomNumber, status, previousStatus = null) {
     const startButton = document.querySelector(`#start-cleaning-${roomNumber}`);
@@ -758,7 +759,7 @@ async function finishCleaning(roomNumber) {
     }
 }
 
-function updateButtonStatus(roomNumber, status, dndStatus) {
+function updateButtonStatus(roomNumber, status, dndStatus = "available") {
     let formattedRoom = roomNumber.toString().padStart(3, '0');
     const startButton = document.getElementById(`start-${formattedRoom}`);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
@@ -775,7 +776,11 @@ function updateButtonStatus(roomNumber, status, dndStatus) {
         finishButton.style.backgroundColor = "grey";
         finishButton.disabled = true;
         dndButton.style.backgroundColor = "red";
+        dndButton.classList.add("active-dnd");
     } else {
+        dndButton.style.backgroundColor = "blue";
+        dndButton.classList.remove("active-dnd");
+
         if (status === "in_progress") {
             startButton.style.backgroundColor = "grey";
             startButton.disabled = true;
