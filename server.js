@@ -284,14 +284,17 @@ app.post("/logs/dnd", async (req, res) => {
             return res.status(400).json({ message: "Room number is required." });
         }
 
-        const log = await CleaningLog.findOneAndUpdate(
-            { roomNumber },
-            { dndStatus: status === "dnd" }, // ✅ Save DND status in DB
-            { new: true, upsert: true }
-        );
+             const log = await CleaningLog.findOneAndUpdate(
+                { roomNumber },
+                {
+                    dndStatus: status === "dnd",
+                    status: status === "dnd" ? "in_progress" : "available", // ✅ Reset status if DND is off
+                },
+                { new: true, upsert: true }
+            );
 
         // ✅ Emit WebSocket Event so all devices get the update
-        io.emit("dndUpdate", { roomNumber, status });
+        io.emit("dndUpdate", { roomNumber, status, newStatus: status === "dnd" ? "in_progress" : "available" });
 
         res.json({ message: `DND mode ${status} for Room ${roomNumber}`, room: log });
     } catch (error) {
