@@ -57,13 +57,17 @@ async function connectWebSocket() {
         setTimeout(connectWebSocket, 5000); // Try reconnecting after disconnect
     });
 
-   // ✅ Handle DND updates in real-time
-      window.socket.on("dndUpdate", async ({ roomNumber, status }) => {
-          console.log(`📡 WebSocket: Received DND update for Room ${roomNumber} -> ${status}`);
-          updateDNDStatus(roomNumber, status);
-  
-          // ✅ Fetch logs after DND change
-          await loadLogs();
+      socket.on("dndUpdate", async ({ roomNumber, status }) => {
+        console.log(`📡 WebSocket: DND mode changed for Room ${roomNumber} -> ${status}`);
+    
+        // Determine the new room status based on DND state
+        const newStatus = status === "dnd" ? "dnd" : "available";
+    
+        // Update the room UI based on new status
+        updateRoomUI(roomNumber, newStatus);
+    
+        // Fetch logs again to ensure UI is in sync
+        await loadLogs(); // Ensures that logs are fully updated before proceeding
     });
 }
 
@@ -494,6 +498,30 @@ async function restoreCleaningStatus() {
     }
 }
 
+function updateRoomUI(roomNumber, status) {
+    const startButton = document.querySelector(`#start-cleaning-${roomNumber}`);
+    const finishButton = document.querySelector(`#finish-cleaning-${roomNumber}`);
+
+    if (!startButton || !finishButton) return; // Ensure elements exist
+
+    if (status === "available") {
+        startButton.disabled = false;
+        startButton.classList.remove("disabled");
+        startButton.classList.add("enabled");
+        finishButton.disabled = true;
+        finishButton.classList.add("disabled");
+    } else if (status === "dnd") {
+        startButton.disabled = true;
+        startButton.classList.add("disabled");
+        finishButton.disabled = true;
+        finishButton.classList.add("disabled");
+    } else {
+        startButton.disabled = true;
+        startButton.classList.add("disabled");
+        finishButton.disabled = false;
+        finishButton.classList.remove("disabled");
+    }
+}
 
 async function toggleDoNotDisturb(roomNumber) {
     const formattedRoom = roomNumber.toString().padStart(3, '0');
