@@ -79,19 +79,16 @@ async function connectWebSocket() {
     });
 
     window.socket.on("dndUpdate", async ({ roomNumber, status }) => {
-    console.log(`📡 WebSocket: DND mode changed for Room ${roomNumber} -> ${status}`);
-
-        // ✅ Fix: Prevent duplicate events by using `off()` before `on()`
-    window.socket.off("dndUpdate").on("dndUpdate", async ({ roomNumber, status }) => {
         console.log(`📡 WebSocket: DND mode changed for Room ${roomNumber} -> ${status}`);
 
-        // ✅ Prevent unnecessary UI updates if status hasn't changed
+        // ✅ Prevent redundant updates
         const dndButton = document.getElementById(`dnd-${roomNumber}`);
-        const isCurrentlyActive = dndButton?.classList.contains("active-dnd");
-
-        if ((status === "dnd" && isCurrentlyActive) || (status === "available" && !isCurrentlyActive)) {
-            console.log(`🔍 No UI change needed for Room ${roomNumber}. Skipping.`);
-            return;
+        if (dndButton) {
+            const isCurrentlyActive = dndButton.classList.contains("active-dnd");
+            if ((status === "dnd" && isCurrentlyActive) || (status === "available" && !isCurrentlyActive)) {
+                console.log(`🔍 No UI change needed for Room ${roomNumber}. Skipping.`);
+                return;
+            }
         }
 
     // ✅ Update UI Immediately
