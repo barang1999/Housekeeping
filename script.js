@@ -591,6 +591,12 @@ async function startCleaning(roomNumber) {
 async function finishCleaning(roomNumber) {
     const formattedRoom = roomNumber.toString().padStart(3, '0');
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
+    const username = localStorage.getItem("username"); 
+    if (!username) {
+        console.error("❌ No username found in localStorage. Cannot finish cleaning.");
+        alert("You must be logged in to finish cleaning.");
+        return;
+    }
     
     if (!finishButton) {
         console.error(`❌ Finish button not found for Room ${formattedRoom}`);
