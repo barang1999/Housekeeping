@@ -497,19 +497,35 @@ async function restoreCleaningStatus() {
 
 async function toggleDoNotDisturb(roomNumber) {
     const formattedRoom = roomNumber.toString().padStart(3, '0');
+    const startButton = document.getElementById(`start-${formattedRoom}`);
+    const finishButton = document.getElementById(`finish-${formattedRoom}`);
     const dndButton = document.getElementById(`dnd-${formattedRoom}`);
-    
-    if (!dndButton) {
-        console.error(`❌ DND button not found for Room ${formattedRoom}`);
+
+    if (!startButton || !finishButton || !dndButton) {
+        console.error(`❌ Buttons not found for Room ${formattedRoom}`);
         return;
     }
 
     const isDNDActive = dndButton.classList.contains("active-dnd");
     const newStatus = isDNDActive ? "available" : "dnd";
 
-    // ✅ Instantly update UI
-    updateDNDStatus(roomNumber, newStatus);
+    if (newStatus === "dnd") {
+        // ✅ DND Mode: Disable Start & Finish, Turn Button Red
+        startButton.disabled = true;
+        finishButton.disabled = true;
+        dndButton.classList.add("active-dnd");
+        dndButton.style.backgroundColor = "red";
+    } else {
+        // ✅ Reset to Normal: Enable Start & Reset Finish Button
+        startButton.disabled = false;
+        startButton.style.backgroundColor = "blue";
+        finishButton.disabled = true;
+        finishButton.style.backgroundColor = "grey";
+        dndButton.classList.remove("active-dnd");
+        dndButton.style.backgroundColor = "blue";
+    }
 
+    // ✅ Send API request to update backend
     try {
         const res = await fetch(`${apiUrl}/logs/dnd`, {
             method: "POST",
@@ -518,104 +534,94 @@ async function toggleDoNotDisturb(roomNumber) {
         });
 
         const data = await res.json();
-        console.log(`✅ DND status updated for Room ${formattedRoom}:`, data);
-
         if (!res.ok) {
-            console.error("❌ Failed to update DND status:", data);
+            console.error("❌ Failed to Update DND Status:", data);
+            alert(`❌ Failed: ${data.message}`);
             return;
         }
 
-        // ✅ Emit update via WebSocket
+        console.log(`✅ Room ${formattedRoom} DND status updated.`);
         safeEmit("dndUpdate", { roomNumber, status: newStatus });
 
-        // ✅ Fetch the latest logs to update UI correctly
-        await loadLogs();
     } catch (error) {
         console.error("❌ Error updating DND status:", error);
     }
 }
+
 async function startCleaning(roomNumber) {
+    const formattedRoom = roomNumber.toString().padStart(3, '0');
+    const startButton = document.getElementById(`start-${formattedRoom}`);
+    const finishButton = document.getElementById(`finish-${formattedRoom}`);
+    const dndButton = document.getElementById(`dnd-${formattedRoom}`);
+
+    if (!startButton || !finishButton || !dndButton) {
+        console.error(`❌ Buttons not found for Room ${formattedRoom}`);
+        return;
+    }
+
+    // Disable Start Cleaning and Enable Finish Cleaning
+    startButton.disabled = true;
+    startButton.style.backgroundColor = "grey";
+    finishButton.disabled = false;
+    finishButton.style.backgroundColor = "blue";
+
+    // ✅ Send API request to update backend
     try {
-        const numericRoomNumber = parseInt(roomNumber, 10);
-        const username = localStorage.getItem("username");
-
-        if (!username) {
-            console.error("❌ No username found in localStorage. Cannot start cleaning.");
-            alert("You must be logged in to start cleaning.");
-            return;
-        }
-
-        console.log("🟢 Sending Start Cleaning Request:", {
-            roomNumber: numericRoomNumber,
-            username: username,
-            status: "in_progress"
-        });
-
         const res = await fetch(`${apiUrl}/logs/start`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roomNumber: numericRoomNumber, username, status: "in_progress" })
+            body: JSON.stringify({ roomNumber, status: "in_progress" })
         });
 
         const data = await res.json();
-        console.log("✅ API Response for Start Cleaning:", data);
-
         if (!res.ok) {
-            console.error("❌ Failed Start Cleaning:", data);
-            alert(`❌ Failed to start cleaning: ${data.message || "Please try again."}`);
+            console.error("❌ Failed to Start Cleaning:", data);
+            alert(`❌ Failed: ${data.message}`);
             return;
         }
 
-        if (data.message.includes("started")) {
-            updateButtonStatus(numericRoomNumber, "in_progress", "available"); // ✅ Ensure UI updates immediately
-            safeEmit("update", { roomNumber: numericRoomNumber, status: "in_progress" });
-            loadLogs(); // ✅ Ensure UI reflects latest status
-        }
+        console.log(`✅ Room ${formattedRoom} cleaning started.`);
+        safeEmit("update", { roomNumber, status: "in_progress" });
+
     } catch (error) {
         console.error("❌ Error starting cleaning:", error);
-        alert("❌ Failed to start cleaning. Please try again.");
     }
 }
 
 async function finishCleaning(roomNumber) {
+    const formattedRoom = roomNumber.toString().padStart(3, '0');
+    const finishButton = document.getElementById(`finish-${formattedRoom}`);
+    
+    if (!finishButton) {
+        console.error(`❌ Finish button not found for Room ${formattedRoom}`);
+        return;
+    }
+
+    // Disable Finish Button and Change Color to Green
+    finishButton.disabled = true;
+    finishButton.style.backgroundColor = "green";
+
+    // ✅ Send API request to update backend
     try {
-        const numericRoomNumber = parseInt(roomNumber, 10);
-        const username = localStorage.getItem("username");
-
-        console.log("🟢 Sending Finish Cleaning Request: ", {
-            roomNumber: numericRoomNumber,
-            username: username,
-            status: "finished"
-        });
-
         const res = await fetch(`${apiUrl}/logs/finish`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roomNumber: numericRoomNumber, username, status: "finished" })
+            body: JSON.stringify({ roomNumber, status: "finished" })
         });
 
         const data = await res.json();
-        console.log("✅ API Response for Finish Cleaning:", data);
-
         if (!res.ok) {
-            console.error("❌ Failed Finish Cleaning: ", data);
-            alert(`❌ Failed to finish cleaning: ${data.message || "Please try again."}`);
+            console.error("❌ Failed to Finish Cleaning:", data);
+            alert(`❌ Failed: ${data.message}`);
             return;
         }
+        updateButtonStatus(numericRoomNumber, "finished");
+        console.log(`✅ Room ${formattedRoom} cleaning finished.`);
+        safeEmit("update", { roomNumber, status: "finished" });
+        loadLogs();
 
-        if (data.message.includes("finished")) {
-            const finishButton = document.getElementById(`finish-${numericRoomNumber}`);
-            if (finishButton) {
-                finishButton.disabled = true;
-                finishButton.style.backgroundColor = "green";
-            }
-            updateButtonStatus(numericRoomNumber, "finished");
-            safeEmit("update", { roomNumber: numericRoomNumber, status: "finished" });
-            loadLogs();
-        }
     } catch (error) {
         console.error("❌ Error finishing cleaning:", error);
-        alert("❌ Failed to finish cleaning. Please try again.");
     }
 }
 
