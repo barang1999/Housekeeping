@@ -786,12 +786,12 @@ function logout() {
     document.getElementById("dashboard").style.display = "none";
 }
 
- // ✅ Function to Clear Logs and Reset Buttons
-function clearLogs() {
-    console.log("🧹 Clearing logs...");
+// ✅ Function to Clear Logs and Reset All Buttons including DND
+async function clearLogs() {
+    console.log("🧹 Clearing all logs and resetting room statuses...");
     document.querySelector("#logTable tbody").innerHTML = "";
 
-     // ✅ Reset all button states
+    // ✅ Reset all button states
     document.querySelectorAll(".room button").forEach(button => {
         if (button.id.startsWith("start-")) {
             button.style.backgroundColor = "blue";
@@ -806,7 +806,8 @@ function clearLogs() {
     });
 
     localStorage.clear(); // ✅ Clears all storage related to housekeeping
-    
+
+    // ✅ Emit WebSocket event to sync across all connected clients
     safeEmit("clearLogs");
 
     // ✅ API request to clear logs from the database
@@ -821,6 +822,7 @@ function clearLogs() {
         console.error("❌ Error clearing logs:", error);
     }
 }
+
        function exportLogs() {
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF();
