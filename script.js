@@ -97,35 +97,29 @@ async function connectWebSocket() {
     });
 }
 
-    // ✅ Ensure WebSocket events are attached **only once**
-        if (!window.socket.hasListeners("dndUpdate")) {
-        window.socket.on("dndUpdate", async ({ roomNumber, status }) => {
-            console.log(`📡 WebSocket: DND mode changed for Room ${roomNumber} -> ${status}`);
-    
-            const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
-            const roomLog = logs.find(log => log.roomNumber.toString().padStart(3, '0') === roomNumber);
-    
-            let previousStatus = "available";
-            if (roomLog) {
-                previousStatus = roomLog.finishTime ? "finished" : roomLog.startTime ? "in_progress" : "available";
-            }
-    
-            updateRoomUI(roomNumber, status, previousStatus);
-            await loadLogs();
-            updateButtonStatus(roomNumber, status);
-        });
-    }
+    /if (!window.socket.hasListeners("roomUpdate")) {
+    window.socket.on("roomUpdate", async ({ roomNumber, status, previousStatus }) => {
+        console.log(`📡 WebSocket: Room ${roomNumber} status updated to ${status}`);
+        
+        updateRoomUI(roomNumber, status, previousStatus || "available");
+        await loadLogs();
+        updateButtonStatus(roomNumber, status);
+    });
+}
+
 }
 
 /** ✅ Ensure WebSocket Connection is Available Before Emitting Events */
 function safeEmit(event, data = {}) {
-    if (window.socket && window.socket.connected) {
-        window.socket.emit(event, data);
-    } else {
-        console.warn(`⛔ WebSocket is not connected. Attempting reconnect...`);
+    if (!window.socket || !window.socket.connected) {
+        console.warn("⛔ WebSocket is not connected. Attempting reconnect...");
         connectWebSocket();
+        return;
     }
+    console.log(`📡 Emitting event: ${event}`, data);
+    window.socket.emit(event, data);
 }
+
 
 /** ✅ Ensure WebSocket is Properly Connected Before Usage */
 function ensureWebSocketConnection() {
