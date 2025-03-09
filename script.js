@@ -541,11 +541,10 @@ async function resetCleaningStatus(roomNumber) {
         const res = await fetch(`${apiUrl}/logs/reset-cleaning`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roomNumber })
+            body: JSON.stringify({ roomNumber }),
         });
 
         const data = await res.json();
-
         if (!res.ok) {
             console.error("❌ Failed to reset cleaning status:", data);
             alert(`❌ Reset Cleaning Failed: ${data.message}`);
@@ -553,12 +552,12 @@ async function resetCleaningStatus(roomNumber) {
         }
 
         console.log(`✅ Cleaning status reset successfully for Room ${formattedRoom}.`);
-        
+
         // ✅ Immediately update UI so the Start Cleaning button is clickable
-        updateButtonStatus(roomNumber, "available", "available"); 
-        
+        updateButtonStatus(roomNumber, "available", "available");
+
         // ✅ Ensure fresh logs are loaded
-        await loadLogs(); 
+        await loadLogs();
     } catch (error) {
         console.error("❌ Error resetting cleaning status:", error);
     }
@@ -576,9 +575,9 @@ async function toggleDoNotDisturb(roomNumber) {
     const isDNDActive = dndButton.classList.contains("active-dnd");
     const newStatus = isDNDActive ? "available" : "dnd";
 
-    console.log(`🔄 Applying DND mode for Room ${formattedRoom}`);
+    console.log(`🔄 Toggling DND mode for Room ${formattedRoom}`);
 
-    // ✅ Update UI Immediately to prevent stuck state
+    // ✅ Update UI Immediately
     updateDNDStatus(formattedRoom, newStatus);
 
     try {
@@ -596,7 +595,13 @@ async function toggleDoNotDisturb(roomNumber) {
             return;
         }
 
-        console.log(`✅ Room ${formattedRoom} DND status updated in database.`);
+        console.log(`✅ Room ${formattedRoom} DND status updated.`);
+
+        // ✅ If DND is turned off, reset cleaning status in the backend
+        if (newStatus === "available") {
+            console.log(`🔄 Resetting cleaning status for Room ${formattedRoom} after DND removal`);
+            await resetCleaningStatus(formattedRoom);
+        }
 
         // ✅ Ensure WebSocket emits the correct event
         safeEmit("dndUpdate", { roomNumber, status: newStatus });
@@ -608,6 +613,7 @@ async function toggleDoNotDisturb(roomNumber) {
         alert("An error occurred while updating DND mode.");
     }
 }
+
 async function startCleaning(roomNumber) {
     const formattedRoom = roomNumber.toString().padStart(3, '0');
     const startButton = document.getElementById(`start-${formattedRoom}`);
