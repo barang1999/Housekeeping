@@ -75,8 +75,6 @@ if (!mongoURI) {
     console.error("❌ MONGO_URI is missing. Check your .env file!");
     process.exit(1);
 }
-console.log("🔍 Connecting to MongoDB...");
-
 // ✅ MongoDB Connection with Retry Limit
 let retryAttempts = 0;
 const MAX_RETRIES = 5;
@@ -85,12 +83,7 @@ const connectWithRetry = () => {
     mongoose.connect(mongoURI)
         .then(() => console.log("✅ MongoDB Connected Successfully"))
         .catch(err => {
-            if (retryAttempts >= MAX_RETRIES) {
-                console.error("❌ Max retries reached. Manual restart required.");
-                return;
-            }
-            retryAttempts++;
-            console.error(`❌ MongoDB connection error: ${err}. Retrying ${retryAttempts}/${MAX_RETRIES}...`);
+            console.error("❌ MongoDB connection error:", err);
             setTimeout(connectWithRetry, 5000);
         });
 };
@@ -349,15 +342,8 @@ app.post("/logs/reset-cleaning", async (req, res) => {
 
         roomNumber = parseInt(roomNumber, 10);
 
-        console.log(`🔍 Resetting cleaning status for Room ${roomNumber}...`);
+        console.log(`🔄 Resetting cleaning status for Room ${roomNumber}...`);
 
-        // ✅ Ensure MongoDB is connected
-        if (mongoose.connection.readyState !== 1) {
-            console.error("❌ Database is not connected.");
-            return res.status(500).json({ message: "Database connection lost" });
-        }
-
-        // ✅ Fully reset the room's cleaning status
         const result = await CleaningLog.updateOne(
             { roomNumber },
             {
@@ -367,22 +353,17 @@ app.post("/logs/reset-cleaning", async (req, res) => {
                     startedBy: null,
                     finishedBy: null,
                     dndStatus: false,
-                    status: "available" // ✅ Set to "available"
+                    status: "available"
                 }
             }
         );
 
         if (result.modifiedCount === 0) {
-            console.warn(`⚠️ No logs were updated for Room ${roomNumber}.`);
-            return res.status(500).json({ message: "Failed to reset cleaning status" });
+            return res.status(500).json({ message: "No records were updated. Possible invalid room number." });
         }
 
-        console.log(`✅ Cleaning status reset successfully for Room ${roomNumber}`);
-
-        // ✅ Notify all WebSocket clients
-        if (io) {
-            io.emit("resetCleaning", { roomNumber, status: "available" });
-        }
+        // ✅ Notify WebSocket Clients
+        io.emit("resetCleaning", { roomNumber, status: "available" });
 
         res.json({ message: `✅ Cleaning status reset for Room ${roomNumber}` });
     } catch (error) {
@@ -390,6 +371,7 @@ app.post("/logs/reset-cleaning", async (req, res) => {
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 });
+
 
 // ✅ Graceful Shutdown: Close DB Connection on Exit
 process.on("SIGINT", async () => {
@@ -425,7 +407,7 @@ app.post("/logs/start", async (req, res) => {
             { upsert: true }
         );
 
-        if (io) io.emit("update", { roomNumber, status: "in_progress" });
+        io.emit("update", { roomNumber, status: "in_progress" });
 
         res.status(201).json({ message: `✅ Room ${roomNumber} started by ${username} at ${startTime}` });
 
@@ -483,6 +465,7 @@ const logSchema = new mongoose.Schema({
     finishedBy: { type: String, default: null },
     dndStatus: { type: Boolean, default: false } // ✅ DND Mode
 });
+const CleaningLog = mongoose.model("CleaningLog", logSchema);
 module.exports = CleaningLog;
 
 // 📄 Get All Cleaning Logs
