@@ -622,16 +622,25 @@ async function startCleaning(roomNumber) {
     const startButton = document.getElementById(`start-${formattedRoom}`);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
     const dndButton = document.getElementById(`dnd-${formattedRoom}`);
-    
+
+    if (!startButton || !finishButton || !dndButton) {
+        console.error(`❌ Buttons not found for Room ${formattedRoom}`);
+        return;
+    }
+
     const username = localStorage.getItem("username"); // ✅ Ensure username is retrieved
     if (!username) {
         console.error("❌ No username found in localStorage. Cannot start cleaning.");
         alert("You must be logged in to start cleaning.");
         return;
     }
+
+    // ✅ Fetch latest logs before sending request
+    const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
+    const roomLog = logs.find(log => log.roomNumber.toString().padStart(3, '0') === formattedRoom);
     
-    if (!startButton || !finishButton || !dndButton) {
-        console.error(`❌ Buttons not found for Room ${formattedRoom}`);
+    if (roomLog && roomLog.startTime && !roomLog.finishTime) {
+        alert(`⚠ Room ${formattedRoom} is already being cleaned.`);
         return;
     }
 
@@ -646,7 +655,7 @@ async function startCleaning(roomNumber) {
         const res = await fetch(`${apiUrl}/logs/start`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roomNumber, username, status: "in_progress" })
+            body: JSON.stringify({ roomNumber, username })
         });
 
         const data = await res.json();
