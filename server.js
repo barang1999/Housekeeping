@@ -382,7 +382,7 @@ process.on("SIGINT", async () => {
 
 // 🚀 Start Cleaning
 
-app.post("/logs/start", async (req, res) => {
+aapp.post("/logs/start", async (req, res) => {
     try {
         let { roomNumber, username } = req.body;
         if (!roomNumber || isNaN(roomNumber) || !username ) {
@@ -391,7 +391,6 @@ app.post("/logs/start", async (req, res) => {
 
         roomNumber = parseInt(roomNumber, 10);
 
-        // ✅ Check if room is already being cleaned
         const existingLog = await CleaningLog.findOne({ roomNumber, finishTime: null });
         if (existingLog) {
             return res.status(400).json({ message: `⚠ Room ${roomNumber} is already being cleaned.` });
@@ -399,13 +398,17 @@ app.post("/logs/start", async (req, res) => {
 
         const startTime = new Date().toLocaleString("en-US", { timeZone: "Asia/Phnom_Penh" });
 
-        await CleaningLog.updateOne(
+        const log = await CleaningLog.findOneAndUpdate(
             { roomNumber },
-            { $set: { startTime, startedBy: username, finishTime: null, finishedBy: null } },
-            { upsert: true }
+            { $set: { startTime, startedBy: username, finishTime: null, finishedBy: null, status: "in_progress" } },
+            { upsert: true, new: true }
         );
 
-        io.emit("update", { roomNumber, status: "in_progress" });
+        if (!log) {
+            return res.status(500).json({ message: "Database update failed." });
+        }
+
+        io.emit("roomUpdate", { roomNumber, status: "in_progress", previousStatus: "available" });
 
         res.status(201).json({ message: `✅ Room ${roomNumber} started by ${username} at ${startTime}` });
 
