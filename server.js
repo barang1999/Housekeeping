@@ -133,14 +133,24 @@ io.use(async (socket, next) => {
 io.on("connection", (socket) => {
     console.log(`⚡ WebSocket Client Connected: ${socket.id}`);
 
-    // ✅ Listen for DND status updates
+    // ✅ Handle DND updates
     socket.on("dndUpdate", ({ roomNumber, status }) => {
         console.log(`📡 Broadcasting DND update for Room ${roomNumber} to ${status}`);
-        
-        // ✅ Broadcast to all connected clients
         io.emit("dndUpdate", { roomNumber, status });
     });
+
+    // ✅ Handle Cleaning Reset
+    socket.on("resetCleaning", ({ roomNumber }) => {
+        console.log(`🔄 Cleaning Reset Event Received for Room ${roomNumber}`);
+        io.emit("resetCleaning", { roomNumber, status: "available" });
+    });
+
+    // ✅ Handle disconnection
+    socket.on("disconnect", (reason) => {
+        console.warn(`🔴 WebSocket Client Disconnected: ${reason}`);
+    });
 });
+
 
 
 // ✅ Store `io` in Express for later use
@@ -284,17 +294,26 @@ app.post("/logs/dnd", async (req, res) => {
             return res.status(400).json({ message: "Room number is required." });
         }
 
-             const log = await CleaningLog.findOneAndUpdate(
-                { roomNumber },
-                {
-                    dndStatus: status === "dnd",
-                    status: status === "dnd" ? "in_progress" : "available", // ✅ Reset status if DND is off
-                },
-                { new: true, upsert: true }
-            );
+        // ✅ Ensure `status` is either `dnd` or `available`
+        const isDND = status === "dnd";
 
-        // ✅ Emit WebSocket Event so all devices get the update
-        io.emit("dndUpdate", { roomNumber, status, newStatus: status === "dnd" ? "in_progress" : "available" });
+        const log = await CleaningLog.findOneAndUpdate(
+            { roomNumber },
+            {
+                dndStatus: isDND,
+                status: isDND ? "dnd" : "available" // ✅ Set correct status
+            },
+            { new: true, upsert: true }
+        );
+
+        if (!log) {
+            return res.status(500).json({ message: "Failed to update DND status." });
+        }
+
+        console.log(`✅ DND mode ${status} for Room ${roomNumber}`);
+
+        // ✅ Emit WebSocket event to sync UI in real-time
+        io.emit("dndUpdate", { roomNumber, status });
 
         res.json({ message: `DND mode ${status} for Room ${roomNumber}`, room: log });
     } catch (error) {
@@ -317,8 +336,8 @@ app.post("/logs/reset-cleaning", async (req, res) => {
 
         console.log(`🔍 Resetting cleaning status for Room ${roomNumber}...`);
 
-        // Ensure MongoDB is connected
-        if (!mongoose.connection.readyState) {
+        // ✅ Ensure MongoDB is connected
+        if (mongoose.connection.readyState !== 1) {
             console.error("❌ Database is not connected.");
             return res.status(500).json({ message: "Database connection lost" });
         }
@@ -333,20 +352,22 @@ app.post("/logs/reset-cleaning", async (req, res) => {
                     startedBy: null,
                     finishedBy: null,
                     dndStatus: false,
-                    status: "available" // ✅ Ensure status is set to "available"
+                    status: "available" // ✅ Set to "available"
                 }
             }
         );
 
         if (result.modifiedCount === 0) {
-            console.warn(`⚠️ No logs were updated for Room ${roomNumber}. Possible DB issue.`);
+            console.warn(`⚠️ No logs were updated for Room ${roomNumber}.`);
             return res.status(500).json({ message: "Failed to reset cleaning status" });
         }
 
         console.log(`✅ Cleaning status reset successfully for Room ${roomNumber}`);
 
-        // Notify all WebSocket clients
-        io.emit("resetCleaning", { roomNumber, status: "available" });
+        // ✅ Notify all WebSocket clients
+        if (io) {
+            io.emit("resetCleaning", { roomNumber, status: "available" });
+        }
 
         res.json({ message: `✅ Cleaning status reset for Room ${roomNumber}` });
     } catch (error) {
