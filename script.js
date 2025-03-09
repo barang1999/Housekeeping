@@ -499,7 +499,7 @@ async function restoreCleaningStatus() {
         }
 
         logs.forEach(log => {
-            const roomNumber = log.roomNumber.toString().padStart(3, '0');  
+            let formattedRoom = String(log.roomNumber).padStart(3, "0"); // ✅ Always ensure correct format
             const status = log.finishTime ? "finished" : log.startTime ? "in_progress" : "available";
             const dndStatus = log.dndStatus ? "dnd" : "available"; // ✅ Retrieve DND status
 
@@ -783,11 +783,12 @@ async function finishCleaning(roomNumber) {
 }
 
 function updateButtonStatus(roomNumber, status, dndStatus = "available") {
-     let numericRoom = Number(roomNumber); // ✅ Ensure numeric format
+     let formattedRoom = String(roomNumber).padStart(3, "0"); // ✅ Ensure it's always 3 digits
     
-    const startButton = document.getElementById(`start-${numericRoom}`);
-    const finishButton = document.getElementById(`finish-${numericRoom}`);
-    const dndButton = document.getElementById(`dnd-${numericRoom}`);
+    const startButton = document.getElementById(`start-${formattedRoom}`);
+    const finishButton = document.getElementById(`finish-${formattedRoom}`);
+    const dndButton = document.getElementById(`dnd-${formattedRoom}`);
+
 
     if (!startButton || !finishButton || !dndButton) {
         console.warn(`❌ Buttons not found for Room ${formattedRoom}`);
