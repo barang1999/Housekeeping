@@ -101,16 +101,30 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model("User", userSchema);
 
+
+// ✅ Run the fix once when the server starts
+mongoose.connection.once("open", async () => {
+    console.log("✅ Database connected. Running room number fix...");
+    await fixRoomNumbers();
+});
 // ✅ WebSocket Authentication Middleware
 io.use(async (socket, next) => {
     try {
-        let token = socket.handshake.auth?.token || socket.handshake.headers.authorization?.split(" ")[1];
-        if (!token) throw new Error("No token provided");
+        let token = socket.handshake.auth?.token || 
+                    socket.handshake.headers.authorization?.split(" ")[1];
+
+        if (!token) {
+            console.warn("⚠ No token provided for WebSocket authentication.");
+            return next(new Error("Authentication error"));
+        }
 
         let decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user = await User.findOne({ username: decoded.username });
 
-        if (!user) throw new Error("User not found");
+        if (!user) {
+            console.warn("⚠ WebSocket authentication failed: User not found");
+            return next(new Error("Authentication error"));
+        }
 
         socket.user = decoded;
         console.log(`✅ WebSocket Authenticated: ${decoded.username}`);
@@ -120,6 +134,7 @@ io.use(async (socket, next) => {
         next(new Error("Authentication error"));
     }
 });
+
 
 io.on("connection", (socket) => {
     console.log(`⚡ WebSocket Client Connected: ${socket.id}`);
@@ -301,14 +316,13 @@ app.post("/logs/dnd", async (req, res) => {
 
         const isDND = status === "dnd";
 
-        // 🔍 Check if the current status is the same
         const currentLog = await CleaningLog.findOne({ roomNumber });
+
         if (currentLog && currentLog.dndStatus === isDND) {
             console.log(`🔄 No change for Room ${roomNumber}. Skipping WebSocket emit.`);
             return res.status(200).json({ message: `No change: Room ${roomNumber} already in ${status} mode.` });
         }
 
-        // ✅ Update DND status
         const updatedLog = await CleaningLog.findOneAndUpdate(
             { roomNumber },
             { dndStatus: isDND, status: isDND ? "dnd" : "available" },
@@ -321,7 +335,7 @@ app.post("/logs/dnd", async (req, res) => {
 
         console.log(`✅ Room ${roomNumber} DND mode updated -> ${status}`);
 
-        // ✅ Emit WebSocket event only on change
+        // ✅ Emit WebSocket event only if status changed
         io.emit("dndUpdate", { roomNumber, status });
 
         res.json({ message: `DND mode ${status} for Room ${roomNumber}`, room: updatedLog });
@@ -330,6 +344,7 @@ app.post("/logs/dnd", async (req, res) => {
         res.status(500).json({ message: "Internal server error." });
     }
 });
+
 
 module.exports = router;
 
@@ -511,6 +526,21 @@ const logSchema = new mongoose.Schema({
 // ✅ Apply the schema changes to the model
 const CleaningLog = mongoose.models.CleaningLog || mongoose.model("CleaningLog", logSchema);
 module.exports = CleaningLog;
+
+async function fixRoomNumbers() {
+    try {
+        console.log("🔄 Fixing room number formats in database...");
+
+        const result = await CleaningLog.updateMany({}, [
+            { $set: { roomNumber: { $toInt: "$roomNumber" } } }
+        ]);
+
+        console.log(`✅ Fixed ${result.modifiedCount} room numbers.`);
+    } catch (error) {
+        console.error("❌ Error fixing room numbers:", error);
+    }
+}
+
 
 app.get("/logs", async (req, res) => {
     try {
