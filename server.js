@@ -323,12 +323,21 @@ app.post("/logs/reset-cleaning", async (req, res) => {
             return res.status(500).json({ message: "Database connection lost" });
         }
 
-        // ✅ Update the cleaning status in MongoDB
+        // ✅ Fully reset the room's cleaning status
         const result = await CleaningLog.updateOne(
             { roomNumber },
-            { $set: { startTime: null, finishTime: null, startedBy: null, finishedBy: null, dndStatus: false } }
+            {
+                $set: {
+                    startTime: null,
+                    finishTime: null,
+                    startedBy: null,
+                    finishedBy: null,
+                    dndStatus: false,
+                    status: "available" // ✅ Ensure the status is reset correctly
+                }
+            }
         );
-
+        
         if (result.modifiedCount === 0) {
             console.warn(`⚠️ No logs were updated for Room ${roomNumber}. Possible DB issue.`);
             return res.status(500).json({ message: "Failed to reset cleaning status" });
@@ -337,8 +346,8 @@ app.post("/logs/reset-cleaning", async (req, res) => {
         console.log(`✅ Cleaning status reset successfully for Room ${roomNumber}`);
 
         // Notify all WebSocket clients
-        io.emit("resetCleaning", { roomNumber });
-
+        io.emit("resetCleaning", { roomNumber, status: "available" });
+        
         res.json({ message: `✅ Cleaning status reset for Room ${roomNumber}` });
     } catch (error) {
         console.error("❌ Error resetting cleaning status:", error);
