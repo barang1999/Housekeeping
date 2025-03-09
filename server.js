@@ -23,10 +23,9 @@ let db = null;
 async function connectDB(retries = 5, delay = 5000) {
     try {
         console.log("🔍 Connecting to MongoDB...");
-        const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
-
+        client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true }); // Assign to global client
         await client.connect();
-        db = client.db("housekeeping"); // ✅ Ensure `db` is assigned here
+        db = client.db("housekeeping"); // Assign db globally
         console.log("✅ Connected to MongoDB");
     } catch (error) {
         console.error("❌ Error connecting to MongoDB:", error);
@@ -39,22 +38,20 @@ async function connectDB(retries = 5, delay = 5000) {
         }
     }
 }
-
 // ✅ Call Database Connection Function
 (async () => {
     await connectDB();
 })();
 
 // ✅ Middleware to Ensure DB Connection Before Processing Requests
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
     if (!db) {
         console.error("❌ Database is not connected.");
         return res.status(500).json({ message: "Database not connected" });
     }
-    req.db = db; // ✅ Store database instance in request object
+    req.db = db;
     next();
 });
-
 // ✅ CORS Configuration (Fixed Redundancies)
 app.use(cors({
     origin: "https://housekeepingmanagement.netlify.app",
@@ -309,35 +306,32 @@ module.exports = router;
 app.post("/logs/reset-cleaning", async (req, res) => {
     try {
         let { roomNumber } = req.body;
-
         if (!roomNumber) {
-            return res.status(400).json({ message: "❌ Room number is required" });
+            return res.status(400).json({ message: "Room number is required" });
         }
+        roomNumber = parseInt(roomNumber, 10);
 
-        roomNumber = parseInt(roomNumber, 10); // ✅ Ensure it's a valid number
-        if (isNaN(roomNumber)) {
-            return res.status(400).json({ message: "❌ Invalid room number" });
+        console.log(`🔍 Searching for Room ${roomNumber} in the database...`);
+
+        if (!db) {
+            return res.status(500).json({ message: "Database not initialized yet" });
         }
-
-        const db = req.db; // ✅ Use `req.db` from middleware
-
-        // ✅ Check if Room Exists
+        
         const room = await db.collection("logs").findOne({ roomNumber });
+
         if (!room) {
             console.warn(`⚠️ Room ${roomNumber} not found in database.`);
             return res.status(404).json({ message: "⚠️ Room not found" });
         }
 
-        console.log(`🔄 Resetting cleaning status for Room ${roomNumber}...`);
+        console.log(`✅ Room ${roomNumber} found! Resetting cleaning status...`);
 
-        // ✅ Reset Cleaning Status & Set `status: available`
         const result = await db.collection("logs").updateOne(
             { roomNumber },
             { $set: { status: "available", startTime: null, finishTime: null } }
         );
 
         if (result.modifiedCount === 0) {
-            console.warn(`⚠️ No changes made for Room ${roomNumber}.`);
             return res.status(500).json({ message: "⚠️ Failed to reset cleaning status" });
         }
 
@@ -346,7 +340,7 @@ app.post("/logs/reset-cleaning", async (req, res) => {
 
     } catch (error) {
         console.error("❌ Error resetting cleaning status:", error);
-        res.status(500).json({ message: "❌ Internal server error", error: error.message });
+        res.status(500).json({ message: "Internal server error", error: error.message });
     }
 });
 
