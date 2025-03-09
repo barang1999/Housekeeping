@@ -142,7 +142,7 @@ io.on("connection", (socket) => {
     // Verify if the client is authenticated
     if (!socket.user) {
         console.warn("❌ Unauthorized WebSocket Connection Attempt");
-        socket.disconnect();
+        socket.disconnect(true); // Fully disconnect
         return;
     }
 
@@ -442,11 +442,12 @@ app.post("/logs/start", async (req, res) => {
             { $set: { startTime, startedBy: username, finishTime: null, finishedBy: null, status: "in_progress" } },
             { upsert: true, new: true }
         );
-
+        
         if (!log) {
             return res.status(500).json({ message: "Database update failed." });
         }
 
+       // ✅ Emit event only after successful DB update
         io.emit("roomUpdate", { roomNumber, status: "in_progress", previousStatus: "available" });
 
         res.status(201).json({ message: `✅ Room ${roomNumber} started by ${username} at ${startTime}` });
@@ -526,8 +527,8 @@ const logSchema = new mongoose.Schema({
     status: { type: String, default: "available" }
 });
 
-// ✅ Apply the schema changes to the model
-const CleaningLog = mongoose.models.CleaningLog || mongoose.model("CleaningLog", logSchema);
+// ✅ Ensure model is only defined once
+const CleaningLog = mongoose.models.CleaningLog || mongoose.model("CleaningLog", cleaningLogSchema);
 module.exports = CleaningLog;
 
 async function fixRoomNumbers() {
