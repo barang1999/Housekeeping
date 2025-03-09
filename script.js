@@ -54,32 +54,31 @@ async function connectWebSocket() {
         return;
     }
 
-    // Disconnect existing socket before reconnecting
+    // ✅ Close existing socket before reconnecting
     if (window.socket) {
         window.socket.disconnect();
     }
 
-    // Initialize WebSocket connection
+    // ✅ Establish a new WebSocket connection
     window.socket = io(apiUrl, {
         auth: { token },
         reconnectionAttempts: MAX_RECONNECT_ATTEMPTS,
         timeout: 5000
     });
 
-    // ✅ WebSocket Successfully Connected
+    // ✅ Successfully Connected
     window.socket.on("connect", () => {
         console.log("✅ WebSocket connected successfully.");
         reconnectAttempts = 0;
     });
 
-    // ❌ Handle WebSocket Connection Errors & Reconnect
+    // ❌ Handle Connection Errors & Retry
     window.socket.on("connect_error", async (err) => {
         console.warn("❌ WebSocket connection error:", err.message);
         if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
             reconnectAttempts++;
-            await new Promise(res => setTimeout(res, 2000)); // Wait before retrying
+            await new Promise(res => setTimeout(res, 2000)); // Retry delay
             
-            // Try to refresh token if needed
             const refreshedToken = await refreshToken();
             if (refreshedToken) {
                 console.log("🔄 Using refreshed token for WebSocket reconnection...");
@@ -93,7 +92,7 @@ async function connectWebSocket() {
         }
     });
 
-    // 🔴 Handle WebSocket Disconnection & Auto-Reconnect
+    // 🔴 Handle Disconnection & Auto-Reconnect
     window.socket.on("disconnect", (reason) => {
         console.warn("🔴 WebSocket disconnected:", reason);
         if (reason !== "io client disconnect") {
@@ -102,29 +101,33 @@ async function connectWebSocket() {
         }
     });
 
-    // ✅ Ensure WebSocket Events Are Registered **Only Once**
-    if (!window.socket.hasListeners("roomUpdate")) {
-        window.socket.on("roomUpdate", async ({ roomNumber, status, previousStatus }) => {
-            console.log(`📡 WebSocket: Room ${roomNumber} status updated to ${status}`);
-            
-            updateRoomUI(roomNumber, status, previousStatus || "available");
-            await loadLogs();
-            updateButtonStatus(roomNumber, status);
-        });
-    }
+    // ✅ Remove any existing "roomUpdate" listener to avoid duplicates
+    window.socket.off("roomUpdate");
+
+    // ✅ Listen for room updates in real-time
+    window.socket.on("roomUpdate", async ({ roomNumber, status, previousStatus }) => {
+        console.log(`📡 WebSocket: Room ${roomNumber} status updated to ${status}`);
+
+        // ✅ Ensure UI updates correctly
+        updateRoomUI(roomNumber, status, previousStatus || "available");
+        updateButtonStatus(roomNumber, status);
+
+        // ✅ Fetch fresh logs to ensure data consistency
+        await loadLogs();
+    });
 }
 
 
 /** ✅ Ensure WebSocket Connection is Available Before Emitting Events */
 function safeEmit(event, data = {}) {
     if (!window.socket || !window.socket.connected) {
-        console.warn("⛔ WebSocket is not connected. Attempting reconnect...");
-        connectWebSocket();
+        console.warn(`⛔ WebSocket is not connected. Cannot emit ${event}`);
         return;
     }
-    console.log(`📡 Emitting event: ${event}`, data);
+    
     window.socket.emit(event, data);
 }
+
 
 
 /** ✅ Ensure WebSocket is Properly Connected Before Usage */
@@ -687,6 +690,13 @@ async function startCleaning(roomNumber) {
         console.log(`✅ Room ${formattedRoom} cleaning started.`);
         safeEmit("update", { roomNumber, status: "in_progress" });
 
+         // ✅ Update UI Immediately
+        updateRoomUI(roomNumber, "in_progress", "available");
+        updateButtonStatus(roomNumber, "in_progress");
+
+        // ✅ Ensure fresh logs are loaded
+        await loadLogs();
+
     } catch (error) {
         console.error("❌ Error starting cleaning:", error);
     }
@@ -734,10 +744,15 @@ async function finishCleaning(roomNumber) {
             alert(`❌ Failed: ${data.message}`);
             return;
         }
-        updateButtonStatus(numericRoomNumber, "finished");
-        console.log(`✅ Room ${formattedRoom} cleaning finished.`);
-        safeEmit("update", { roomNumber, status: "finished" });
-        loadLogs();
+       // ✅ Emit WebSocket Event for Real-Time Updates
+        safeEmit("roomUpdate", { roomNumber, status: "finished" });
+
+        // ✅ Update UI Immediately
+        updateRoomUI(roomNumber, "finished", "in_progress");
+        updateButtonStatus(roomNumber, "finished");
+
+        // ✅ Ensure fresh logs are loaded
+        await loadLogs();
 
     } catch (error) {
         console.error("❌ Error finishing cleaning:", error);
