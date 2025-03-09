@@ -46,10 +46,10 @@ async function connectDB(retries = 5, delay = 5000) {
 // ✅ Middleware to Ensure DB Connection Before Processing Requests
 app.use(async (req, res, next) => {
     if (!db) {
-        console.error("❌ Database is not connected.");
-        return res.status(500).json({ message: "Database not connected" });
+        console.error("❌ Database is not initialized.");
+        return res.status(500).json({ message: "Database is not initialized. Please try again later." });
     }
-    req.db = db;
+    req.db = db; // Assign the connected DB to `req.db`
     next();
 });
 // ✅ CORS Configuration (Fixed Redundancies)
@@ -309,20 +309,20 @@ app.post("/logs/reset-cleaning", async (req, res) => {
         if (!roomNumber) {
             return res.status(400).json({ message: "Room number is required" });
         }
-        roomNumber = parseInt(roomNumber, 10);
+
+        roomNumber = Number(roomNumber); // Ensure it's a number
 
         console.log(`🔍 Searching for Room ${roomNumber} in the database...`);
 
         if (!db) {
             return res.status(500).json({ message: "Database not initialized yet" });
         }
-        
-        const db = req.db; 
-        const room = await db.collection("cleaninglogs").findOne({ roomNumber: Number(roomNumber) });
+
+        const room = await db.collection("cleaninglogs").findOne({ roomNumber });
 
         if (!room) {
             console.warn(`⚠️ Room ${roomNumber} not found. Auto-inserting.`);
-            await db.collection("logs").insertOne({
+            await db.collection("cleaninglogs").insertOne({
                 roomNumber,
                 status: "available",
                 startTime: null,
@@ -332,7 +332,7 @@ app.post("/logs/reset-cleaning", async (req, res) => {
 
         console.log(`✅ Room ${roomNumber} found! Resetting cleaning status...`);
 
-        const result = await db.collection("logs").updateOne(
+        const result = await db.collection("cleaninglogs").updateOne(
             { roomNumber },
             { $set: { status: "available", startTime: null, finishTime: null } }
         );
@@ -349,6 +349,7 @@ app.post("/logs/reset-cleaning", async (req, res) => {
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 });
+
 
 
 // ✅ Graceful Shutdown: Close DB Connection on Exit
