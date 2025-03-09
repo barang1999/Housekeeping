@@ -7,12 +7,39 @@ window.socket = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
     console.log("🔄 Initializing housekeeping system...");
-    
+
     await ensureValidToken();
-    connectWebSocket(); // ✅ Connect WebSocket only once
-    
-    checkAuth();
-    loadRooms();
+    ensureWebSocketConnection();
+
+    console.log("⏳ Fetching logs...");
+    await loadLogs();
+
+    console.log("✅ Logs loaded. Restoring cleaning status...");
+    await restoreCleaningStatus();
+
+    console.log("🎯 Cleaning status restored successfully.");
+
+    const token = localStorage.getItem("token");
+    const username = localStorage.getItem("username");
+
+    if (token && username) {
+        console.log("✅ Token and username found. Attempting authentication...");
+        const validToken = await ensureValidToken();
+        
+        if (validToken) {
+            console.log("✅ Token is valid. Redirecting to dashboard...");
+            setTimeout(() => {
+                showDashboard(username);
+            }, 500);
+        } else {
+            console.warn("❌ Invalid or expired token. Showing login form.");
+            logout();
+        }
+    } else {
+        console.log("❌ No token found. Showing login form.");
+        document.getElementById("auth-section").style.display = "block";
+        document.getElementById("dashboard").style.display = "none";
+    }
 });
 
 
@@ -331,34 +358,6 @@ function showDashboard(username) {
         toggleFloor("ground-floor"); // Ensure it's visible after rooms load
     }, 1000);
 }
-
-
-document.addEventListener("DOMContentLoaded", async function () {
-    console.log("DOM fully loaded");
-
-    const token = localStorage.getItem("token");
-    const username = localStorage.getItem("username");
-
-    if (token && username) {
-        console.log("✅ Token and username found. Attempting authentication...");
-        const validToken = await ensureValidToken();
-        
-        if (validToken) {
-            console.log("✅ Token is valid. Redirecting to dashboard...");
-            setTimeout(() => {
-                showDashboard(username);
-            }, 500); // Small delay to ensure UI updates correctly
-        } else {
-            console.warn("❌ Invalid or expired token. Showing login form.");
-            logout();
-        }
-    } else {
-        console.log("❌ No token found. Showing login form.");
-        document.getElementById("auth-section").style.display = "block";
-        document.getElementById("dashboard").style.display = "none";
-    }
-});
-
 
 async function refreshToken() {
     const refreshToken = localStorage.getItem("refreshToken");
