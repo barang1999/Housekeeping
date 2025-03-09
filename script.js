@@ -78,6 +78,12 @@ async function connectWebSocket() {
 });
 }
 
+// Initialize WebSocket on page load
+document.addEventListener("DOMContentLoaded", async () => {
+    connectWebSocket();
+});
+
+
 function safeEmit(event, data = {}) {
     ensureWebSocketConnection(); // Ensure WebSocket is connected before emitting
     if (window.socket && window.socket.connected) {
