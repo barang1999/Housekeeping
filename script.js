@@ -47,7 +47,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 /** ✅ WebSocket Connection & Event Handling */
 async function connectWebSocket() {
     if (window.socket) {
-        window.socket.off("dndUpdate");
+        window.socket.off("roomUpdate").off("dndUpdate");
         window.socket.disconnect();
     }
 
@@ -82,7 +82,7 @@ async function connectWebSocket() {
             await resetCleaningStatus(roomNumber);
         }
     
-        updateButtonStatus(roomNumber, status);
+        updateButtonStatus(formattedRoom, status);
     });
        window.socket.on("dndUpdate", async ({ roomNumber, status }) => {
         console.log(`📡 WebSocket: DND mode changed for Room ${roomNumber} -> ${status}`);
@@ -104,7 +104,7 @@ function setupWebSocketListeners() {
         
         updateRoomUI(roomNumber, status, previousStatus || "available");
         await loadLogs();
-        updateButtonStatus(roomNumber, status);
+        updateButtonStatus(formattedRoom, status);
     });
 
     window.socket.off("dndUpdate").on("dndUpdate", async ({ roomNumber, status }) => {
@@ -128,8 +128,6 @@ function safeEmit(event, data = {}) {
 function ensureWebSocketConnection() {
     if (!window.socket || !window.socket.connected) {
         console.warn("⛔ WebSocket is not connected. Attempting reconnect...");
-        
-        connectWebSocket();
         
         setTimeout(() => {
             if (!window.socket || !window.socket.connected) {
@@ -155,7 +153,7 @@ async function updateButtonsFromLogs() {
         const roomNumber = log.roomNumber.toString().padStart(3, '0');
         const status = log.status || "pending";
 
-        updateButtonStatus(roomNumber, status);
+        updateButtonStatus(formatRoomNumber(roomNumber), status);
     });
 
     console.log("✅ Buttons updated based on logs.");
@@ -445,25 +443,10 @@ function storeTokens(accessToken, refreshToken) {
     });
 }
 
-
-// ✅ Convert all stored `roomNumber` values to integers in MongoDB
-async function fixRoomNumbers() {
-    console.log("🔄 Fixing room number formats in database...");
-
-    const result = await CleaningLog.updateMany({}, [
-        { $set: { roomNumber: { $toInt: "$roomNumber" } } }
-    ]);
-
-    console.log(`✅ Fixed ${result.modifiedCount} room numbers.`);
-}
-
-// ✅ Run the fix once when the server starts
-fixRoomNumbers();
-
-
+// ✅ Ensuring correct room number format across the system
 function formatRoomNumber(roomNumber) {
-            return roomNumber.toString().padStart(3, '0');
-        }
+    return String(roomNumber).padStart(3, "0");
+}
 // ✅ Fix restoreCleaningStatus()
 function toggleFloor(floorId) {
     // Hide all floors
@@ -499,11 +482,11 @@ async function restoreCleaningStatus() {
         }
 
         logs.forEach(log => {
-            let formattedRoom = String(log.roomNumber).padStart(3, "0"); // ✅ Always ensure correct format
+            let formattedRoom = formatRoomNumber(log.roomNumber);
             const status = log.finishTime ? "finished" : log.startTime ? "in_progress" : "available";
             const dndStatus = log.dndStatus ? "dnd" : "available"; // ✅ Retrieve DND status
 
-            updateButtonStatus(roomNumber, status, dndStatus);
+            updateButtonStatus(formatRoomNumber(log.roomNumber), status, dndStatus);
         });
 
         console.log("✅ All buttons updated after page load.");
@@ -516,8 +499,9 @@ async function restoreCleaningStatus() {
 function updateRoomUI(roomNumber, status, previousStatus = null) {
     const startButton = document.querySelector(`#start-${roomNumber}`);
     const finishButton = document.querySelector(`#finish-${roomNumber}`);
+    const dndButton = document.querySelector(`#dnd-${roomNumber}`);
 
-    if (!startButton || !finishButton) {
+    if (!startButton || !finishButton || !dndButton) {
         console.warn(`❌ Buttons missing for Room ${roomNumber}`);
         return;
     }
@@ -539,18 +523,24 @@ function updateRoomUI(roomNumber, status, previousStatus = null) {
     } else if (status === "dnd") {
         startButton.disabled = true;
         finishButton.disabled = true;
-    } else if (status === "in_progress") {
-        startButton.disabled = true;
-        finishButton.disabled = false;
-        finishButton.style.backgroundColor = "#008CFF";
-    } else if (status === "finished") {
-        startButton.disabled = true;
-        finishButton.disabled = true;
-        finishButton.style.backgroundColor = "green";
+        dndButton.style.backgroundColor = "red";
     } else {
-        console.warn(`⚠️ Unknown status for Room ${roomNumber}:`, status);
+        dndButton.style.backgroundColor = "#008CFF";
+
+        if (status === "in_progress") {
+            startButton.disabled = true;
+            finishButton.disabled = false;
+            finishButton.style.backgroundColor = "#008CFF";
+        } else if (status === "finished") {
+            startButton.disabled = true;
+            finishButton.disabled = true;
+            finishButton.style.backgroundColor = "green";
+        } else {
+            console.warn(`⚠️ Unknown status for Room ${roomNumber}:`, status);
+        }
     }
 }
+
 
 
 async function resetCleaningStatus(roomNumber) {
@@ -595,7 +585,7 @@ async function resetCleaningStatus(roomNumber) {
         console.log(`✅ Cleaning status reset successfully for Room ${numericRoomNumber}.`);
 
         // ✅ Immediately update UI
-        updateButtonStatus(numericRoomNumber, "available", "available");
+        updateButtonStatus(formattedRoom(roomNumber), "available", "available");
 
         // ✅ Refresh logs
         await loadLogs();
@@ -606,7 +596,7 @@ async function resetCleaningStatus(roomNumber) {
 
 
 async function toggleDoNotDisturb(roomNumber) {
-    const formattedRoom = roomNumber.toString().padStart(3, '0');
+    const formattedRoom = formatRoomNumber(roomNumber);
     const dndButton = document.getElementById(`dnd-${formattedRoom}`);
 
     if (!dndButton) {
@@ -661,7 +651,8 @@ async function toggleDoNotDisturb(roomNumber) {
 }
 
 async function startCleaning(roomNumber) {
-    const formattedRoom = roomNumber.toString().padStart(3, '0');
+    let formattedRoom = formatRoomNumber(log.roomNumber);
+    let numericRoomNumber = Number(roomNumber);
     const startButton = document.getElementById(`start-${formattedRoom}`);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
     const dndButton = document.getElementById(`dnd-${formattedRoom}`);
@@ -700,7 +691,7 @@ async function startCleaning(roomNumber) {
         const res = await fetch(`${apiUrl}/logs/start`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roomNumber, username })
+            body: JSON.stringify({ roomNumber: numericRoomNumber, username })
         });
 
         const data = await res.json();
@@ -711,11 +702,11 @@ async function startCleaning(roomNumber) {
         }
 
         console.log(`✅ Room ${formattedRoom} cleaning started.`);
-        safeEmit("update", { roomNumber, status: "in_progress" });
+        safeEmit("roomUpdate", { roomNumber, status: "in_progress" });
 
          // ✅ Update UI Immediately
         updateRoomUI(roomNumber, "in_progress", "available");
-        updateButtonStatus(roomNumber, "in_progress");
+        updateButtonStatus(formattedRoom, "in_progress");
 
         // ✅ Ensure fresh logs are loaded
         await loadLogs();
@@ -726,7 +717,7 @@ async function startCleaning(roomNumber) {
 }
 
 async function finishCleaning(roomNumber) {
-    const formattedRoom = roomNumber.toString().padStart(3, '0');
+    const formattedRoom = formatRoomNumber(log.roomNumber);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
     const username = localStorage.getItem("username"); 
     if (!username) {
@@ -772,7 +763,7 @@ async function finishCleaning(roomNumber) {
 
         // ✅ Update UI Immediately
         updateRoomUI(roomNumber, "finished", "in_progress");
-        updateButtonStatus(roomNumber, "finished");
+        updateButtonStatus(formattedRoom, "finished");
 
         // ✅ Ensure fresh logs are loaded
         await loadLogs();
@@ -783,7 +774,7 @@ async function finishCleaning(roomNumber) {
 }
 
 function updateButtonStatus(roomNumber, status, dndStatus = "available") {
-     let formattedRoom = String(roomNumber).padStart(3, "0"); // ✅ Ensure it's always 3 digits
+     let formattedRoom = formatRoomNumber(roomNumber);
     
     const startButton = document.getElementById(`start-${formattedRoom}`);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
@@ -860,6 +851,8 @@ async function loadLogs() {
             let status = log.finishTime ? "finished" : "in_progress";
             let dndStatus = log.dndStatus ? "dnd" : "available"; // ✅ Read DND status from DB
 
+            updateButtonStatus(formatRoomNumber(log.roomNumber), status, dndStatus);
+
             // ✅ Only update DND status if it has actually changed
             const dndButton = document.getElementById(`dnd-${roomNumber}`);
             if (dndButton) {
@@ -905,7 +898,7 @@ async function loadLogs() {
 async function updateDNDStatus(roomNumber, status) {
     console.log(`🚨 Updating DND status for Room ${roomNumber} to: ${status}`);
 
-    let formattedRoom = roomNumber.toString().padStart(3, '0');
+    let formattedRoom = formatRoomNumber(roomNumber);
     const dndButton = document.getElementById(`dnd-${formattedRoom}`);
     const startButton = document.getElementById(`start-${formattedRoom}`);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
@@ -1008,7 +1001,7 @@ async function clearLogs() {
         let logStartTime = rowData[1].trim(); // Example: "2024-03-04 10:30 AM"
 
         // Convert to proper Date format if possible
-        let logDate = new Date(logStartTime).toISOString().split('T')[0];
+        let logDate = logStartTime ? new Date(logStartTime).toISOString().split('T')[0] : "";
 
         console.log(`Checking Log: ${logDate} vs Today: ${today}`); // Debugging Output
 
