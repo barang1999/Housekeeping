@@ -68,20 +68,18 @@ async function connectWebSocket() {
     });
 
     // ✅ Ensure WebSocket events are attached **only once**
-    if (!window.socket.hasListeners("dndUpdate")) {
+        if (!window.socket.hasListeners("dndUpdate")) {
         window.socket.on("dndUpdate", async ({ roomNumber, status }) => {
             console.log(`📡 WebSocket: DND mode changed for Room ${roomNumber} -> ${status}`);
-
-            // ✅ Fetch latest logs to determine previous state
+    
             const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
             const roomLog = logs.find(log => log.roomNumber.toString().padStart(3, '0') === roomNumber);
-
+    
             let previousStatus = "available";
             if (roomLog) {
                 previousStatus = roomLog.finishTime ? "finished" : roomLog.startTime ? "in_progress" : "available";
             }
-
-            // ✅ Update UI correctly
+    
             updateRoomUI(roomNumber, status, previousStatus);
             await loadLogs();
             updateButtonStatus(roomNumber, status);
@@ -431,6 +429,7 @@ async function ensureValidToken() {
             localStorage.setItem("token", token); // ✅ Store new token
         }
 
+        localStorage.setItem("token", token); // ✅ Store the new token immediately
         console.log("✅ Token is valid.");
         return token;
     } catch (error) {
@@ -783,10 +782,10 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
     }
 
     if (dndStatus === "dnd") {
-        startButton.style.backgroundColor = "grey";
         startButton.disabled = true;
-        finishButton.style.backgroundColor = "grey";
+        startButton.style.backgroundColor = "grey";
         finishButton.disabled = true;
+        finishButton.style.backgroundColor = "grey";
         dndButton.style.backgroundColor = "red";
         dndButton.classList.add("active-dnd");
     } else {
@@ -794,24 +793,22 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         dndButton.classList.remove("active-dnd");
 
         if (status === "in_progress") {
-            startButton.style.backgroundColor = "grey";
             startButton.disabled = true;
-            finishButton.style.backgroundColor = "blue"; // ✅ Ensure finish button turns blue
-            finishButton.disabled = false; // ✅ Ensure finish button is enabled
+            startButton.style.backgroundColor = "grey";
+            finishButton.disabled = false;
+            finishButton.style.backgroundColor = "blue";
         } else if (status === "finished") {
-            startButton.style.backgroundColor = "grey";
             startButton.disabled = true;
+            startButton.style.backgroundColor = "grey";
+            finishButton.disabled = true;
             finishButton.style.backgroundColor = "green";
-            finishButton.disabled = true;
         } else {
-            // ✅ Reset to original sky blue color when room is available
-            startButton.style.backgroundColor = "#008CFF"; // Sky Blue color
             startButton.disabled = false;
-            finishButton.style.backgroundColor = "grey";
+            startButton.style.backgroundColor = "#008CFF"; // Sky Blue color
             finishButton.disabled = true;
+            finishButton.style.backgroundColor = "grey";
         }
     }
-}
 
 
 // Ensure updateButtonStatus is being called after fetching logs
