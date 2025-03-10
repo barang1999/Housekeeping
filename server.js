@@ -341,15 +341,19 @@ app.post("/logs/dnd", async (req, res) => {
 
 module.exports = router;
 
-app.get("/logs/dnd/all", async (req, res) => {
+app.get("/logs/dnd", async (req, res) => {
     try {
-        const dndRooms = await RoomDND.find();
+        // Fetch all rooms with their DND status
+        const dndRooms = await RoomDND.find({}, { roomNumber: 1, dndStatus: 1, _id: 0 });
+
+        console.log("📌 Retrieved DND Status:", dndRooms);
         res.json(dndRooms);
     } catch (error) {
         console.error("❌ Error fetching DND status:", error);
-        res.status(500).json({ message: "Server error." });
+        res.status(500).json({ message: "Internal server error." });
     }
 });
+
 
 
 // ✅ Reset Cleaning Status When DND is Turned Off
