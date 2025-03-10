@@ -145,18 +145,30 @@ io.on("connection", (socket) => {
 
     console.log(`🔐 WebSocket Authenticated: ${socket.user.username}`);
 
-    // ✅ Handle DND updates securely (UI only, no logs modified)
-    socket.on("dndUpdate", ({ roomNumber, status }) => {
+    // ✅ Handle DND updates and immediately fetch the latest state
+    socket.on("dndUpdate", async ({ roomNumber, status }) => {
         if (!roomNumber) {
             console.warn("⚠️ Invalid DND update request");
             return;
         }
-        console.log(`📡 Broadcasting DND update for Room ${roomNumber} to ${status}`);
 
-        // ✅ Broadcast event WITHOUT modifying database logs
-        io.emit("dndUpdate", { roomNumber, status });
+        console.log(`📡 Broadcasting DND update for Room ${roomNumber} -> ${status}`);
+
+        // ✅ Update database DND status
+        await RoomDND.findOneAndUpdate(
+            { roomNumber },
+            { $set: { dndStatus: status === "dnd" } },
+            { upsert: true }
+        );
+
+        // ✅ Fetch the latest DND status **before broadcasting**
+        const dndLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
+
+        // ✅ Broadcast latest DND states to all clients
+        io.emit("dndUpdate", { roomNumber, status, dndLogs });
+
+        console.log(`✅ DND Updated -> Room: ${roomNumber}, Status: ${status}`);
     });
-
     // ✅ Handle Cleaning Reset securely
     socket.on("resetCleaning", ({ roomNumber }) => {
         if (!roomNumber) {
@@ -341,13 +353,21 @@ module.exports = router;
 
 app.get("/logs/dnd", async (req, res) => {
     try {
+        console.log("🔄 Fetching latest DND statuses...");
         const dndLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
+
+        if (!dndLogs || dndLogs.length === 0) {
+            return res.json([]); // Return empty array if no logs
+        }
+
+        console.log("✅ Successfully fetched DND logs:", dndLogs);
         res.json(dndLogs);
     } catch (error) {
         console.error("❌ Error fetching DND statuses:", error);
         res.status(500).json({ message: "Internal server error." });
     }
 });
+
 
 // ✅ Reset Cleaning Status When DND is Turned Off
 app.post("/logs/reset-cleaning", async (req, res) => {
@@ -585,11 +605,14 @@ app.post("/logs/clear", async (req, res) => {
 
         console.log("✅ All logs and DND statuses reset.");
 
+        // ✅ Fetch latest DND statuses
+        const dndLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
+
         // ✅ Broadcast WebSocket Event
         io.emit("clearLogs");
-        io.emit("dndUpdate", { roomNumber: "all", status: "available" });
+        io.emit("dndUpdate", { roomNumber: "all", status: "available", dndLogs });
 
-        res.json({ message: "All cleaning logs and DND statuses cleared." });
+        res.json({ message: "All cleaning logs and DND statuses cleared.", dndLogs });
     } catch (error) {
         console.error("❌ Error clearing logs:", error);
         res.status(500).json({ message: "Internal server error." });
