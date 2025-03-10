@@ -802,36 +802,37 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         return;
     }
 
-    // ✅ Handle DND Mode
+    // ✅ Handle DND Mode (If DND is ON, disable Start Cleaning)
     if (dndStatus === "dnd") {
         startButton.disabled = true;
         finishButton.disabled = true;
         dndButton.style.backgroundColor = "red";
         dndButton.classList.add("active-dnd");
         console.log(`🚨 Room ${formattedRoom} is in DND mode - Cleaning disabled`);
-        return; // 🚫 Skip further updates if DND is active
+        return; // Stop further updates when DND is active
     }
 
-    // ✅ DND is OFF - Restore Button Functionality
+    // ✅ If DND is OFF, restore button styles
     dndButton.style.backgroundColor = "#008CFF";
     dndButton.classList.remove("active-dnd");
-    startButton.disabled = false; // ✅ Enable Start Button
+    startButton.disabled = false;
 
-    // ✅ Handle Cleaning Status
-    if (status === "in_progress") {
+    // ✅ Update Buttons Based on Room Status
+    if (status === "finished") {
+        startButton.disabled = true; // ✅ Keep Start button disabled when finished
+        finishButton.disabled = true;
+        finishButton.style.backgroundColor = "green";
+    } else if (status === "in_progress") {
         startButton.disabled = true;
         finishButton.disabled = false;
         finishButton.style.backgroundColor = "#008CFF";
-    } else if (status === "finished") {
-        startButton.disabled = true;
-        finishButton.disabled = true;
-        finishButton.style.backgroundColor = "green";
     } else {
         startButton.disabled = false;
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "grey";
     }
 }
+
 
 
 // Ensure updateButtonStatus is being called after fetching logs
