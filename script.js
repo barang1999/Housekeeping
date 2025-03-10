@@ -503,24 +503,25 @@ async function restoreCleaningStatus() {
     try {
         console.log("🔄 Restoring cleaning status...");
         
-        // ✅ Fetch cleaning logs
         const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
-        
-        // ✅ Fetch DND logs
         const dndLogs = await fetchWithErrorHandling(`${apiUrl}/logs/dnd`);
         
-        // ✅ Convert DND logs into a lookup map
         const dndStatusMap = new Map(
-            (Array.isArray(dndLogs) ? dndLogs : []).map(dnd => [dnd.roomNumber, dnd.dndStatus])
+            (Array.isArray(dndLogs) ? dndLogs : []).map(dnd => [formatRoomNumber(dnd.roomNumber), dnd.dndStatus])
         );
 
-        // ✅ Process each log entry
+        if (!logs || !Array.isArray(logs)) {
+            console.warn("⚠ No cleaning logs found.");
+            return;
+        }
+
         logs.forEach(log => {
             let roomNumber = formatRoomNumber(log.roomNumber);
             let status = log.finishTime ? "finished" : "in_progress";
-            let dndStatus = dndStatusMap.get(log.roomNumber) ? "dnd" : "available";
+            let dndStatus = dndStatusMap.get(roomNumber) ? "dnd" : "available";
 
-            // ✅ Update Button Status
+            console.log(`Updating Room ${roomNumber}: Status=${status}, DND=${dndStatus}`);
+
             updateButtonStatus(roomNumber, status, dndStatus);
         });
 
@@ -529,6 +530,7 @@ async function restoreCleaningStatus() {
         console.error("❌ Error restoring cleaning status:", error);
     }
 }
+
 
 async function resetCleaningStatus(roomNumber) {
     const numericRoomNumber = parseInt(roomNumber, 10); // ✅ Ensure it's a Number
@@ -644,13 +646,6 @@ async function startCleaning(roomNumber) {
     return;
     }
 
-
-    // Disable Start Cleaning and Enable Finish Cleaning
-    startButton.disabled = true;
-    startButton.style.backgroundColor = "grey";
-    finishButton.disabled = false;
-    finishButton.style.backgroundColor = "#008CFF";
-
     // ✅ Send API request to update backend
     try {
         const res = await fetch(`${apiUrl}/logs/start`, {
@@ -665,8 +660,13 @@ async function startCleaning(roomNumber) {
             alert(`❌ Failed: ${data.message}`);
             return;
         }
-
+        // Disable Start Cleaning and Enable Finish Cleaning
+        startButton.disabled = true;
+        startButton.style.backgroundColor = "grey";
+        finishButton.disabled = false;
+        finishButton.style.backgroundColor = "#008CFF";
         console.log(`✅ Room ${formattedRoom} cleaning started.`);
+        
         safeEmit("roomUpdate", { roomNumber, status: "in_progress" });
 
          // ✅ Update UI Immediately
@@ -704,11 +704,6 @@ async function finishCleaning(roomNumber) {
         return;
     }
 
-
-    // Disable Finish Button and Change Color to Green
-    finishButton.disabled = true;
-    finishButton.style.backgroundColor = "green";
-
     // ✅ Send API request to update backend
     try {
         const res = await fetch(`${apiUrl}/logs/finish`, {
@@ -723,6 +718,11 @@ async function finishCleaning(roomNumber) {
             alert(`❌ Failed: ${data.message}`);
             return;
         }
+
+         // Disable Finish Button and Change Color to Green
+        finishButton.disabled = true;
+        finishButton.style.backgroundColor = "green";
+
        // ✅ Emit WebSocket Event for Real-Time Updates
         safeEmit("roomUpdate", { roomNumber, status: "finished" });
 
