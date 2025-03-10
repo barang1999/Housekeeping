@@ -454,25 +454,31 @@ function storeTokens(accessToken, refreshToken) {
 }
 
 async function fetchRoomStatuses() {
+    const reloadBtn = document.querySelector(".reload-btn");
+    
     try {
-        const response = await fetch("https://yourserver.com/logs/status"); // Use the correct API URL
+        reloadBtn.innerHTML = "⏳ Loading...";
+        reloadBtn.disabled = true;
+
+        const response = await fetch("https://yourserver.com/logs/status");
         const statuses = await response.json();
 
-        console.log("✅ Room Statuses Fetched from Backend:", statuses);
+        console.log("✅ Room Statuses Fetched:", statuses);
 
         document.querySelectorAll(".start-cleaning-btn").forEach(button => {
             const roomNumber = button.getAttribute("data-room-number");
 
-            console.log(`🔍 Checking Room ${roomNumber}: Status =`, statuses[roomNumber]);
-
             if (statuses[roomNumber] === "finished") {
                 button.disabled = true;
-                button.classList.add("disabled-button"); // Make it visually disabled
-                console.log(`✅ Disabled Start Button for Room ${roomNumber}`);
+                button.classList.add("disabled-button");
             }
         });
+
     } catch (error) {
         console.error("❌ Error fetching room statuses:", error);
+    } finally {
+        reloadBtn.innerHTML = "🔄 Reload";
+        reloadBtn.disabled = false;
     }
 }
 
