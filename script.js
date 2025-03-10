@@ -15,6 +15,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     console.log("✅ Logs loaded. Restoring cleaning status...");
     await restoreCleaningStatus();
+    await loadDNDStatus();
 
     console.log("🎯 Cleaning status restored successfully.");
     checkAuth();
@@ -476,38 +477,30 @@ function toggleFloor(floorId) {
         }).format(new Date());
     }
 
+/** ✅ Fetch DND Status */
 async function loadDNDStatus() {
-    console.log("🔄 Fetching DND status...");
-
     try {
-        const response = await fetch("https://housekeeping-production.up.railway.app/logs/dnd/all"); // Fetch from server
-        const dndData = await response.json();
+        console.log("🔄 Fetching DND status...");
+        const dndLogs = await fetchWithErrorHandling(`${apiUrl}/logs/dnd`);
 
-        if (!dndData || !Array.isArray(dndData)) {
-            console.warn("⚠️ No valid DND data found.");
+        if (!dndLogs || !Array.isArray(dndLogs)) {
+            console.warn("⚠️ No valid DND logs found.");
             return;
         }
 
-        dndData.forEach(room => {
-            let formattedRoom = formatRoomNumber(room.roomNumber);
-            let dndStatus = room.dndStatus ? "dnd" : "available"; // ✅ Read from API
-
-            // ✅ Update button UI immediately
+        dndLogs.forEach(dnd => {
+            let formattedRoom = formatRoomNumber(dnd.roomNumber);
+            let dndStatus = dnd.dndStatus ? "dnd" : "available";
             updateDNDStatus(formattedRoom, dndStatus);
         });
 
-        console.log("✅ DND status restored after refresh.");
+        console.log("✅ DND status updated.");
     } catch (error) {
         console.error("❌ Error loading DND status:", error);
     }
 }
 
 // ✅ Call this function on page load
-document.addEventListener("DOMContentLoaded", async () => {
-    await loadDNDStatus(); // Fetch and update DND status after page refresh
-});
-
-// ✅ Ensure this function runs when the page loads
 document.addEventListener("DOMContentLoaded", async () => {
     await loadDNDStatus(); // Fetch and update DND status after page refresh
 });
@@ -643,33 +636,18 @@ async function resetCleaningStatus(roomNumber) {
 async function toggleDoNotDisturb(roomNumber) {
     const formattedRoom = formatRoomNumber(roomNumber);
     const dndButton = document.getElementById(`dnd-${formattedRoom}`);
-    const startButton = document.getElementById(`start-${formattedRoom}`);
-    const finishButton = document.getElementById(`finish-${formattedRoom}`);
 
-    if (!dndButton || !startButton || !finishButton) {
-        console.error(`❌ Buttons not found for Room ${formattedRoom}`);
+    if (!dndButton) {
+        console.error(`❌ DND button missing for Room ${formattedRoom}`);
         return;
     }
 
     const isDNDActive = dndButton.classList.contains("active-dnd");
     const newStatus = isDNDActive ? "available" : "dnd";
 
-    console.log(`🔄 Toggling DND mode for Room ${formattedRoom}`);
+    dndButton.classList.toggle("active-dnd");
+    dndButton.style.backgroundColor = newStatus === "dnd" ? "red" : "#008CFF";
 
-    // ✅ Disable Start & Finish buttons when DND is activated
-    if (newStatus === "dnd") {
-        dndButton.classList.add("active-dnd");
-        dndButton.style.backgroundColor = "red";
-        startButton.disabled = true;
-        finishButton.disabled = true;
-    } else {
-        // ✅ Re-enable Start button only when DND is released
-        dndButton.classList.remove("active-dnd");
-        dndButton.style.backgroundColor = "#008CFF";
-        startButton.disabled = false;
-    }
-
-    // ✅ Send update to the server (so it persists)
     try {
         await fetch(`${apiUrl}/logs/dnd`, {
             method: "POST",
@@ -677,12 +655,9 @@ async function toggleDoNotDisturb(roomNumber) {
             body: JSON.stringify({ roomNumber, status: newStatus }),
         });
 
-        // ✅ Emit WebSocket event (real-time update)
         safeEmit("dndUpdate", { roomNumber, status: newStatus });
-
     } catch (error) {
         console.error("❌ Error updating DND status:", error);
-        alert("An error occurred while updating DND mode.");
     }
 }
 
@@ -894,6 +869,7 @@ async function loadLogs() {
             let finishTime = log.finishTime ? new Date(log.finishTime).toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' }) : "In Progress...";
             let finishedBy = log.finishedBy || "-";
             let status = log.finishTime ? "finished" : "in_progress";
+            let dndStatus = dndStatusMap.get(log.roomNumber) ? "dnd" : "available";
             
 
            // ✅ Retrieve DND status from the map
