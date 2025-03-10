@@ -8,6 +8,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.log("🔄 Initializing housekeeping system...");
 
     await ensureValidToken();
+
+    await loadDNDStatus();
     await connectWebSocket(); // ✅ Ensure WebSocket connects
 
     console.log("⏳ Fetching logs...");
@@ -15,7 +17,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     console.log("✅ Logs loaded. Restoring cleaning status...");
     await restoreCleaningStatus();
-    await loadDNDStatus();
 
     console.log("🎯 Cleaning status restored successfully.");
     checkAuth();
@@ -80,11 +81,16 @@ async function connectWebSocket() {
     });
 
    window.socket.on("dndUpdate", async ({ roomNumber, status }) => {
-        console.log(`📡 WebSocket: DND mode changed for Room ${roomNumber} -> ${status}`);
-        updateDNDStatus(roomNumber, status);
-        // ✅ Fetch latest DND status from the database
-        await loadDNDStatus(); 
-    });
+    console.log(`📡 WebSocket: DND mode changed for Room ${roomNumber} -> ${status}`);
+
+    // ✅ Immediately update UI for better responsiveness
+    updateDNDStatus(roomNumber, status);
+
+    // ✅ Fetch latest DND status in the background for accuracy
+    setTimeout(async () => {
+        await loadDNDStatus();
+    }, 500); // Small delay to allow immediate UI update before fetching fresh data
+});
 }
 
 /** ✅ Ensure WebSocket is Available Before Emitting */
