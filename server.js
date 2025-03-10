@@ -308,25 +308,26 @@ const router = express.Router();
 app.post("/logs/dnd", async (req, res) => {
     try {
         const { roomNumber, status } = req.body;
+
         if (!roomNumber) {
             return res.status(400).json({ message: "Room number is required." });
         }
 
         const isDND = status === "dnd";
 
-        // ✅ Update the DND status in MongoDB
-        await RoomDND.findOneAndUpdate(
-            { roomNumber },
-            { dndStatus: isDND },
-            { upsert: true, new: true }
+        // ✅ Ensure roomNumber is stored as a string for consistency
+        const updatedRoom = await RoomDND.findOneAndUpdate(
+            { roomNumber: String(roomNumber) }, 
+            { $set: { dndStatus: isDND } }, 
+            { upsert: true, new: true, setDefaultsOnInsert: true }
         );
 
         console.log(`✅ Room ${roomNumber} DND mode updated -> ${status}`);
 
-        // ✅ Broadcast to all WebSocket clients
-        io.emit("dndUpdate", { roomNumber, status });
+        // ✅ Broadcast update to WebSocket clients
+        io.emit("dndUpdate", { roomNumber: updatedRoom.roomNumber, status });
 
-        res.json({ message: `DND mode ${status} for Room ${roomNumber}` });
+        res.json({ message: `DND mode ${status} for Room ${roomNumber}`, room: updatedRoom });
     } catch (error) {
         console.error("❌ Error updating DND status:", error);
         res.status(500).json({ message: "Internal server error." });
