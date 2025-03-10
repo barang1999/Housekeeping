@@ -77,12 +77,14 @@ async function connectWebSocket() {
     let updateTimeout = null;
     
     socket.on("dndUpdate", ({ roomNumber, status, dndLogs }) => {
+        // ✅ Ensure dndLogs is always an array
         if (!Array.isArray(dndLogs)) {
             console.warn("⚠ dndLogs is not an array, initializing as empty array.");
             dndLogs = [];
         }
     
-        pendingUpdates = dndLogs; // Store updates in memory
+        // ✅ Append new updates instead of replacing them
+        pendingUpdates = pendingUpdates.concat(dndLogs);
     
         if (!updateTimeout) {
             updateTimeout = setTimeout(() => {
