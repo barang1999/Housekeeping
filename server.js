@@ -14,6 +14,7 @@ const allowedOrigins = ["https://housekeepingmanagement.netlify.app"]; // Add yo
 const app = express();
 app.use(express.json());
 app.use(cors());
+const app = require("express")();
 
 // ✅ Load MongoDB URI
 const mongoURI = process.env.MONGO_URI;
@@ -52,8 +53,8 @@ const User = mongoose.model("User", userSchema);
 app.use(cors({
     origin: "https://housekeepingmanagement.netlify.app",
     methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,  
     allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true  
 }));
 
 app.options("*", cors()); // Allow preflight requests
