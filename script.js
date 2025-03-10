@@ -113,7 +113,9 @@ async function connectWebSocket() {
 
 }
 
-let reconnectAttempts = 0;
+if (typeof reconnectAttempts === "undefined") {
+    var reconnectAttempts = 0;
+}
 function reconnectWebSocket() {
     if (reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
         console.warn("❌ Max WebSocket reconnect attempts reached.");
