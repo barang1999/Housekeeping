@@ -145,7 +145,10 @@ io.on("connection", (socket) => {
 
     console.log(`🔐 WebSocket Authenticated: ${socket.user.username}`);
 
-    // ✅ Handle DND updates and immediately fetch the latest state
+    // ✅ Fetch & Send Latest DND Status Immediately Upon Connection
+    const dndLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
+    socket.emit("dndUpdate", { roomNumber: "all", status: "available", dndLogs });
+
     socket.on("dndUpdate", async ({ roomNumber, status }) => {
         if (!roomNumber) {
             console.warn("⚠️ Invalid DND update request");
@@ -154,21 +157,21 @@ io.on("connection", (socket) => {
 
         console.log(`📡 Broadcasting DND update for Room ${roomNumber} -> ${status}`);
 
-        // ✅ Update database DND status
         await RoomDND.findOneAndUpdate(
             { roomNumber },
             { $set: { dndStatus: status === "dnd" } },
             { upsert: true }
         );
 
-        // ✅ Fetch the latest DND status **before broadcasting**
-        const dndLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
+        // ✅ Fetch latest DND state **before broadcasting**
+        const updatedDNDLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
 
-        // ✅ Broadcast latest DND states to all clients
-        io.emit("dndUpdate", { roomNumber, status, dndLogs });
+        // ✅ Broadcast latest DND data to **all** connected clients
+        io.emit("dndUpdate", { roomNumber, status, dndLogs: updatedDNDLogs });
 
-        console.log(`✅ DND Updated -> Room: ${roomNumber}, Status: ${status}`);
+        console.log(`✅ Room ${roomNumber} DND Updated -> Status: ${status}`);
     });
+
     // ✅ Handle Cleaning Reset securely
     socket.on("resetCleaning", ({ roomNumber }) => {
         if (!roomNumber) {
