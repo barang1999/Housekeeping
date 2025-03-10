@@ -94,26 +94,6 @@ async function connectWebSocket() {
     });
 }
 
-
-/** ✅ Set WebSocket Listeners Only Once */
-function setupWebSocketListeners() {
-    if (!window.socket) return;
-
-    window.socket.off("roomUpdate").on("roomUpdate", async ({ roomNumber, status, previousStatus }) => {
-        console.log(`📡 WebSocket: Room ${roomNumber} status updated to ${status}`);
-        
-        updateRoomUI(roomNumber, status, previousStatus || "available");
-        await loadLogs();
-        updateButtonStatus(formatRoomNumber(roomNumber), status);
-    });
-
-    window.socket.off("dndUpdate").on("dndUpdate", async ({ roomNumber, status }) => {
-        console.log(`📡 WebSocket: DND mode changed for Room ${roomNumber} -> ${status}`);
-        updateRoomUI(roomNumber, status);
-        await loadLogs();
-    });
-}
-
 /** ✅ Ensure WebSocket is Available Before Emitting */
 function safeEmit(event, data = {}) {
     if (!window.socket || !window.socket.connected) {
