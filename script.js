@@ -65,19 +65,21 @@ async function connectWebSocket() {
         safeEmit("requestDNDStatus");
     });
     
-    window.socket.on("roomUpdate", ({ roomNumber, status }) => {
-    console.log(`📡 WebSocket: Room ${roomNumber} status updated -> ${status}`);
+    socket.on("roomUpdate", ({ roomNumber, status }) => {
+    console.log(`🛎 Room Update: Room ${roomNumber} -> Status: ${status}`);
 
-    // ✅ Ensure "Start Cleaning" stays disabled for finished rooms
-    if (status === "finished") {
-        updateButtonStatus(roomNumber, "finished");
-    } else {
-        updateButtonStatus(roomNumber, status);
-    }
+    const startButton = document.querySelector(`.start-cleaning-btn[data-room-number="${roomNumber}"]`);
+    const finishButton = document.querySelector(`.finish-cleaning-btn[data-room-number="${roomNumber}"]`);
 
-    // ✅ Reload logs to prevent stale data
     if (status === "finished") {
-        loadLogs();
+        if (startButton) {
+            startButton.disabled = true;
+            startButton.classList.add("disabled-button");
+        }
+        if (finishButton) {
+            finishButton.disabled = true;
+            finishButton.classList.add("disabled-button");
+        }
     }
 });
 
