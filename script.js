@@ -8,15 +8,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.log("🔄 Initializing housekeeping system...");
 
     await ensureValidToken();
-    await loadDNDStatus();
-
-    await connectWebSocket(); // ✅ Ensure WebSocket connects
+    await loadDNDStatus();  // ✅ Load DND status first
+    await restoreCleaningStatus(); // ✅ Ensure cleaning status is restored
+    await connectWebSocket(); // ✅ Connect WebSocket after loading states
 
     console.log("⏳ Fetching logs...");
     await loadLogs();
-
-    console.log("✅ Logs loaded. Restoring cleaning status...");
-    await restoreCleaningStatus();
 
     console.log("🎯 Cleaning status restored successfully.");
     checkAuth();
@@ -68,13 +65,7 @@ async function connectWebSocket() {
         console.log("✅ WebSocket connected successfully.");
         safeEmit("requestDNDStatus");
     });
-
-    window.socket.on("disconnect", (reason) => {
-        console.warn("🔴 WebSocket disconnected:", reason);
-        setTimeout(connectWebSocket, 3000); // Retry connection after 3s
-    });
-
-
+    
     window.socket.on("roomUpdate", async ({ roomNumber, status }) => {
         console.log(`📡 WebSocket: Room ${roomNumber} status updated to ${status}`);
         updateRoomUI(roomNumber, status);
@@ -99,6 +90,10 @@ async function connectWebSocket() {
         await loadDNDStatus();
     }, 500);
 });
+     window.socket.on("disconnect", (reason) => {
+        console.warn("🔴 WebSocket disconnected:", reason);
+        setTimeout(connectWebSocket, 3000); // Retry connection after 3s
+    });
 }
 
 /** ✅ Ensure WebSocket is Available Before Emitting */
@@ -478,6 +473,7 @@ async function loadDNDStatus() {
         dndLogs.forEach(dnd => {
             let formattedRoom = formatRoomNumber(dnd.roomNumber);
             let dndStatus = dnd.dndStatus ? "dnd" : "available";
+            
             updateDNDStatus(formattedRoom, dndStatus);
         });
 
@@ -514,6 +510,7 @@ async function restoreCleaningStatus() {
             updateButtonStatus(roomNumber, status, dndStatus);
         });
 
+        console.log("✅ Cleaning and DND status restored.");
     } catch (error) {
         console.error("❌ Error restoring cleaning status:", error);
     }
