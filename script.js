@@ -73,14 +73,15 @@ async function connectWebSocket() {
         setTimeout(connectWebSocket, 3000); // Retry connection after 3s
     });
 
+
     window.socket.on("roomUpdate", async ({ roomNumber, status }) => {
         console.log(`📡 WebSocket: Room ${roomNumber} status updated to ${status}`);
         updateRoomUI(roomNumber, status);
         await loadLogs();
         updateButtonStatus(formatRoomNumber(roomNumber), status);
     });
-
-   window.socket.on("dndUpdate", async ({ roomNumber, status, dndLogs }) => {
+    
+    window.socket.on("dndUpdate", async ({ roomNumber, status, dndLogs }) => {
     console.log(`📡 WebSocket: DND mode changed for Room ${roomNumber} -> ${status}`);
 
     if (roomNumber === "all") {
@@ -92,10 +93,8 @@ async function connectWebSocket() {
         updateDNDStatus(roomNumber, status);
     }
 
-    // ✅ Fetch latest DND status in the background for accuracy
-    setTimeout(async () => {
-        await loadDNDStatus();
-    }, 500);
+    // ✅ Immediately fetch latest DND status for accuracy
+    await loadDNDStatus();
 });
 }
 
