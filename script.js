@@ -80,16 +80,22 @@ async function connectWebSocket() {
         updateButtonStatus(formatRoomNumber(roomNumber), status);
     });
 
-   window.socket.on("dndUpdate", async ({ roomNumber, status }) => {
+   window.socket.on("dndUpdate", async ({ roomNumber, status, dndLogs }) => {
     console.log(`📡 WebSocket: DND mode changed for Room ${roomNumber} -> ${status}`);
 
-    // ✅ Immediately update UI for better responsiveness
-    updateDNDStatus(roomNumber, status);
+    if (roomNumber === "all") {
+        console.log("🔄 Resetting all DND statuses...");
+        dndLogs.forEach(dnd => {
+            updateDNDStatus(formatRoomNumber(dnd.roomNumber), dnd.dndStatus ? "dnd" : "available");
+        });
+    } else {
+        updateDNDStatus(roomNumber, status);
+    }
 
     // ✅ Fetch latest DND status in the background for accuracy
     setTimeout(async () => {
         await loadDNDStatus();
-    }, 500); // Small delay to allow immediate UI update before fetching fresh data
+    }, 500);
 });
 }
 
