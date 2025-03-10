@@ -7,10 +7,12 @@ window.socket = null;
 document.addEventListener("DOMContentLoaded", async () => {
     console.log("🔄 Initializing housekeeping system...");
 
-    await ensureValidToken();
+     await ensureValidToken();
+    await connectWebSocket(); // ✅ Connect WebSocket first for real-time updates
+    await loadLogs(); // ✅ Fetch logs before restoring buttons
     await loadDNDStatus();  // ✅ Load DND status first
-    await restoreCleaningStatus(); // ✅ Ensure cleaning status is restored
-    await connectWebSocket(); // ✅ Connect WebSocket after loading states
+    await restoreCleaningStatus(); // ✅ Ensure buttons are updated after logs are loaded
+
 
     console.log("⏳ Fetching logs...");
     await loadLogs();
@@ -507,6 +509,7 @@ async function restoreCleaningStatus() {
             let roomNumber = formatRoomNumber(log.roomNumber);
             let status = log.finishTime ? "finished" : "in_progress";
             let dndStatus = dndStatusMap.get(log.roomNumber) ? "dnd" : "available";
+            
             updateButtonStatus(roomNumber, status, dndStatus);
         });
 
