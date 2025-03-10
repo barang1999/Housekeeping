@@ -460,7 +460,7 @@ async function fetchRoomStatuses() {
         reloadBtn.innerHTML = "⏳ Loading...";
         reloadBtn.disabled = true;
 
-        const response = await fetch("https://housekeeping-production.up.railway.app/log/status", {
+        const response = await fetch("https://housekeeping-production.up.railway.app/logs/status", {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
