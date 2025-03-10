@@ -68,10 +68,10 @@ async function connectWebSocket() {
         safeEmit("requestDNDStatus");
     });
     
-    window.socket.on("roomUpdate", async ({ roomNumber, status }) => {
-        console.log(`📡 WebSocket: Room ${roomNumber} status updated to ${status}`);
-        await loadLogs();
-        updateButtonStatus(formatRoomNumber(roomNumber), status);
+        socket.on("roomUpdate", ({ roomNumber, status }) => {
+        console.log(`📡 WebSocket: Room ${roomNumber} status updated -> ${status}`);
+    
+        updateButtonStatus(roomNumber, status);
     });
     let pendingUpdates = [];
     let updateTimeout = null;
@@ -765,21 +765,19 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
     dndButton.classList.remove("active-dnd");
     startButton.disabled = false;
 
-    // ✅ Reset button styles before applying new ones
-    startButton.style.backgroundColor = "#008CFF";
-    finishButton.style.backgroundColor = "grey";
-
     // ✅ Update Buttons Based on Room Status
     if (status === "finished") {
         startButton.disabled = true;
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "green";
     } else if (status === "in_progress") {
-        startButton.disabled = true;
+        startButton.disabled = true;  // ✅ Disable Start Cleaning when clicked
+        startButton.style.backgroundColor = "grey"; // ✅ Make it grey when clicked
         finishButton.disabled = false;
-        finishButton.style.backgroundColor = "#008CFF";
+        finishButton.style.backgroundColor = "#008CFF"; // Enable Finish button
     } else {
         startButton.disabled = false;
+        startButton.style.backgroundColor = "#008CFF"; // Normal state
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "grey";
     }
