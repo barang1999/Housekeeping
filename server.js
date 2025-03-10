@@ -1,44 +1,53 @@
 require("dotenv").config();
 const express = require("express");
-const mongoose = require("mongoose"); // ✅ Ensure mongoose is included
+const mongoose = require("mongoose");
 const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-const RoomDND = require("./RoomDND"); // ✅ Ensure RoomDND is imported before using it
-
+const RoomDND = require("./RoomDND"); // ✅ Ensure RoomDND is imported
 
 // ✅ Initialize Express
 const app = express();
 app.use(express.json());
-app.use(cors()); // ✅ Allow frontend requests
+app.use(cors());
 
-// ✅ Connect to MongoDB
-const uri = process.env.MONGO_URI || "mongodb+srv://barangbusiness:siFOl85qZCxkFsuD@cluster0.hcn2f.mongodb.net/Housekeeping?retryWrites=true&w=majority&appName=Cluster0";
+// ✅ Load MongoDB URI
+const mongoURI = process.env.MONGO_URI;
 
+if (!mongoURI) {
+    console.error("❌ MONGO_URI is missing. Check your .env file!");
+    process.exit(1);
+}
 
+// ✅ Connect to MongoDB using Mongoose (SINGLE Connection)
 mongoose.connect(mongoURI, {
     useNewUrlParser: true,
     useUnifiedTopology: true
-}).then(() => console.log("✅ MongoDB Connected Successfully"))
+})
+.then(() => console.log("✅ MongoDB Connected Successfully"))
 .catch(err => console.error("❌ MongoDB connection error:", err));
 
-// ✅ Handle disconnection
+// ✅ Handle MongoDB Disconnection & Reconnect
 mongoose.connection.on("disconnected", () => {
     console.warn("⚠️ MongoDB Disconnected. Attempting Reconnect...");
-    setTimeout(() => {
-        mongoose.connect(mongoURI, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true
-        }).catch(err => console.error("❌ MongoDB reconnection failed:", err));
-    }, 5000);
+    mongoose.connect(mongoURI, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+    }).catch(err => console.error("❌ MongoDB reconnection failed:", err));
 });
 
+// ✅ Define User Schema & Model
+const userSchema = new mongoose.Schema({
+    username: { type: String, unique: true, required: true },
+    password: { type: String, required: true },
+    refreshToken: { type: String }
+});
 const User = mongoose.model("User", userSchema);
 
-// ✅ CORS Configuration (Fixed Redundancies)
+// ✅ CORS Configuration
 app.use(cors({
     origin: "https://housekeepingmanagement.netlify.app",
     methods: ["GET", "POST", "PUT", "DELETE"],
@@ -46,7 +55,7 @@ app.use(cors({
     credentials: true  
 }));
 
-// ✅ Create HTTP & WebSocket Server (Fixed Duplicate Server Issue)
+// ✅ Create HTTP & WebSocket Server
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
@@ -54,26 +63,6 @@ const io = new Server(server, {
         methods: ["GET", "POST"]
     }
 });
-
-// ✅ Ensure MongoDB URI Exists
-const mongoURI = process.env.MONGO_URI;
-if (!mongoURI) {
-    console.error("❌ MONGO_URI is missing. Check your .env file!");
-    process.exit(1);
-}
-// ✅ MongoDB Connection with Retry Limit
-let retryAttempts = 0;
-const MAX_RETRIES = 5;
-
-const connectWithRetry = () => {
-    mongoose.connect(mongoURI)
-        .then(() => console.log("✅ MongoDB Connected Successfully"))
-        .catch(err => {
-            console.error("❌ MongoDB connection error:", err);
-            setTimeout(connectWithRetry, 5000);
-        });
-};
-connectWithRetry();
 
 // ✅ WebSocket Authentication Middleware
 io.use(async (socket, next) => {
@@ -109,7 +98,7 @@ io.on("connection", (socket) => {
     // Verify if the client is authenticated
     if (!socket.user) {
         console.warn("❌ Unauthorized WebSocket Connection Attempt");
-        socket.disconnect(true); // Fully disconnect
+        socket.disconnect(true);
         return;
     }
 
@@ -121,31 +110,26 @@ io.on("connection", (socket) => {
     });
     
     socket.on("dndUpdate", async ({ roomNumber, status }) => {
-    if (!roomNumber) {
-        console.warn("⚠️ Invalid DND update request");
-        return;
-    }
+        if (!roomNumber) {
+            console.warn("⚠️ Invalid DND update request");
+            return;
+        }
 
-    console.log(`📡 Broadcasting DND update for Room ${roomNumber} -> ${status}`);
+        console.log(`📡 Broadcasting DND update for Room ${roomNumber} -> ${status}`);
 
-    // ✅ Update database
-    await RoomDND.findOneAndUpdate(
-        { roomNumber },
-        { $set: { dndStatus: status === "dnd" } },
-        { upsert: true }
-    );
+        await RoomDND.findOneAndUpdate(
+            { roomNumber },
+            { $set: { dndStatus: status === "dnd" } },
+            { upsert: true }
+        );
 
-    // ✅ Fetch updated DND data **from the database** before broadcasting
-    const updatedDNDLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
+        const updatedDNDLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
+        io.emit("dndUpdate", { roomNumber, status, dndLogs: updatedDNDLogs });
 
-    // ✅ Send the latest **DND state** to ALL clients
-    io.emit("dndUpdate", { roomNumber, status, dndLogs: updatedDNDLogs });
+        console.log(`✅ Room ${roomNumber} DND Updated -> Status: ${status}`);
+    });
 
-    console.log(`✅ Room ${roomNumber} DND Updated -> Status: ${status}`);
-});
-
-    
-    // ✅ Handle Cleaning Reset securely
+    // ✅ Handle Cleaning Reset
     socket.on("resetCleaning", ({ roomNumber }) => {
         if (!roomNumber) {
             console.warn("⚠️ Invalid Cleaning Reset request");
@@ -155,14 +139,14 @@ io.on("connection", (socket) => {
         io.emit("resetCleaning", { roomNumber, status: "available" });
     });
 
-    // ✅ Handle disconnection
     socket.on("disconnect", (reason) => {
         console.warn(`🔴 WebSocket Client Disconnected: ${reason}`);
     });
 });
 
-// ✅ Store `io` in Express for later use
+// ✅ Store `io` in Express
 app.set("io", io);
+
 
 // ✅ User Signup (Fixed Duplicate User Check)
 app.post("/auth/signup", async (req, res) => {
