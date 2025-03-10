@@ -9,8 +9,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     await ensureValidToken();
 
-    await loadDNDStatus();
     await connectWebSocket(); // ✅ Ensure WebSocket connects
+    await loadDNDStatus();
 
     console.log("⏳ Fetching logs...");
     await loadLogs();
@@ -460,6 +460,7 @@ function toggleFloor(floorId) {
 async function loadDNDStatus() {
     try {
         console.log("🔄 Fetching DND status...");
+
         const dndLogs = await fetchWithErrorHandling(`${apiUrl}/logs/dnd`);
 
         if (!dndLogs || !Array.isArray(dndLogs)) {
@@ -471,7 +472,7 @@ async function loadDNDStatus() {
             let formattedRoom = formatRoomNumber(dnd.roomNumber);
             let dndStatus = dnd.dndStatus ? "dnd" : "available";
 
-            // ✅ Update the DND status UI
+            // ✅ Immediately update UI based on DND status
             updateDNDStatus(formattedRoom, dndStatus);
         });
 
@@ -480,6 +481,12 @@ async function loadDNDStatus() {
         console.error("❌ Error loading DND status:", error);
     }
 }
+
+// ✅ Call this function on page load **before** WebSocket connections
+document.addEventListener("DOMContentLoaded", async () => {
+    await loadDNDStatus(); 
+});
+
 
 // ✅ Call this function on page load
 document.addEventListener("DOMContentLoaded", async () => {
