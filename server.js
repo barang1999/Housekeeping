@@ -270,15 +270,14 @@ app.get("/logs/status", async (req, res) => {
         let status = {};
 
         logs.forEach(log => {
-            status[log.roomNumber] = log.finishTime ? "finished" : "in_progress";
-        });
-
-        // ✅ Ensure all rooms are included (1 to 20)
-        for (let room = 1; room <= 20; room++) {
-            if (!status[room]) {
-                status[room] = "not_started";
+            if (log.finishTime) {
+                status[log.roomNumber] = "finished";
+            } else if (log.startTime) {
+                status[log.roomNumber] = "in_progress";
+            } else {
+                status[log.roomNumber] = "not_started";
             }
-        }
+        });
 
         res.json(status);
     } catch (error) {
