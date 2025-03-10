@@ -18,15 +18,26 @@ app.use(cors()); // ✅ Allow frontend requests
 // ✅ Connect to MongoDB
 const uri = process.env.MONGO_URI || "mongodb+srv://barangbusiness:siFOl85qZCxkFsuD@cluster0.hcn2f.mongodb.net/Housekeeping?retryWrites=true&w=majority&appName=Cluster0";
 
-// ✅ Middleware to Ensure DB Connection Before Processing Requests
-app.use(async (req, res, next) => {
-    if (!db) {
-        console.error("❌ Database is not initialized.");
-        return res.status(500).json({ message: "Database is not initialized. Please try again later." });
-    }
-    req.db = db; // Assign the connected DB to `req.db`
-    next();
+
+mongoose.connect(mongoURI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+}).then(() => console.log("✅ MongoDB Connected Successfully"))
+.catch(err => console.error("❌ MongoDB connection error:", err));
+
+// ✅ Handle disconnection
+mongoose.connection.on("disconnected", () => {
+    console.warn("⚠️ MongoDB Disconnected. Attempting Reconnect...");
+    setTimeout(() => {
+        mongoose.connect(mongoURI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true
+        }).catch(err => console.error("❌ MongoDB reconnection failed:", err));
+    }, 5000);
 });
+
+const User = mongoose.model("User", userSchema);
+
 // ✅ CORS Configuration (Fixed Redundancies)
 app.use(cors({
     origin: "https://housekeepingmanagement.netlify.app",
@@ -64,25 +75,6 @@ const connectWithRetry = () => {
 };
 connectWithRetry();
 
-// ✅ Handle Disconnection with a Retry Mechanism
-mongoose.connection.on("disconnected", () => {
-    console.warn("⚠️ MongoDB Disconnected. Retrying in 5 seconds...");
-    setTimeout(() => {
-        mongoose.connect(mongoURI, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true
-        }).catch(err => console.error("❌ MongoDB reconnection failed:", err));
-    }, 5000); // Retry after 5 seconds
-});
-
-// ✅ Define MongoDB User Schema
-const userSchema = new mongoose.Schema({
-    username: { type: String, unique: true, required: true },
-    password: { type: String, required: true },
-    refreshToken: { type: String }
-});
-const User = mongoose.model("User", userSchema);
-
 // ✅ WebSocket Authentication Middleware
 io.use(async (socket, next) => {
     try {
@@ -110,7 +102,6 @@ io.use(async (socket, next) => {
         next(new Error("Authentication error"));
     }
 });
-
 
 io.on("connection", (socket) => {
     console.log(`⚡ WebSocket Client Connected: ${socket.id}`);
