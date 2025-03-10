@@ -267,6 +267,7 @@ app.get("/auth/validate", (req, res) => {
 app.get("/logs/status", async (req, res) => {
     try {
         const logs = await CleaningLog.find();
+
         let status = {};
 
         logs.forEach(log => {
@@ -279,6 +280,7 @@ app.get("/logs/status", async (req, res) => {
             }
         });
 
+        console.log("📌 Backend Sending Room Statuses:", status);
         res.json(status);
     } catch (error) {
         console.error("❌ Error fetching room status:", error);
