@@ -14,7 +14,6 @@ const allowedOrigins = ["https://housekeepingmanagement.netlify.app"]; // Add yo
 const app = express();
 app.use(express.json());
 app.use(cors());
-const app = require("express")();
 
 // ✅ Load MongoDB URI
 const mongoURI = process.env.MONGO_URI;
