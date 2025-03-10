@@ -13,10 +13,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     await restoreCleaningStatus(); // ✅ Ensure buttons are updated after logs are loaded
     await connectWebSocket(); // ✅ Connect WebSocket first for real-time updates
 
-
-    console.log("⏳ Fetching logs...");
-    await loadLogs();
-
     console.log("🎯 Cleaning status restored successfully.");
     checkAuth();
     loadRooms();
@@ -48,6 +44,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 async function connectWebSocket() {
     if (window.socket) {
         window.socket.off("roomUpdate").off("dndUpdate");
+        window.socket.removeAllListeners();
         window.socket.disconnect();
     }
 
@@ -68,34 +65,37 @@ async function connectWebSocket() {
         safeEmit("requestDNDStatus");
     });
     
-        socket.on("roomUpdate", ({ roomNumber, status }) => {
+        window.socket.on("roomUpdate", ({ roomNumber, status }) => {
         console.log(`📡 WebSocket: Room ${roomNumber} status updated -> ${status}`);
-    
         updateButtonStatus(roomNumber, status);
+            // Load logs only when needed
+        if (status === "finished") {
+            loadLogs();
+        }
     });
     let pendingUpdates = [];
     let updateTimeout = null;
     
-       socket.on("dndUpdate", ({ roomNumber, status, dndLogs }) => {
-        if (!Array.isArray(dndLogs)) {
-            console.warn("⚠ dndLogs is not an array, initializing as empty array.");
-            dndLogs = [];
-        }
-    
-        pendingUpdates = pendingUpdates.concat(dndLogs);
-    
-        if (!updateTimeout) {
-            updateTimeout = setTimeout(() => {
-                pendingUpdates.forEach(({ roomNumber, dndStatus }) => {
-                    updateButtonStatus(roomNumber, "available", dndStatus ? "dnd" : "available"); // ✅ Ensure DND affects buttons
-                });
-    
-                console.log("✅ Batched DND status update complete.");
-                pendingUpdates = [];
-                updateTimeout = null;
-            }, 200); // ✅ Wait 200ms to group updates
-        }
-    });
+       window.socket.on("dndUpdate", ({ roomNumber, status, dndLogs = [] }) => {
+    if (!Array.isArray(dndLogs)) {
+        console.warn("⚠ dndLogs is not an array, initializing as empty array.");
+        dndLogs = [];
+    }
+
+    pendingUpdates = dndLogs; // Store updates in memory
+
+    if (!updateTimeout) {
+        updateTimeout = setTimeout(() => {
+            pendingUpdates.forEach(({ roomNumber, dndStatus }) => {
+                updateButtonStatus(roomNumber, "available", dndStatus ? "dnd" : "available");
+            });
+
+            console.log("✅ Batched DND status update complete.");
+            pendingUpdates = [];
+            updateTimeout = null;
+        }, 200); // ✅ Wait 200ms to group updates
+    }
+});
 
      window.socket.on("disconnect", (reason) => {
         console.warn("🔴 WebSocket disconnected:", reason);
@@ -116,6 +116,7 @@ function safeEmit(event, data = {}) {
 /** ✅ Ensure WebSocket is Properly Connected Before Usage */
 function ensureWebSocketConnection() {
     let retryInterval = 1000; // Start with 1 second delay
+    let reconnectAttempts = 0;
 
     if (!window.socket || !window.socket.connected) {
         console.warn("⛔ WebSocket disconnected. Attempting reconnect...");
@@ -128,6 +129,7 @@ function ensureWebSocketConnection() {
                 console.warn(`🔄 Retrying WebSocket connection in ${retryInterval / 1000} seconds...`);
                 retryInterval *= 2; // Exponential backoff
                 connectWebSocket(); // Attempt reconnection
+                reconnectAttempts++;
             }
         }, retryInterval);
     }
@@ -147,6 +149,7 @@ async function updateButtonsFromLogs() {
     logs.forEach(log => {
         let roomNumber = formatRoomNumber(log.roomNumber); // FIX: Corrected variable reference
         const status = log.status || "pending";
+        const dndStatus = log.dndStatus || "available";
 
         updateButtonStatus(roomNumber, status, dndStatus);
     });
@@ -477,6 +480,7 @@ async function loadDNDStatus() {
             return;
         }
 
+        // ✅ Ensure DND buttons reflect the correct status
         dndLogs.forEach(dnd => {
             let formattedRoom = formatRoomNumber(dnd.roomNumber);
             let dndStatus = dnd.dndStatus ? "dnd" : "available";
@@ -484,7 +488,7 @@ async function loadDNDStatus() {
             updateDNDStatus(formattedRoom, dndStatus);
         });
 
-        console.log("✅ DND status updated:", dndLogs);
+        console.log("✅ DND status updated after page reload.");
     } catch (error) {
         console.error("❌ Error loading DND status:", error);
     }
@@ -494,13 +498,6 @@ async function loadDNDStatus() {
 document.addEventListener("DOMContentLoaded", async () => {
     await loadDNDStatus(); 
 });
-
-
-// ✅ Call this function on page load
-document.addEventListener("DOMContentLoaded", async () => {
-    await loadDNDStatus(); // Fetch and update DND status after page refresh
-});
-
 
 async function restoreCleaningStatus() {
     try {
@@ -606,7 +603,7 @@ async function toggleDoNotDisturb(roomNumber) {
         });
 
         // ✅ Emit WebSocket event (real-time update)
-        safeEmit("dndUpdate", { roomNumber, status: newStatus });
+        safeEmit("dndUpdate", { roomNumber: formattedRoom, status: newStatus });
 
         console.log(`✅ DND mode toggled for Room ${formattedRoom} -> ${newStatus}`);
     } catch (error) {
@@ -626,6 +623,8 @@ async function startCleaning(roomNumber) {
         console.error(`❌ Buttons not found for Room ${formattedRoom}`);
         return;
     }
+
+    if (startButton.disabled) return; // Prevent multiple clicks
 
     const username = localStorage.getItem("username"); // ✅ Ensure username is retrieved
     if (!username) {
@@ -678,6 +677,7 @@ async function startCleaning(roomNumber) {
 
     } catch (error) {
         console.error("❌ Error starting cleaning:", error);
+        startButton.disabled = false; // Re-enable button on failure
     }
 }
 
@@ -758,12 +758,11 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         dndButton.classList.add("active-dnd");
         console.log(`🚨 Room ${formattedRoom} is in DND mode - Cleaning disabled`);
         return; // Stop further updates when DND is active
+    } else {
+        // ✅ If DND is OFF, restore buttons to their last known state
+        dndButton.style.backgroundColor = "#008CFF";
+        dndButton.classList.remove("active-dnd");
     }
-
-    // ✅ If DND is OFF, restore button styles
-    dndButton.style.backgroundColor = "#008CFF";
-    dndButton.classList.remove("active-dnd");
-    startButton.disabled = false;
 
     // ✅ Update Buttons Based on Room Status
     if (status === "finished") {
@@ -771,7 +770,7 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "green";
     } else if (status === "in_progress") {
-        startButton.disabled = true;  // ✅ Disable Start Cleaning when clicked
+        startButton.disabled = true;
         startButton.style.backgroundColor = "grey"; // ✅ Make it grey when clicked
         finishButton.disabled = false;
         finishButton.style.backgroundColor = "#008CFF"; // Enable Finish button
@@ -824,6 +823,13 @@ async function loadLogs() {
             let finishedBy = log.finishedBy || "-";
             let status = log.finishTime ? "finished" : "in_progress";
             let dndStatus = dndStatusMap.get(log.roomNumber) ? "dnd" : "available";
+            // ✅ Calculate Duration
+            let duration = "-";
+            if (log.startTime && log.finishTime) {
+                let durationMs = new Date(log.finishTime) - new Date(log.startTime);
+                let minutes = Math.floor(durationMs / (1000 * 60));
+                duration = minutes > 0 ? `${minutes} min` : "< 1 min";
+            }
 
             // ✅ Update button status but do NOT override DND mode
             updateButtonStatus(roomNumber, status, dndStatus);
@@ -842,6 +848,7 @@ async function loadLogs() {
                 <td>${startedBy}</td>
                 <td>${finishTime}</td>
                 <td>${finishedBy}</td>
+                <td>${duration}</td>  <!-- ✅ Add Duration Column -->
             `;
             logTable.appendChild(row);
         });
@@ -887,6 +894,7 @@ function logout() {
     console.log("🔴 Logging out...");
     if (window.socket) {
         window.socket.disconnect();
+        window.socket = null; // Prevent reconnection
     }
 
     localStorage.clear();
