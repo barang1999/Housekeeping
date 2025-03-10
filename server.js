@@ -145,18 +145,11 @@ io.on("connection", (socket) => {
 
     console.log(`🔐 WebSocket Authenticated: ${socket.user.username}`);
 
-   // ✅ Fetch & Send Latest DND Status Immediately Upon Connection
-    async function sendDNDStatus() {
-        try {
-            const dndLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
-            socket.emit("dndUpdate", { roomNumber: "all", status: "available", dndLogs });
-        } catch (error) {
-            console.error("❌ Error fetching DND logs:", error);
-        }
-    }
-
-    sendDNDStatus(); // ✅ Call the async function
-
+    socket.on("requestDNDStatus", async () => {
+        const dndLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
+        socket.emit("dndUpdate", { roomNumber: "all", status: "available", dndLogs });
+    });
+    
     socket.on("dndUpdate", async ({ roomNumber, status }) => {
         if (!roomNumber) {
             console.warn("⚠️ Invalid DND update request");
@@ -171,7 +164,7 @@ io.on("connection", (socket) => {
             { upsert: true }
         );
 
-        // ✅ Fetch latest DND state **before broadcasting**
+        // ✅ Fetch latest DND state before broadcasting
         const updatedDNDLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
 
         // ✅ Broadcast latest DND data to **all** connected clients
