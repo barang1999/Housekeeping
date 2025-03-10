@@ -7,11 +7,11 @@ window.socket = null;
 document.addEventListener("DOMContentLoaded", async () => {
     console.log("🔄 Initializing housekeeping system...");
 
-     await ensureValidToken();
-    await connectWebSocket(); // ✅ Connect WebSocket first for real-time updates
+    await ensureValidToken();
     await loadLogs(); // ✅ Fetch logs before restoring buttons
     await loadDNDStatus();  // ✅ Load DND status first
     await restoreCleaningStatus(); // ✅ Ensure buttons are updated after logs are loaded
+    await connectWebSocket(); // ✅ Connect WebSocket first for real-time updates
 
 
     console.log("⏳ Fetching logs...");
@@ -497,19 +497,28 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 
-/** ✅ Restore Cleaning & DND Status */
 async function restoreCleaningStatus() {
     try {
         console.log("🔄 Restoring cleaning status...");
+        
+        // ✅ Fetch cleaning logs
         const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
+        
+        // ✅ Fetch DND logs
         const dndLogs = await fetchWithErrorHandling(`${apiUrl}/logs/dnd`);
-        const dndStatusMap = new Map((Array.isArray(dndLogs) ? dndLogs : []).map(dnd => [dnd.roomNumber, dnd.dndStatus]));
+        
+        // ✅ Convert DND logs into a lookup map
+        const dndStatusMap = new Map(
+            (Array.isArray(dndLogs) ? dndLogs : []).map(dnd => [dnd.roomNumber, dnd.dndStatus])
+        );
 
+        // ✅ Process each log entry
         logs.forEach(log => {
             let roomNumber = formatRoomNumber(log.roomNumber);
             let status = log.finishTime ? "finished" : "in_progress";
             let dndStatus = dndStatusMap.get(log.roomNumber) ? "dnd" : "available";
-            
+
+            // ✅ Update Button Status
             updateButtonStatus(roomNumber, status, dndStatus);
         });
 
@@ -793,23 +802,22 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         return;
     }
 
-    // ✅ Handle DND Mode Separately
+    // ✅ Handle DND Mode
     if (dndStatus === "dnd") {
         startButton.disabled = true;
         finishButton.disabled = true;
         dndButton.style.backgroundColor = "red";
         dndButton.classList.add("active-dnd");
-
         console.log(`🚨 Room ${formattedRoom} is in DND mode - Cleaning disabled`);
-        return; // ❌ No need to apply other status changes if DND is active
+        return; // 🚫 Skip further updates if DND is active
     }
 
     // ✅ DND is OFF - Restore Button Functionality
     dndButton.style.backgroundColor = "#008CFF";
     dndButton.classList.remove("active-dnd");
-    startButton.disabled = false; // ✅ Ensure Start Button is enabled when DND is released
+    startButton.disabled = false; // ✅ Enable Start Button
 
-    // ✅ Handle Room Status
+    // ✅ Handle Cleaning Status
     if (status === "in_progress") {
         startButton.disabled = true;
         finishButton.disabled = false;
@@ -824,6 +832,7 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         finishButton.style.backgroundColor = "grey";
     }
 }
+
 
 // Ensure updateButtonStatus is being called after fetching logs
 async function loadLogs() {
