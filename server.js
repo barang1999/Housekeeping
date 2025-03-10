@@ -145,13 +145,17 @@ io.on("connection", (socket) => {
 
     console.log(`🔐 WebSocket Authenticated: ${socket.user.username}`);
 
-    // ✅ Fetch & Send Latest DND Status Immediately Upon Connection
-    try {
-        const dndLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
-        socket.emit("dndUpdate", { roomNumber: "all", status: "available", dndLogs });
-    } catch (error) {
-        console.error("❌ Error fetching DND logs:", error);
+   // ✅ Fetch & Send Latest DND Status Immediately Upon Connection
+    async function sendDNDStatus() {
+        try {
+            const dndLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
+            socket.emit("dndUpdate", { roomNumber: "all", status: "available", dndLogs });
+        } catch (error) {
+            console.error("❌ Error fetching DND logs:", error);
+        }
     }
+
+    sendDNDStatus(); // ✅ Call the async function
 
     socket.on("dndUpdate", async ({ roomNumber, status }) => {
         if (!roomNumber) {
@@ -175,7 +179,7 @@ io.on("connection", (socket) => {
 
         console.log(`✅ Room ${roomNumber} DND Updated -> Status: ${status}`);
     });
-
+    
     // ✅ Handle Cleaning Reset securely
     socket.on("resetCleaning", ({ roomNumber }) => {
         if (!roomNumber) {
