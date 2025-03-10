@@ -8,6 +8,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 const RoomDND = require("./RoomDND"); // ✅ Ensure RoomDND is imported
+const allowedOrigins = ["https://housekeepingmanagement.netlify.app"]; // Add your frontend domain
 
 // ✅ Initialize Express
 const app = express();
@@ -39,8 +40,6 @@ mongoose.connection.on("disconnected", () => {
     }).catch(err => console.error("❌ MongoDB reconnection failed:", err));
 });
 
-const allowedOrigins = ["https://housekeepingmanagement.netlify.app"]; // Add your frontend domain
-
 // ✅ Define User Schema & Model
 const userSchema = new mongoose.Schema({
     username: { type: String, unique: true, required: true },
@@ -56,6 +55,8 @@ app.use(cors({
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true  
 }));
+
+app.options("*", cors()); // Allow preflight requests
 
 // ✅ Create HTTP & WebSocket Server
 const server = http.createServer(app);
