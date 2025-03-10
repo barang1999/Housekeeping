@@ -460,7 +460,7 @@ async function fetchRoomStatuses() {
         reloadBtn.innerHTML = "⏳ Loading...";
         reloadBtn.disabled = true;
 
-        const response = await fetch("https://yourserver.com/logs/status");
+        const response = await fetch("https://housekeeping-production.up.railway.app/log/status");
         const statuses = await response.json();
 
         console.log("✅ Room Statuses Fetched:", statuses);
