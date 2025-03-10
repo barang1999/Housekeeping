@@ -66,6 +66,7 @@ async function connectWebSocket() {
 
     window.socket.on("connect", () => {
         console.log("✅ WebSocket connected successfully.");
+        safeEmit("requestDNDStatus");
     });
 
     window.socket.on("disconnect", (reason) => {
