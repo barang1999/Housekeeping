@@ -65,14 +65,22 @@ async function connectWebSocket() {
         safeEmit("requestDNDStatus");
     });
     
-        window.socket.on("roomUpdate", ({ roomNumber, status }) => {
-        console.log(`📡 WebSocket: Room ${roomNumber} status updated -> ${status}`);
+    window.socket.on("roomUpdate", ({ roomNumber, status }) => {
+    console.log(`📡 WebSocket: Room ${roomNumber} status updated -> ${status}`);
+
+    // ✅ Ensure "Start Cleaning" stays disabled for finished rooms
+    if (status === "finished") {
+        updateButtonStatus(roomNumber, "finished");
+    } else {
         updateButtonStatus(roomNumber, status);
-            // Load logs only when needed
-        if (status === "finished") {
-            loadLogs();
-        }
-    });
+    }
+
+    // ✅ Reload logs to prevent stale data
+    if (status === "finished") {
+        loadLogs();
+    }
+});
+
     let pendingUpdates = [];
     let updateTimeout = null;
     
@@ -653,7 +661,8 @@ async function startCleaning(roomNumber) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ roomNumber: formatRoomNumber(roomNumber), username })
         });
-
+        
+        // ✅ Update UI ONLY after successful API response
         const data = await res.json();
         if (!res.ok) {
             console.error("❌ Failed to Start Cleaning:", data);
