@@ -90,10 +90,15 @@ const connectWithRetry = () => {
 };
 connectWithRetry();
 
-// ✅ MongoDB Reconnection Handling
+// ✅ Handle Disconnection with a Retry Mechanism
 mongoose.connection.on("disconnected", () => {
-    console.warn("⚠ MongoDB Disconnected. Attempting Reconnect...");
-    connectWithRetry();
+    console.warn("⚠️ MongoDB Disconnected. Retrying in 5 seconds...");
+    setTimeout(() => {
+        mongoose.connect(mongoURI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true
+        }).catch(err => console.error("❌ MongoDB reconnection failed:", err));
+    }, 5000); // Retry after 5 seconds
 });
 
 // ✅ Define MongoDB User Schema
@@ -151,27 +156,29 @@ io.on("connection", (socket) => {
     });
     
     socket.on("dndUpdate", async ({ roomNumber, status }) => {
-        if (!roomNumber) {
-            console.warn("⚠️ Invalid DND update request");
-            return;
-        }
+    if (!roomNumber) {
+        console.warn("⚠️ Invalid DND update request");
+        return;
+    }
 
-        console.log(`📡 Broadcasting DND update for Room ${roomNumber} -> ${status}`);
+    console.log(`📡 Broadcasting DND update for Room ${roomNumber} -> ${status}`);
 
-        await RoomDND.findOneAndUpdate(
-            { roomNumber },
-            { $set: { dndStatus: status === "dnd" } },
-            { upsert: true }
-        );
+    // ✅ Update database
+    await RoomDND.findOneAndUpdate(
+        { roomNumber },
+        { $set: { dndStatus: status === "dnd" } },
+        { upsert: true }
+    );
 
-        // ✅ Fetch latest DND state before broadcasting
-        const updatedDNDLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
+    // ✅ Fetch updated DND data **from the database** before broadcasting
+    const updatedDNDLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
 
-        // ✅ Broadcast latest DND data to **all** connected clients
-        io.emit("dndUpdate", { roomNumber, status, dndLogs: updatedDNDLogs });
+    // ✅ Send the latest **DND state** to ALL clients
+    io.emit("dndUpdate", { roomNumber, status, dndLogs: updatedDNDLogs });
 
-        console.log(`✅ Room ${roomNumber} DND Updated -> Status: ${status}`);
-    });
+    console.log(`✅ Room ${roomNumber} DND Updated -> Status: ${status}`);
+});
+
     
     // ✅ Handle Cleaning Reset securely
     socket.on("resetCleaning", ({ roomNumber }) => {
