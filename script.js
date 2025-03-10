@@ -74,23 +74,25 @@ async function connectWebSocket() {
         updateButtonStatus(formatRoomNumber(roomNumber), status);
     });
     
-    window.socket.on("dndUpdate", async ({ roomNumber, status, dndLogs }) => {
-    console.log(`📡 WebSocket: DND mode changed for Room ${roomNumber} -> ${status}`);
+    let pendingUpdates = [];
+    let updateTimeout = null;
 
-    if (roomNumber === "all") {
-        console.log("🔄 Resetting all DND statuses...");
-        dndLogs.forEach(dnd => {
-            updateDNDStatus(formatRoomNumber(dnd.roomNumber), dnd.dndStatus ? "dnd" : "available");
-        });
-    } else {
-        updateDNDStatus(formatRoomNumber(roomNumber), status);
-    }
+    socket.on("dndUpdate", ({ roomNumber, status, dndLogs }) => {
+        pendingUpdates = dndLogs; // Store updates in memory
+    
+        if (!updateTimeout) {
+            updateTimeout = setTimeout(() => {
+                pendingUpdates.forEach(({ roomNumber, dndStatus }) => {
+                    updateButtonStatus(roomNumber, "available", dndStatus ? "dnd" : "available");
+                });
+    
+                console.log("✅ Batched DND status update complete.");
+                pendingUpdates = [];
+                updateTimeout = null;
+            }, 200); // ✅ Wait 200ms to group updates
+        }
+    });
 
-    // ✅ Ensure UI updates **before** fetching DND status
-    setTimeout(async () => {
-        await loadDNDStatus();
-    }, 500);
-});
      window.socket.on("disconnect", (reason) => {
         console.warn("🔴 WebSocket disconnected:", reason);
         setTimeout(connectWebSocket, 3000); // Retry connection after 3s
@@ -731,52 +733,36 @@ async function finishCleaning(roomNumber) {
     }
 }
 
-function updateButtonStatus(roomNumber, status, dndStatus = "available", previousStatus = null) {
+function updateButtonStatus(roomNumber, status, dndStatus = "available") {
     let formattedRoom = formatRoomNumber(roomNumber);
 
     const startButton = document.getElementById(`start-${formattedRoom}`);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
     const dndButton = document.getElementById(`dnd-${formattedRoom}`);
 
-    if (!startButton || !finishButton || !dndButton) {
-        console.warn(`❌ Buttons not found for Room ${formattedRoom}`);
-        return;
+    if (!startButton || !finishButton) {
+        return; // ✅ Skip without logging warnings
     }
 
-    // ✅ Handle DND Mode - If DND is ON, disable everything
-    if (dndStatus === "dnd") {
-        startButton.disabled = true;
-        finishButton.disabled = true;
-        dndButton.style.backgroundColor = "red";
-        dndButton.classList.add("active-dnd");
-        console.log(`🚨 Room ${formattedRoom} is in DND mode - Cleaning disabled`);
-        return; // 🚫 Stop further updates when DND is active
+    if (dndButton) {
+        dndButton.style.backgroundColor = dndStatus === "dnd" ? "red" : "#008CFF";
     }
 
-    // ✅ Restore UI when DND is OFF
-    dndButton.style.backgroundColor = "#008CFF";
-    dndButton.classList.remove("active-dnd");
-    startButton.disabled = false;
-
-    // ✅ Reset button styles before applying new ones
-    startButton.style.backgroundColor = "grey";
-    finishButton.style.backgroundColor = "grey";
-
-    // ✅ Room Status Logic
     if (status === "finished") {
         startButton.disabled = true;
         finishButton.disabled = true;
-        finishButton.style.backgroundColor = "green"; // Mark as completed
+        finishButton.style.backgroundColor = "green";
     } else if (status === "in_progress") {
         startButton.disabled = true;
         finishButton.disabled = false;
-        finishButton.style.backgroundColor = "#008CFF"; // Enable finish button
+        finishButton.style.backgroundColor = "#008CFF";
     } else {
         startButton.disabled = false;
-        startButton.style.backgroundColor = "#008CFF"; // Normal start state
+        startButton.style.backgroundColor = "#008CFF";
         finishButton.disabled = true;
     }
 }
+
 
 // Ensure updateButtonStatus is being called after fetching logs
 async function loadLogs() {
