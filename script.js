@@ -62,14 +62,14 @@ async function connectWebSocket() {
 
     window.socket.on("connect", () => {
         console.log("✅ WebSocket connected successfully.");
-        safeEmit("requestDNDStatus");
+        safeEmit("requestDNDStatus"); // Ensure DND data loads
+        safeEmit("requestButtonStatus"); // Ensure button statuses load
     });
     
     socket.on("roomUpdate", ({ roomNumber, status }) => {
     console.log(`🛎 Received Room Update: Room ${roomNumber} -> Status: ${status}`);
 
-    // Ensure room number is formatted to match DOM (e.g., "006" instead of "6")
-    let formattedRoom = String(roomNumber).padStart(3, "0"); 
+    let formattedRoom = String(roomNumber).padStart(3, "0");
 
     const startButton = document.getElementById(`start-${formattedRoom}`);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
@@ -84,20 +84,19 @@ async function connectWebSocket() {
         startButton.style.backgroundColor = "grey";
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "green";
-        console.log(`✅ Room ${formattedRoom} marked as Finished.`);
     } else if (status === "in_progress") {
         startButton.disabled = true;
         startButton.style.backgroundColor = "grey";
         finishButton.disabled = false;
         finishButton.style.backgroundColor = "#008CFF";
-        console.log(`🛠️ Room ${formattedRoom} is being cleaned.`);
     } else {
         startButton.disabled = false;
         startButton.style.backgroundColor = "#008CFF";
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "grey";
-        console.log(`🔄 Room ${formattedRoom} is available.`);
     }
+
+    console.log(`✅ Updated UI for Room ${formattedRoom}`);
 });
 
     let pendingUpdates = [];
