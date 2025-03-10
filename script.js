@@ -749,36 +749,33 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         return;
     }
 
-    // ✅ Handle DND Mode - If DND is ON, disable Start Cleaning
+    if (status === "finished") {
+        startButton.disabled = true;
+        startButton.style.backgroundColor = "grey"; // ✅ Ensure button stays grey after refresh
+        finishButton.disabled = true;
+        finishButton.style.backgroundColor = "green"; 
+    } else if (status === "in_progress") {
+        startButton.disabled = true;
+        startButton.style.backgroundColor = "grey"; 
+        finishButton.disabled = false;
+        finishButton.style.backgroundColor = "#008CFF";
+    } else {
+        startButton.disabled = false;
+        startButton.style.backgroundColor = "#008CFF";
+        finishButton.disabled = true;
+        finishButton.style.backgroundColor = "grey";
+    }
+
+    // ✅ Handle DND Mode
     if (dndStatus === "dnd") {
         startButton.disabled = true;
-        startButton.style.backgroundColor = "grey"; // 🔴 Disable Start Button
+        startButton.style.backgroundColor = "grey"; 
         finishButton.disabled = true;
         dndButton.style.backgroundColor = "red";
         dndButton.classList.add("active-dnd");
-        console.log(`🚨 Room ${formattedRoom} is in DND mode - Cleaning disabled`);
-        return; // Stop further updates when DND is active
     } else {
-        // ✅ If DND is OFF, restore buttons to their last known state
         dndButton.style.backgroundColor = "#008CFF";
         dndButton.classList.remove("active-dnd");
-    }
-
-    // ✅ Update Buttons Based on Room Status
-    if (status === "finished") {
-        startButton.disabled = true;
-        finishButton.disabled = true;
-        finishButton.style.backgroundColor = "green";
-    } else if (status === "in_progress") {
-        startButton.disabled = true;
-        startButton.style.backgroundColor = "grey"; // ✅ Make it grey when clicked
-        finishButton.disabled = false;
-        finishButton.style.backgroundColor = "#008CFF"; // Enable Finish button
-    } else {
-        startButton.disabled = false;
-        startButton.style.backgroundColor = "#008CFF"; // Normal state
-        finishButton.disabled = true;
-        finishButton.style.backgroundColor = "grey";
     }
 }
 
