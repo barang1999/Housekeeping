@@ -146,8 +146,12 @@ io.on("connection", (socket) => {
     console.log(`🔐 WebSocket Authenticated: ${socket.user.username}`);
 
     // ✅ Fetch & Send Latest DND Status Immediately Upon Connection
-    const dndLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
-    socket.emit("dndUpdate", { roomNumber: "all", status: "available", dndLogs });
+    try {
+        const dndLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
+        socket.emit("dndUpdate", { roomNumber: "all", status: "available", dndLogs });
+    } catch (error) {
+        console.error("❌ Error fetching DND logs:", error);
+    }
 
     socket.on("dndUpdate", async ({ roomNumber, status }) => {
         if (!roomNumber) {
