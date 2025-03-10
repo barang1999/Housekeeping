@@ -603,19 +603,25 @@ async function toggleDoNotDisturb(roomNumber) {
     const isDNDActive = dndButton.classList.contains("active-dnd");
     const newStatus = isDNDActive ? "available" : "dnd";
 
+    // ✅ Toggle button state instantly
     dndButton.classList.toggle("active-dnd");
     dndButton.style.backgroundColor = newStatus === "dnd" ? "red" : "#008CFF";
 
     try {
+        // ✅ Send update to the server
         await fetch(`${apiUrl}/logs/dnd`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ roomNumber, status: newStatus }),
         });
 
+        // ✅ Emit WebSocket event (real-time update)
         safeEmit("dndUpdate", { roomNumber, status: newStatus });
+
+        console.log(`✅ DND mode toggled for Room ${formattedRoom} -> ${newStatus}`);
     } catch (error) {
         console.error("❌ Error updating DND status:", error);
+        alert("An error occurred while updating DND mode.");
     }
 }
 
