@@ -1,6 +1,5 @@
 require("dotenv").config();
 const express = require("express");
-const { MongoClient } = require("mongodb");
 const mongoose = require("mongoose"); // ✅ Ensure mongoose is included
 const cors = require("cors");
 const http = require("http");
@@ -18,31 +17,6 @@ app.use(cors()); // ✅ Allow frontend requests
 
 // ✅ Connect to MongoDB
 const uri = process.env.MONGO_URI || "mongodb+srv://barangbusiness:siFOl85qZCxkFsuD@cluster0.hcn2f.mongodb.net/Housekeeping?retryWrites=true&w=majority&appName=Cluster0";
-let client = null; // Store MongoClient instance
-let db = null;
-// ✅ MongoDB Connection Function with Retry Mechanism
-async function connectDB(retries = 5, delay = 5000) {
-    try {
-        console.log("🔍 Connecting to MongoDB...");
-        client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true }); // Assign to global client
-        await client.connect();
-        db = client.db("Housekeeping"); // Assign db globally
-        console.log("✅ Connected to MongoDB");
-    } catch (error) {
-        console.error("❌ Error connecting to MongoDB:", error);
-        if (retries > 0) {
-            console.log(`🔄 Retrying connection in ${delay / 1000} seconds... (${retries} attempts left)`);
-            setTimeout(() => connectDB(retries - 1, delay), delay);
-        } else {
-            console.error("❌ Maximum retry attempts reached. Exiting...");
-            process.exit(1);
-        }
-    }
-}
-// ✅ Call Database Connection Function
-(async () => {
-    await connectDB();
-})();
 
 // ✅ Middleware to Ensure DB Connection Before Processing Requests
 app.use(async (req, res, next) => {
