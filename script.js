@@ -460,14 +460,24 @@ async function fetchRoomStatuses() {
         reloadBtn.innerHTML = "⏳ Loading...";
         reloadBtn.disabled = true;
 
-        const response = await fetch("https://housekeeping-production.up.railway.app/log/status");
-        const statuses = await response.json();
+        const response = await fetch("https://housekeeping-production.up.railway.app/logs/status", {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${localStorage.getItem("token")}` // Add token if required
+            },
+            credentials: "include" // Ensures cookies & credentials are sent if needed
+        });
 
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const statuses = await response.json();
         console.log("✅ Room Statuses Fetched:", statuses);
 
         document.querySelectorAll(".start-cleaning-btn").forEach(button => {
             const roomNumber = button.getAttribute("data-room-number");
-
             if (statuses[roomNumber] === "finished") {
                 button.disabled = true;
                 button.classList.add("disabled-button");
@@ -476,6 +486,7 @@ async function fetchRoomStatuses() {
 
     } catch (error) {
         console.error("❌ Error fetching room statuses:", error);
+        alert("❌ Failed to fetch room statuses. Check console for details.");
     } finally {
         reloadBtn.innerHTML = "🔄 Reload";
         reloadBtn.disabled = false;
@@ -484,6 +495,7 @@ async function fetchRoomStatuses() {
 
 // Call on page load
 window.addEventListener("DOMContentLoaded", fetchRoomStatuses);
+
 
 // ✅ Ensuring correct room number format across the system
 function formatRoomNumber(roomNumber) {
