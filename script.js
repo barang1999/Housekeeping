@@ -859,6 +859,7 @@ async function loadLogs() {
     console.log("🔄 Fetching cleaning logs...");
     try {
         const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
+        const dndLogs = await fetchWithErrorHandling(`${apiUrl}/logs/dnd`);
         console.log("✅ API Cleaning Logs Response:", JSON.stringify(logs, null, 2));
 
         if (!logs || !Array.isArray(logs)) {
@@ -866,6 +867,11 @@ async function loadLogs() {
             document.querySelector("#logTable tbody").innerHTML = "<tr><td colspan='5'>No logs found.</td></tr>";
             return;
         }
+
+         // ✅ Ensure `dndLogs` is properly initialized as an array
+        const dndStatusMap = new Map(
+            (Array.isArray(dndLogs) ? dndLogs : []).map(dnd => [dnd.roomNumber, dnd.dndStatus])
+        );
 
         const logTable = document.querySelector("#logTable tbody");
         logTable.innerHTML = ""; // Clear existing logs
@@ -890,8 +896,8 @@ async function loadLogs() {
             let status = log.finishTime ? "finished" : "in_progress";
             
 
-            // ✅ Check DND status from MongoDB
-            const dndStatus = dndLogs?.find(dnd => dnd.roomNumber === log.roomNumber)?.dndStatus ? "dnd" : "available";
+           // ✅ Retrieve DND status from the map
+            const dndStatus = dndStatusMap.get(log.roomNumber) ? "dnd" : "available";
 
             // ✅ Update button status but do NOT override DND mode
             updateButtonStatus(roomNumber, status, dndStatus);
