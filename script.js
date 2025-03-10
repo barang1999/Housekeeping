@@ -43,7 +43,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 /** ✅ WebSocket Connection & Event Handling */
 async function connectWebSocket() {
     if (window.socket) {
-        window.socket.off("roomUpdate").off("dndUpdate");
         window.socket.removeAllListeners();
         window.socket.disconnect();
     }
@@ -66,37 +65,10 @@ async function connectWebSocket() {
         safeEmit("requestButtonStatus"); // Ensure button statuses load
     });
     
-    socket.on("roomUpdate", ({ roomNumber, status }) => {
+    window.socket.on("roomUpdate", ({ roomNumber, status }) => {
     console.log(`🛎 Received Room Update: Room ${roomNumber} -> Status: ${status}`);
-
-    let formattedRoom = String(roomNumber).padStart(3, "0");
-
-    const startButton = document.getElementById(`start-${formattedRoom}`);
-    const finishButton = document.getElementById(`finish-${formattedRoom}`);
-
-    if (!startButton || !finishButton) {
-        console.warn(`⚠️ Buttons for Room ${formattedRoom} not found in DOM`);
-        return;
-    }
-
-    if (status === "finished") {
-        startButton.disabled = true;
-        startButton.style.backgroundColor = "grey";
-        finishButton.disabled = true;
-        finishButton.style.backgroundColor = "green";
-    } else if (status === "in_progress") {
-        startButton.disabled = true;
-        startButton.style.backgroundColor = "grey";
-        finishButton.disabled = false;
-        finishButton.style.backgroundColor = "#008CFF";
-    } else {
-        startButton.disabled = false;
-        startButton.style.backgroundColor = "#008CFF";
-        finishButton.disabled = true;
-        finishButton.style.backgroundColor = "grey";
-    }
-
-    console.log(`✅ Updated UI for Room ${formattedRoom}`);
+    updateButtonStatus(roomNumber, status);
+    await loadLogs();  // Ensures logs refresh in real-time
 });
 
     let pendingUpdates = [];
@@ -124,20 +96,32 @@ async function connectWebSocket() {
 });
 
      window.socket.on("disconnect", (reason) => {
-        console.warn("🔴 WebSocket disconnected:", reason);
-        setTimeout(connectWebSocket, 3000); // Retry connection after 3s
-    });
+    console.warn("🔴 WebSocket disconnected:", reason);
+    reconnectWebSocket(); // Try reconnecting
+});
+
+}
+
+let reconnectAttempts = 0;
+function reconnectWebSocket() {
+    if (reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
+        console.warn("❌ Max WebSocket reconnect attempts reached.");
+        return;
+    }
+    setTimeout(connectWebSocket, Math.min(5000 * reconnectAttempts, 30000));
+    reconnectAttempts++;
 }
 
 /** ✅ Ensure WebSocket is Available Before Emitting */
 function safeEmit(event, data = {}) {
     if (!window.socket || !window.socket.connected) {
-        console.warn(`⛔ WebSocket is not connected. Cannot emit ${event}`);
+        console.warn(`⛔ WebSocket is not connected. Retrying emit for ${event}...`);
+        setTimeout(() => safeEmit(event, data), 1000); // Retry after 1s
         return;
     }
-    
     window.socket.emit(event, data);
 }
+
 
 /** ✅ Ensure WebSocket is Properly Connected Before Usage */
 function ensureWebSocketConnection() {
