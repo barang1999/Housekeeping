@@ -65,11 +65,19 @@ async function connectWebSocket() {
         safeEmit("requestButtonStatus"); // Ensure button statuses load
     });
     
-    window.socket.on("roomUpdate", ({ roomNumber, status }) => {
-    console.log(`🛎 Received Room Update: Room ${roomNumber} -> Status: ${status}`);
-    updateButtonStatus(roomNumber, status);
-    await loadLogs();  // Ensures logs refresh in real-time
+    window.socket.on("roomUpdate", async ({ roomNumber, status }) => {
+    try {
+        console.log(`🛎 Received Room Update: Room ${roomNumber} -> Status: ${status}`);
+        
+        updateButtonStatus(roomNumber, status);
+        
+        // Ensure logs refresh in real-time
+        await loadLogs();
+    } catch (error) {
+        console.error("❌ Error processing room update:", error);
+    }
 });
+
 
     let pendingUpdates = [];
     let updateTimeout = null;
