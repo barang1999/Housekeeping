@@ -924,7 +924,7 @@ async function clearLogs() {
     console.log("🧹 Clearing all logs and resetting room statuses...");
     document.querySelector("#logTable tbody").innerHTML = "";
 
-    // ✅ Reset all button states
+    // ✅ Reset all button states including DND
     document.querySelectorAll(".room button").forEach(button => {
         if (button.id.startsWith("start-")) {
             button.style.backgroundColor = "#008CFF";
@@ -938,16 +938,17 @@ async function clearLogs() {
         }
     });
 
-    localStorage.clear(); // ✅ Clears all storage related to housekeeping
+    // ✅ Ensure DND status is cleared from localStorage
+    localStorage.removeItem("dndStatus");
 
-    // ✅ Emit WebSocket event to sync across all connected clients
+    // ✅ Emit WebSocket event to sync across all clients
     safeEmit("clearLogs");
 
     // ✅ API request to clear logs from the database
     try {
         const res = await fetch(`${apiUrl}/logs/clear`, { method: "POST" });
         if (res.ok) {
-            console.log("✅ Logs cleared successfully on server.");
+            console.log("✅ Logs and DND statuses cleared successfully on server.");
             await loadLogs(); // ✅ Reload logs to ensure UI consistency
         } else {
             console.error("❌ Error clearing logs on server.", await res.json());
@@ -956,6 +957,7 @@ async function clearLogs() {
         console.error("❌ Error clearing logs:", error);
     }
 }
+
 
        function exportLogs() {
     const { jsPDF } = window.jspdf;
