@@ -45,7 +45,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 /** ✅ WebSocket Connection & Event Handling */
-/** ✅ WebSocket Connection & Event Handling */
 async function connectWebSocket() {
     if (window.socket) {
         window.socket.off("roomUpdate").off("dndUpdate");
@@ -70,19 +69,20 @@ async function connectWebSocket() {
 
     window.socket.on("disconnect", (reason) => {
         console.warn("🔴 WebSocket disconnected:", reason);
+        setTimeout(connectWebSocket, 3000); // Retry connection after 3s
     });
 
     window.socket.on("roomUpdate", async ({ roomNumber, status }) => {
         console.log(`📡 WebSocket: Room ${roomNumber} status updated to ${status}`);
         updateRoomUI(roomNumber, status);
         await loadLogs();
-        if (status === "available") await resetCleaningStatus(roomNumber);
+        updateButtonStatus(formatRoomNumber(roomNumber), status);
     });
 
-    window.socket.on("dndUpdate", async ({ roomNumber, status }) => {
+   window.socket.on("dndUpdate", async ({ roomNumber, status }) => {
         console.log(`📡 WebSocket: DND mode changed for Room ${roomNumber} -> ${status}`);
         updateDNDStatus(roomNumber, status);
-        await loadLogs();
+        await loadLogs(); // Refresh logs
     });
 }
 
