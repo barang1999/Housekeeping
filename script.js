@@ -464,9 +464,9 @@ async function fetchRoomStatuses() {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${localStorage.getItem("token")}` // Add token if required
+                "Authorization": `Bearer ${localStorage.getItem("token")}`
             },
-            credentials: "include" // Ensures cookies & credentials are sent if needed
+            credentials: "omit" // Remove "include" if not necessary
         });
 
         if (!response.ok) {
