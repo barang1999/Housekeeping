@@ -73,11 +73,15 @@ async function connectWebSocket() {
         await loadLogs();
         updateButtonStatus(formatRoomNumber(roomNumber), status);
     });
-    
     let pendingUpdates = [];
     let updateTimeout = null;
-
+    
     socket.on("dndUpdate", ({ roomNumber, status, dndLogs }) => {
+        if (!Array.isArray(dndLogs)) {
+            console.warn("⚠ dndLogs is not an array, initializing as empty array.");
+            dndLogs = [];
+        }
+    
         pendingUpdates = dndLogs; // Store updates in memory
     
         if (!updateTimeout) {
@@ -92,7 +96,6 @@ async function connectWebSocket() {
             }, 200); // ✅ Wait 200ms to group updates
         }
     });
-
      window.socket.on("disconnect", (reason) => {
         console.warn("🔴 WebSocket disconnected:", reason);
         setTimeout(connectWebSocket, 3000); // Retry connection after 3s
