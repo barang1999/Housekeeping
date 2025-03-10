@@ -463,10 +463,12 @@ async function loadDNDStatus() {
         dndLogs.forEach(dnd => {
             let formattedRoom = formatRoomNumber(dnd.roomNumber);
             let dndStatus = dnd.dndStatus ? "dnd" : "available";
-            updateDNDStatus(formattedRoom, dndStatus); // ✅ Update UI
+
+            // ✅ Update the DND status UI
+            updateDNDStatus(formattedRoom, dndStatus);
         });
 
-        console.log("✅ DND status updated successfully.");
+        console.log("✅ DND status updated.");
     } catch (error) {
         console.error("❌ Error loading DND status:", error);
     }
@@ -476,6 +478,7 @@ async function loadDNDStatus() {
 document.addEventListener("DOMContentLoaded", async () => {
     await loadDNDStatus(); // Fetch and update DND status after page refresh
 });
+
 
 /** ✅ Restore Cleaning & DND Status */
 async function restoreCleaningStatus() {
@@ -877,20 +880,20 @@ async function loadLogs() {
 }
 
 function updateDNDStatus(roomNumber, status) {
-    console.log(`🚨 Updating DND status for Room ${roomNumber} -> ${status}`);
+    console.log(`🚨 Updating DND status for Room ${roomNumber} to: ${status}`);
 
     let formattedRoom = formatRoomNumber(roomNumber);
     const dndButton = document.getElementById(`dnd-${formattedRoom}`);
     const startButton = document.getElementById(`start-${formattedRoom}`);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
 
-    if (!dndButton || !startButton || !finishButton) {
-        console.warn(`⚠️ Buttons not found for Room ${formattedRoom}.`);
+    if (!dndButton) {
+        console.warn(`⚠️ DND button missing for Room ${formattedRoom}.`);
         return;
     }
 
     if (status === "dnd") {
-        console.log(`🚨 Setting DND mode for Room ${formattedRoom}`);
+        console.log(`🚨 Room ${formattedRoom} is now in DND mode`);
         dndButton.classList.add("active-dnd");
         dndButton.style.backgroundColor = "red";
         startButton.disabled = true;
