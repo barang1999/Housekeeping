@@ -135,8 +135,8 @@ io.on("connection", (socket) => {
         // ✅ Ensure `dndLogs` is always an array with at least the updated room
         const dndLogs = [updatedRoom];
 
-        // ✅ Send the latest **DND state** for only the changed room
-        io.emit("dndUpdate", { roomNumber, status, dndLogs });
+        // ✅ Send only the changed room
+        io.emit("dndUpdate", { roomNumber, status, dndLogs: [updatedRoom] });
 
         console.log(`✅ Room ${roomNumber} DND Updated -> Status: ${status}`);
     });
