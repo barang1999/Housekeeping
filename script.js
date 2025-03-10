@@ -45,6 +45,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 /** ✅ WebSocket Connection & Event Handling */
+/** ✅ WebSocket Connection & Event Handling */
 async function connectWebSocket() {
     if (window.socket) {
         window.socket.off("roomUpdate").off("dndUpdate");
@@ -71,26 +72,17 @@ async function connectWebSocket() {
         console.warn("🔴 WebSocket disconnected:", reason);
     });
 
-        window.socket.on("roomUpdate", async ({ roomNumber, status }) => {
+    window.socket.on("roomUpdate", async ({ roomNumber, status }) => {
         console.log(`📡 WebSocket: Room ${roomNumber} status updated to ${status}`);
-        
         updateRoomUI(roomNumber, status);
         await loadLogs();
-    
-        if (status === "available") {
-            console.log(`🔄 Ensuring cleaning reset after update for Room ${roomNumber}`);
-            await resetCleaningStatus(roomNumber);
-        }
-    
-        updateButtonStatus(formatRoomNumber(roomNumber), status);
+        if (status === "available") await resetCleaningStatus(roomNumber);
     });
-       window.socket.on("dndUpdate", async ({ roomNumber, status }) => {
+
+    window.socket.on("dndUpdate", async ({ roomNumber, status }) => {
         console.log(`📡 WebSocket: DND mode changed for Room ${roomNumber} -> ${status}`);
-    
-        // ✅ Ensure DND UI is updated immediately
         updateDNDStatus(roomNumber, status);
-    
-        await loadLogs(); // 🔄 Fetch new logs to ensure accuracy
+        await loadLogs();
     });
 }
 
@@ -457,23 +449,13 @@ function toggleFloor(floorId) {
         }).format(new Date());
     }
 
-/** ✅ Fetch DND Status */
+/** ✅ Load DND Status */
 async function loadDNDStatus() {
     try {
         console.log("🔄 Fetching DND status...");
         const dndLogs = await fetchWithErrorHandling(`${apiUrl}/logs/dnd`);
-
-        if (!dndLogs || !Array.isArray(dndLogs)) {
-            console.warn("⚠️ No valid DND logs found.");
-            return;
-        }
-
-        dndLogs.forEach(dnd => {
-            let formattedRoom = formatRoomNumber(dnd.roomNumber);
-            let dndStatus = dnd.dndStatus ? "dnd" : "available";
-            updateDNDStatus(formattedRoom, dndStatus);
-        });
-
+        if (!dndLogs || !Array.isArray(dndLogs)) return;
+        dndLogs.forEach(dnd => updateDNDStatus(formatRoomNumber(dnd.roomNumber), dnd.dndStatus ? "dnd" : "available"));
         console.log("✅ DND status updated.");
     } catch (error) {
         console.error("❌ Error loading DND status:", error);
@@ -485,27 +467,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadDNDStatus(); // Fetch and update DND status after page refresh
 });
 
+/** ✅ Restore Cleaning & DND Status */
 async function restoreCleaningStatus() {
     try {
-        console.log("🔄 Fetching cleaning logs...");
+        console.log("🔄 Restoring cleaning status...");
         const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
-
-        if (!logs || !Array.isArray(logs)) {
-            console.warn("⚠️ No valid logs found. Skipping status restoration.");
-            return;
-        }
+        const dndLogs = await fetchWithErrorHandling(`${apiUrl}/logs/dnd`);
+        const dndStatusMap = new Map((Array.isArray(dndLogs) ? dndLogs : []).map(dnd => [dnd.roomNumber, dnd.dndStatus]));
 
         logs.forEach(log => {
-            let formattedRoom = formatRoomNumber(log.roomNumber); // ✅ Correct usage
-            const status = log.finishTime ? "finished" : log.startTime ? "in_progress" : "available";
-            const dndStatus = log.dndStatus ? "dnd" : "available"; // ✅ Retrieve DND status
-
-            updateButtonStatus(formatRoomNumber(log.roomNumber), status, dndStatus);
+            let roomNumber = formatRoomNumber(log.roomNumber);
+            let status = log.finishTime ? "finished" : "in_progress";
+            let dndStatus = dndStatusMap.get(log.roomNumber) ? "dnd" : "available";
+            updateButtonStatus(roomNumber, status, dndStatus);
         });
 
-        console.log("✅ All buttons updated after page load.");
     } catch (error) {
-        console.error("❌ Error fetching logs:", error);
+        console.error("❌ Error restoring cleaning status:", error);
     }
 }
 
@@ -850,10 +828,6 @@ async function loadLogs() {
             let finishedBy = log.finishedBy || "-";
             let status = log.finishTime ? "finished" : "in_progress";
             let dndStatus = dndStatusMap.get(log.roomNumber) ? "dnd" : "available";
-            
-
-           // ✅ Retrieve DND status from the map
-            const dndStatus = dndStatusMap.get(log.roomNumber) ? "dnd" : "available";
 
             // ✅ Update button status but do NOT override DND mode
             updateButtonStatus(roomNumber, status, dndStatus);
