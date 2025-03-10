@@ -8,9 +8,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.log("🔄 Initializing housekeeping system...");
 
     await ensureValidToken();
+    await loadDNDStatus();
 
     await connectWebSocket(); // ✅ Ensure WebSocket connects
-    await loadDNDStatus();
 
     console.log("⏳ Fetching logs...");
     await loadLogs();
@@ -90,11 +90,13 @@ async function connectWebSocket() {
             updateDNDStatus(formatRoomNumber(dnd.roomNumber), dnd.dndStatus ? "dnd" : "available");
         });
     } else {
-        updateDNDStatus(roomNumber, status);
+        updateDNDStatus(formatRoomNumber(roomNumber), status);
     }
 
-    // ✅ Immediately fetch latest DND status for accuracy
-    await loadDNDStatus();
+    // ✅ Ensure UI updates **before** fetching DND status
+    setTimeout(async () => {
+        await loadDNDStatus();
+    }, 500);
 });
 }
 
@@ -464,8 +466,7 @@ function toggleFloor(floorId) {
 /** ✅ Load DND Status */
 async function loadDNDStatus() {
     try {
-        console.log("🔄 Fetching DND status...");
-
+        console.log("🔄 Fetching latest DND status...");
         const dndLogs = await fetchWithErrorHandling(`${apiUrl}/logs/dnd`);
 
         if (!dndLogs || !Array.isArray(dndLogs)) {
@@ -476,12 +477,10 @@ async function loadDNDStatus() {
         dndLogs.forEach(dnd => {
             let formattedRoom = formatRoomNumber(dnd.roomNumber);
             let dndStatus = dnd.dndStatus ? "dnd" : "available";
-
-            // ✅ Immediately update UI based on DND status
             updateDNDStatus(formattedRoom, dndStatus);
         });
 
-        console.log("✅ DND status updated.");
+        console.log("✅ DND status updated:", dndLogs);
     } catch (error) {
         console.error("❌ Error loading DND status:", error);
     }
