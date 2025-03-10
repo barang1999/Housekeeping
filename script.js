@@ -511,9 +511,13 @@ async function restoreCleaningStatus() {
     try {
         console.log("🔄 Restoring cleaning status...");
         
+        // ✅ Fetch cleaning logs
         const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
+        
+        // ✅ Fetch DND logs
         const dndLogs = await fetchWithErrorHandling(`${apiUrl}/logs/dnd`);
         
+        // ✅ Convert DND logs into a lookup map
         const dndStatusMap = new Map(
             (Array.isArray(dndLogs) ? dndLogs : []).map(dnd => [formatRoomNumber(dnd.roomNumber), dnd.dndStatus])
         );
@@ -528,7 +532,7 @@ async function restoreCleaningStatus() {
             let status = log.finishTime ? "finished" : "in_progress";
             let dndStatus = dndStatusMap.get(roomNumber) ? "dnd" : "available";
 
-            console.log(`Updating Room ${roomNumber}: Status=${status}, DND=${dndStatus}`);
+            console.log(`🎯 Updating Room ${roomNumber} -> Status: ${status}, DND: ${dndStatus}`);
 
             updateButtonStatus(roomNumber, status, dndStatus);
         });
@@ -538,8 +542,6 @@ async function restoreCleaningStatus() {
         console.error("❌ Error restoring cleaning status:", error);
     }
 }
-
-
 async function resetCleaningStatus(roomNumber) {
     const numericRoomNumber = parseInt(roomNumber, 10); // ✅ Ensure it's a Number
 
@@ -758,19 +760,21 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         return;
     }
 
+    console.log(`🎯 Updating Room ${formattedRoom} -> Status: ${status}, DND: ${dndStatus}`);
+
     if (status === "finished") {
         startButton.disabled = true;
-        startButton.style.backgroundColor = "grey"; // ✅ Ensure button stays grey after refresh
+        startButton.style.backgroundColor = "grey"; // ✅ Ensure button stays grey
         finishButton.disabled = true;
-        finishButton.style.backgroundColor = "green"; 
+        finishButton.style.backgroundColor = "green"; // ✅ Mark finish as green
     } else if (status === "in_progress") {
         startButton.disabled = true;
         startButton.style.backgroundColor = "grey"; 
         finishButton.disabled = false;
-        finishButton.style.backgroundColor = "#008CFF";
+        finishButton.style.backgroundColor = "#008CFF"; // ✅ Enable Finish button
     } else {
         startButton.disabled = false;
-        startButton.style.backgroundColor = "#008CFF";
+        startButton.style.backgroundColor = "#008CFF"; // ✅ Normal state
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "grey";
     }
@@ -778,15 +782,17 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
     // ✅ Handle DND Mode
     if (dndStatus === "dnd") {
         startButton.disabled = true;
-        startButton.style.backgroundColor = "grey"; 
+        startButton.style.backgroundColor = "grey"; // 🔴 Disable Start Button
         finishButton.disabled = true;
         dndButton.style.backgroundColor = "red";
         dndButton.classList.add("active-dnd");
+        console.log(`🚨 Room ${formattedRoom} is in DND mode - Cleaning disabled`);
     } else {
         dndButton.style.backgroundColor = "#008CFF";
         dndButton.classList.remove("active-dnd");
     }
 }
+
 
 // Ensure updateButtonStatus is being called after fetching logs
 async function loadLogs() {
