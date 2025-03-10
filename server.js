@@ -39,6 +39,8 @@ mongoose.connection.on("disconnected", () => {
     }).catch(err => console.error("❌ MongoDB reconnection failed:", err));
 });
 
+const allowedOrigins = ["https://housekeepingmanagement.netlify.app"]; // Add your frontend domain
+
 // ✅ Define User Schema & Model
 const userSchema = new mongoose.Schema({
     username: { type: String, unique: true, required: true },
