@@ -82,7 +82,8 @@ async function connectWebSocket() {
    window.socket.on("dndUpdate", async ({ roomNumber, status }) => {
         console.log(`📡 WebSocket: DND mode changed for Room ${roomNumber} -> ${status}`);
         updateDNDStatus(roomNumber, status);
-        await loadLogs(); // Refresh logs
+        // ✅ Fetch latest DND status from the database
+        await loadDNDStatus(); 
     });
 }
 
