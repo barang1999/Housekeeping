@@ -454,9 +454,19 @@ async function loadDNDStatus() {
     try {
         console.log("🔄 Fetching DND status...");
         const dndLogs = await fetchWithErrorHandling(`${apiUrl}/logs/dnd`);
-        if (!dndLogs || !Array.isArray(dndLogs)) return;
-        dndLogs.forEach(dnd => updateDNDStatus(formatRoomNumber(dnd.roomNumber), dnd.dndStatus ? "dnd" : "available"));
-        console.log("✅ DND status updated.");
+
+        if (!dndLogs || !Array.isArray(dndLogs)) {
+            console.warn("⚠️ No valid DND logs found.");
+            return;
+        }
+
+        dndLogs.forEach(dnd => {
+            let formattedRoom = formatRoomNumber(dnd.roomNumber);
+            let dndStatus = dnd.dndStatus ? "dnd" : "available";
+            updateDNDStatus(formattedRoom, dndStatus); // ✅ Update UI
+        });
+
+        console.log("✅ DND status updated successfully.");
     } catch (error) {
         console.error("❌ Error loading DND status:", error);
     }
@@ -867,34 +877,18 @@ async function loadLogs() {
 }
 
 function updateDNDStatus(roomNumber, status) {
-    console.log(`🚨 Updating DND status for Room ${roomNumber} to: ${status}`);
+    console.log(`🚨 Updating DND status for Room ${roomNumber} -> ${status}`);
 
     let formattedRoom = formatRoomNumber(roomNumber);
     const dndButton = document.getElementById(`dnd-${formattedRoom}`);
     const startButton = document.getElementById(`start-${formattedRoom}`);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
 
-    if (!dndButton) {
-        console.warn(`⚠️ DND button missing for Room ${formattedRoom}. Recreating it.`);
-        
-        // ✅ If button is missing, re-add it dynamically
-        const roomDiv = document.querySelector(`#room-${formattedRoom}`);
-        if (roomDiv) {
-            let newButton = document.createElement("button");
-            newButton.id = `dnd-${formattedRoom}`;
-            newButton.classList.add("dnd-btn");
-            newButton.innerText = "DND";
-            newButton.onclick = () => toggleDoNotDisturb(roomNumber);
-            roomDiv.appendChild(newButton);
-        }
-    }
-
-    if (!startButton || !finishButton || !dndButton) {
+    if (!dndButton || !startButton || !finishButton) {
         console.warn(`⚠️ Buttons not found for Room ${formattedRoom}.`);
         return;
     }
 
-    // ✅ Ensure class toggling for active state
     if (status === "dnd") {
         console.log(`🚨 Setting DND mode for Room ${formattedRoom}`);
         dndButton.classList.add("active-dnd");
