@@ -66,20 +66,22 @@ async function connectWebSocket() {
     });
     
     socket.on("roomUpdate", ({ roomNumber, status }) => {
-    console.log(`🛎 Room Update: Room ${roomNumber} -> Status: ${status}`);
+    console.log(`🛎 Received Room Update: Room ${roomNumber} -> Status: ${status}`);
 
     const startButton = document.querySelector(`.start-cleaning-btn[data-room-number="${roomNumber}"]`);
     const finishButton = document.querySelector(`.finish-cleaning-btn[data-room-number="${roomNumber}"]`);
 
+    if (!startButton || !finishButton) {
+        console.warn(`⚠️ Buttons for Room ${roomNumber} not found in DOM`);
+        return;
+    }
+
     if (status === "finished") {
-        if (startButton) {
-            startButton.disabled = true;
-            startButton.classList.add("disabled-button");
-        }
-        if (finishButton) {
-            finishButton.disabled = true;
-            finishButton.classList.add("disabled-button");
-        }
+        startButton.disabled = true;
+        startButton.classList.add("disabled-button");
+        finishButton.disabled = true;
+        finishButton.classList.add("disabled-button");
+        console.log(`✅ Start Cleaning Button Disabled for Room ${roomNumber}`);
     }
 });
 
@@ -450,6 +452,32 @@ function storeTokens(accessToken, refreshToken) {
         refreshToken: localStorage.getItem("refreshToken")
     });
 }
+
+async function fetchRoomStatuses() {
+    try {
+        const response = await fetch("https://yourserver.com/logs/status"); // Use the correct API URL
+        const statuses = await response.json();
+
+        console.log("✅ Room Statuses Fetched from Backend:", statuses);
+
+        document.querySelectorAll(".start-cleaning-btn").forEach(button => {
+            const roomNumber = button.getAttribute("data-room-number");
+
+            console.log(`🔍 Checking Room ${roomNumber}: Status =`, statuses[roomNumber]);
+
+            if (statuses[roomNumber] === "finished") {
+                button.disabled = true;
+                button.classList.add("disabled-button"); // Make it visually disabled
+                console.log(`✅ Disabled Start Button for Room ${roomNumber}`);
+            }
+        });
+    } catch (error) {
+        console.error("❌ Error fetching room statuses:", error);
+    }
+}
+
+// Call on page load
+window.addEventListener("DOMContentLoaded", fetchRoomStatuses);
 
 // ✅ Ensuring correct room number format across the system
 function formatRoomNumber(roomNumber) {
