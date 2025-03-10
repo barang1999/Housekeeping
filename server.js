@@ -315,29 +315,27 @@ app.post("/logs/dnd", async (req, res) => {
 
         const isDND = status === "dnd";
 
-        // ✅ Debugging Logs
+        // ✅ Debugging Log
         console.log(`🔍 Incoming DND Update -> Room: ${roomNumber}, Status: ${status}`);
 
-        // ✅ Ensure RoomDND is properly imported and used
+        // ✅ Ensure RoomDND is properly updated
         const updatedRoom = await RoomDND.findOneAndUpdate(
-            { roomNumber }, 
-            { $set: { dndStatus: isDND } }, // ✅ Use $set to update the field properly
-            { upsert: true, new: true, setDefaultsOnInsert: true } // ✅ Ensure upsert works
+            { roomNumber },
+            { $set: { dndStatus: isDND } },
+            { upsert: true, new: true }
         );
 
-        console.log(`✅ Room ${roomNumber} DND mode updated in DB -> ${status}`, updatedRoom);
+        console.log(`✅ Room ${roomNumber} DND mode updated -> ${status}`);
 
-        // ✅ Emit WebSocket Event
+        // ✅ Broadcast WebSocket Event
         io.emit("dndUpdate", { roomNumber, status });
 
-        return res.json({ message: `DND mode ${status} for Room ${roomNumber}`, updatedRoom });
+        res.json({ message: `DND mode ${status} for Room ${roomNumber}`, updatedRoom });
     } catch (error) {
         console.error("❌ Error updating DND status:", error);
-        return res.status(500).json({ message: "Internal server error." });
+        res.status(500).json({ message: "Internal server error." });
     }
 });
-
-
 
 module.exports = router;
 
