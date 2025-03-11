@@ -537,31 +537,33 @@ function toggleFloor(floorId) {
 
 /** ✅ Load DND Status */
 async function loadDNDStatus() {
+    console.log("🔄 Loading DND status...");
+    
     try {
-        console.log("🔄 Fetching latest DND status from backend...");
+        // ✅ Fetch the latest DND status from backend
         const dndLogs = await fetchWithErrorHandling(`${apiUrl}/logs/dnd`);
 
         if (!Array.isArray(dndLogs) || dndLogs.length === 0) {
-            console.warn("⚠️ No valid DND logs found. Checking LocalStorage...");
+            console.warn("⚠️ No valid DND logs found. Using LocalStorage instead...");
         }
 
+        // ✅ Store fetched DND statuses in LocalStorage
         dndLogs.forEach(dnd => {
             const formattedRoom = formatRoomNumber(dnd.roomNumber);
             const dndStatus = dnd.dndStatus ? "dnd" : "available";
-
-            // ✅ Store the latest DND status in LocalStorage
             localStorage.setItem(`dnd-${formattedRoom}`, dndStatus);
         });
 
-        // ✅ Apply stored DND values to UI
+        // ✅ Restore UI based on LocalStorage
         Object.keys(localStorage).forEach(key => {
             if (key.startsWith("dnd-")) {
                 const roomNumber = key.replace("dnd-", "");
-                updateDNDStatus(roomNumber, localStorage.getItem(key));
+                const status = localStorage.getItem(key);
+                updateDNDStatus(roomNumber, status);
             }
         });
 
-        console.log("✅ DND status restored successfully.");
+        console.log("✅ DND status restored successfully from LocalStorage.");
     } catch (error) {
         console.error("❌ Error loading DND status:", error);
     }
@@ -959,10 +961,12 @@ function updateDNDStatus(roomNumber, status) {
         return;
     }
 
-    console.log(`🚨 Updating DND status for Room ${roomNumber} to: ${status}`);
+    console.log(`🚨 Restoring DND status for Room ${roomNumber}: ${status}`);
 
     const formattedRoom = formatRoomNumber(roomNumber);
     const dndButton = document.getElementById(`dnd-${formattedRoom}`);
+    const startButton = document.getElementById(`start-${formattedRoom}`);
+    const finishButton = document.getElementById(`finish-${formattedRoom}`);
 
     if (!dndButton) {
         console.warn(`⚠️ DND button missing for Room ${formattedRoom}.`);
@@ -970,13 +974,21 @@ function updateDNDStatus(roomNumber, status) {
     }
 
     if (status === "dnd") {
-        console.log(`🚨 Room ${formattedRoom} is now in DND mode`);
+        console.log(`🚨 Room ${formattedRoom} is in DND mode`);
         dndButton.classList.add("active-dnd");
         dndButton.style.backgroundColor = "red";
+
+        // ✅ Disable Start and Finish buttons
+        if (startButton) startButton.disabled = true;
+        if (finishButton) finishButton.disabled = true;
     } else {
         console.log(`✅ Room ${formattedRoom} is available`);
         dndButton.classList.remove("active-dnd");
         dndButton.style.backgroundColor = "#008CFF";
+
+        // ✅ Enable Start and Finish buttons
+        if (startButton) startButton.disabled = false;
+        if (finishButton) finishButton.disabled = false;
     }
 }
 
