@@ -81,28 +81,36 @@ async function connectWebSocket() {
     })();
 });
 
-    window.socket.on("dndUpdate", (data) => {
+    wwindow.socket.on("dndUpdate", (data) => {
+    if (!data) {
+        console.warn("⚠️ Invalid DND update received:", data);
+        return;
+    }
+
     if (Array.isArray(data)) {
         // ✅ Handle batch updates
         data.forEach(({ roomNumber, status }) => {
+            if (roomNumber === "all") {
+                console.warn("⚠️ Skipping invalid DND update for 'all' rooms");
+                return;
+            }
+
             console.log(`🚨 DND Update Received: Room ${roomNumber} -> Status: ${status}`);
             localStorage.setItem(`dnd-${roomNumber}`, status);
             updateDNDStatus(roomNumber, status);
         });
     } else {
         // ✅ Handle single room update
+        if (data.roomNumber === "all") {
+            console.warn("⚠️ Skipping invalid DND update for 'all' rooms");
+            return;
+        }
+
         console.log(`🚨 DND Update Received: Room ${data.roomNumber} -> Status: ${data.status}`);
         localStorage.setItem(`dnd-${data.roomNumber}`, data.status);
         updateDNDStatus(data.roomNumber, data.status);
     }
 });
-
-     window.socket.on("disconnect", (reason) => {
-    console.warn("🔴 WebSocket disconnected:", reason);
-    reconnectWebSocket(); // Try reconnecting
-});
-
-}
 
 function reconnectWebSocket() {
     if (reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
@@ -929,7 +937,7 @@ async function loadLogs() {
 
 function updateDNDStatus(roomNumber, status) {
     if (!roomNumber || roomNumber === "all") {
-        console.warn("⚠️ Skipping DND update for 'all' rooms");
+        console.warn(`⚠️ Skipping DND update for 'all' rooms (roomNumber = ${roomNumber})`);
         return;
     }
 
