@@ -498,7 +498,6 @@ window.addEventListener("DOMContentLoaded", async () => {
     await fetchRoomStatuses();
 });
 
-
 // ✅ Ensuring correct room number format across the system
 function formatRoomNumber(roomNumber) {
     return String(roomNumber).padStart(3, "0");
@@ -1027,7 +1026,12 @@ async function clearLogs() {
 }
 
 
-       function exportLogs() {
+function exportLogs() {
+    if (!window.jspdf) {
+        console.error("❌ jsPDF library is not loaded.");
+        return;
+    }
+
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF();
     pdf.text("Cleaning Logs - Today's Records", 10, 10);
@@ -1035,21 +1039,22 @@ async function clearLogs() {
     const rows = [];
     
     // Get today's date in "YYYY-MM-DD" format
-    const today = new Date().toISOString().split('T')[0]; // Correctly formats to "YYYY-MM-DD"
+    const today = new Date().toISOString().split('T')[0]; 
 
     document.querySelectorAll("#logTable tbody tr").forEach(row => {
         const rowData = Array.from(row.children).map(cell => cell.innerText);
-        rowData[0] = formatRoomNumber(rowData[0].trim()); // Ensure room number is formatted as 3 digits
-        
+        rowData[0] = formatRoomNumber(rowData[0].trim()); 
+
         // Extract the timestamp
-        let logStartTime = rowData[1].trim(); // Example: "2024-03-04 10:30 AM"
+        let logStartTime = rowData[1].trim();
 
-        // Convert to proper Date format if possible
-        let logDate = logStartTime
-    ? new Date(logStartTime).toLocaleDateString('en-CA', { timeZone: 'Asia/Phnom_Penh' }) // YYYY-MM-DD
-    : "";
+        // Validate and parse date
+        let logDate = "";
+        if (!isNaN(Date.parse(logStartTime))) {
+            logDate = new Date(logStartTime).toLocaleDateString('en-CA', { timeZone: 'Asia/Phnom_Penh' });
+        }
 
-        console.log(`Checking Log: ${logDate} vs Today: ${today}`); // Debugging Output
+        console.log(`Checking Log: ${logDate} vs Today: ${today}`);
 
         if (logDate === today) {
             rows.push(rowData);
