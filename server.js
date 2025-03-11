@@ -117,15 +117,14 @@ io.on("connection", (socket) => {
         socket.emit("dndUpdate", { roomNumber: "all", status: "available", dndLogs });
     });
     
-       socket.on("dndUpdate", async ({ roomNumber, status }) => {
-    if (!roomNumber) {
-        console.warn("⚠️ Invalid DND update request");
+ socket.on("dndUpdate", async ({ roomNumber, status }) => {
+    if (!roomNumber || roomNumber === "all") {
+        console.warn("⚠️ Invalid or global DND update request");
         return;
     }
 
     console.log(`📡 Broadcasting DND update for Room ${roomNumber} -> ${status}`);
 
-    // ✅ Corrected: This already updates the database
     const updatedRoom = await RoomDND.findOneAndUpdate(
         { roomNumber },
         { $set: { dndStatus: status === "dnd" } },
