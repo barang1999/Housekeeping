@@ -109,9 +109,16 @@ function reconnectWebSocket() {
         console.warn("❌ Max WebSocket reconnect attempts reached.");
         return;
     }
-    setTimeout(connectWebSocket, Math.min(5000 * reconnectAttempts, 30000));
-    reconnectAttempts++;
+
+    reconnectAttempts++; // Increase count BEFORE attempting to reconnect
+    setTimeout(() => {
+        if (!window.socket || !window.socket.connected) {
+            console.log(`🔄 Attempting WebSocket reconnect (${reconnectAttempts})...`);
+            connectWebSocket(); // Try reconnecting
+        }
+    }, Math.min(5000 * reconnectAttempts, 30000));
 }
+
 
 /** ✅ Ensure WebSocket is Available Before Emitting */
 let emitRetries = 0;
@@ -119,7 +126,11 @@ const MAX_EMIT_RETRIES = 5;
 
 function safeEmit(event, data = {}) {
     if (!window.socket || !window.socket.connected) {
-        console.warn(`⛔ WebSocket is not connected. Retrying emit for ${event}...`);
+        console.warn(`⛔ WebSocket is not connected. Attempting reconnect before emitting ${event}...`);
+
+        // Attempt to reconnect WebSocket before emitting
+        reconnectWebSocket();
+
         if (emitRetries < MAX_EMIT_RETRIES) {
             setTimeout(() => safeEmit(event, data), 1000);
             emitRetries++;
@@ -128,9 +139,11 @@ function safeEmit(event, data = {}) {
         }
         return;
     }
+
     emitRetries = 0; // Reset retry count on successful emit
     window.socket.emit(event, data);
 }
+
 
 /** ✅ Ensure WebSocket is Properly Connected Before Usage */
 function ensureWebSocketConnection() {
