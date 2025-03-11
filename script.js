@@ -61,6 +61,7 @@ async function connectWebSocket() {
 
     window.socket.on("connect", () => {
         console.log("✅ WebSocket connected successfully.");
+        reconnectAttempts = 0;  // Reset attempts on successful connection
         safeEmit("requestDNDStatus"); // Ensure DND data loads
         safeEmit("requestButtonStatus"); // Ensure button statuses load
     });
@@ -102,32 +103,43 @@ function reconnectWebSocket() {
 }
 
 /** ✅ Ensure WebSocket is Available Before Emitting */
+let emitRetries = 0;
+const MAX_EMIT_RETRIES = 5;
+
 function safeEmit(event, data = {}) {
     if (!window.socket || !window.socket.connected) {
         console.warn(`⛔ WebSocket is not connected. Retrying emit for ${event}...`);
-        setTimeout(() => safeEmit(event, data), 1000); // Retry after 1s
+        if (emitRetries < MAX_EMIT_RETRIES) {
+            setTimeout(() => safeEmit(event, data), 1000);
+            emitRetries++;
+        } else {
+            console.error("❌ Max emit retry limit reached. Skipping event:", event);
+        }
         return;
     }
+    emitRetries = 0; // Reset retry count on successful emit
     window.socket.emit(event, data);
 }
 
-
 /** ✅ Ensure WebSocket is Properly Connected Before Usage */
 function ensureWebSocketConnection() {
-    let retryInterval = 1000; // Start with 1 second delay
+    let retryInterval = 1000;
     let reconnectAttempts = 0;
+    const maxAttempts = 5; // Set max retry limit
 
     if (!window.socket || !window.socket.connected) {
         console.warn("⛔ WebSocket disconnected. Attempting reconnect...");
-
         const reconnect = setInterval(() => {
             if (window.socket && window.socket.connected) {
                 console.log("✅ WebSocket reconnected.");
                 clearInterval(reconnect);
+            } else if (reconnectAttempts >= maxAttempts) {
+                console.error("❌ Max WebSocket reconnect attempts reached.");
+                clearInterval(reconnect);
             } else {
                 console.warn(`🔄 Retrying WebSocket connection in ${retryInterval / 1000} seconds...`);
                 retryInterval *= 2; // Exponential backoff
-                connectWebSocket(); // Attempt reconnection
+                connectWebSocket();
                 reconnectAttempts++;
             }
         }, retryInterval);
@@ -534,30 +546,28 @@ document.addEventListener("DOMContentLoaded", async () => {
 async function restoreCleaningStatus() {
     try {
         console.log("🔄 Restoring cleaning status...");
-        
-        // ✅ Fetch cleaning logs
-        const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
-        
-        // ✅ Fetch DND logs
-        const dndLogs = await fetchWithErrorHandling(`${apiUrl}/logs/dnd`);
-        
-        // ✅ Convert DND logs into a lookup map
-        const dndStatusMap = new Map(
-            (Array.isArray(dndLogs) ? dndLogs : []).map(dnd => [formatRoomNumber(dnd.roomNumber), dnd.dndStatus])
-        );
+
+        // Fetch logs and DND logs in parallel
+        const [logs, dndLogs] = await Promise.all([
+            fetchWithErrorHandling(`${apiUrl}/logs`),
+            fetchWithErrorHandling(`${apiUrl}/logs/dnd`)
+        ]);
 
         if (!logs || !Array.isArray(logs)) {
             console.warn("⚠ No cleaning logs found.");
             return;
         }
 
+        // Convert DND logs into a lookup map
+        const dndStatusMap = new Map(
+            (Array.isArray(dndLogs) ? dndLogs : []).map(dnd => [formatRoomNumber(dnd.roomNumber), dnd.dndStatus])
+        );
+
         logs.forEach(log => {
             let roomNumber = formatRoomNumber(log.roomNumber);
             let status = log.finishTime ? "finished" : "in_progress";
             let dndStatus = dndStatusMap.get(roomNumber) ? "dnd" : "available";
-
             console.log(`🎯 Updating Room ${roomNumber} -> Status: ${status}, DND: ${dndStatus}`);
-
             updateButtonStatus(roomNumber, status, dndStatus);
         });
 
@@ -566,6 +576,7 @@ async function restoreCleaningStatus() {
         console.error("❌ Error restoring cleaning status:", error);
     }
 }
+
 async function resetCleaningStatus(roomNumber) {
     const numericRoomNumber = parseInt(roomNumber, 10); // ✅ Ensure it's a Number
 
@@ -925,17 +936,15 @@ function logout() {
     console.log("🔴 Logging out...");
     if (window.socket) {
         window.socket.disconnect();
-        window.socket = null; // Prevent reconnection
+        window.socket = null;
     }
 
     localStorage.clear();
     sessionStorage.clear();
     alert("✅ You have been logged out.");
 
-    document.getElementById("dashboard").classList.add("hidden");
-    document.getElementById("auth-section").classList.remove("hidden");
-    document.getElementById("auth-section").style.display = "block";
-    document.getElementById("dashboard").style.display = "none";
+    // Redirect to login page and clear cache
+    window.location.reload();
 }
 
 // ✅ Function to Clear Logs and Reset All Buttons including DND
