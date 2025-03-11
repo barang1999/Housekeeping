@@ -537,37 +537,30 @@ function toggleFloor(floorId) {
 
 /** ✅ Load DND Status */
 async function loadDNDStatus() {
-    console.log("🔄 Loading DND status...");
-    
-    try {
-        // ✅ Fetch the latest DND status from backend
-        const dndLogs = await fetchWithErrorHandling(`${apiUrl}/logs/dnd`);
+    console.log("🔄 Restoring DND status for all rooms...");
 
-        if (!Array.isArray(dndLogs) || dndLogs.length === 0) {
-            console.warn("⚠️ No valid DND logs found. Using LocalStorage instead...");
-        }
+    // ✅ Fetch stored DND data from the backend
+    const dndLogs = await fetchWithErrorHandling(`${apiUrl}/logs/dnd`);
 
-        // ✅ Store fetched DND statuses in LocalStorage
-        dndLogs.forEach(dnd => {
-            const formattedRoom = formatRoomNumber(dnd.roomNumber);
-            const dndStatus = dnd.dndStatus ? "dnd" : "available";
-            localStorage.setItem(`dnd-${formattedRoom}`, dndStatus);
-        });
-
-        // ✅ Restore UI based on LocalStorage
-        Object.keys(localStorage).forEach(key => {
-            if (key.startsWith("dnd-")) {
-                const roomNumber = key.replace("dnd-", "");
-                const status = localStorage.getItem(key);
-                updateDNDStatus(roomNumber, status);
-            }
-        });
-
-        console.log("✅ DND status restored successfully from LocalStorage.");
-    } catch (error) {
-        console.error("❌ Error loading DND status:", error);
+    if (!Array.isArray(dndLogs) || dndLogs.length === 0) {
+        console.warn("⚠️ No valid DND logs found.");
+        return;
     }
+
+    dndLogs.forEach(dnd => {
+        const formattedRoom = formatRoomNumber(dnd.roomNumber);
+        const dndStatus = dnd.dndStatus ? "dnd" : "available";
+
+        // ✅ Restore button state based on stored DND status
+        updateDNDStatus(formattedRoom, dndStatus);
+
+        // ✅ Ensure DND state persists in LocalStorage
+        localStorage.setItem(`dnd-${formattedRoom}`, dndStatus);
+    });
+
+    console.log("✅ DND status restored for all rooms.");
 }
+
 
 
 
