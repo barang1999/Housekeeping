@@ -1075,7 +1075,7 @@ async function clearLogs() {
 }
     
     
-    function exportLogs() {
+  function exportLogs() {
     if (!window.jspdf) {
         console.error("❌ jsPDF library is not loaded.");
         return;
@@ -1086,13 +1086,13 @@ async function clearLogs() {
     pdf.text("Cleaning Logs - Today's Records", 10, 10);
 
     const rows = [];
-    
+
     // Get today's date in "YYYY-MM-DD" format
-    const today = new Date().toISOString().split('T')[0]; 
+    const today = new Date().toISOString().split('T')[0];
 
     document.querySelectorAll("#logTable tbody tr").forEach(row => {
         const rowData = Array.from(row.children).map(cell => cell.innerText);
-        rowData[0] = formatRoomNumber(rowData[0].trim()); 
+        rowData[0] = formatRoomNumber(rowData[0].trim()); // Ensure room format consistency
 
         // Extract the timestamp
         let logStartTime = rowData[1].trim();
@@ -1116,9 +1116,9 @@ async function clearLogs() {
     }
 
     pdf.autoTable({
-        head: [["Room", "Start Time", "Started By", "Finish Time", "Finished By"]],
+        head: [["Room", "Start Time", "Started By", "Finish Time", "Finished By", "Duration"]], // ✅ Added "Duration" Column
         body: rows,
     });
 
     pdf.save("cleaning_logs_today.pdf");
-} // ✅ Ensure this bracket exists!
+}
