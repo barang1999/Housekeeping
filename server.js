@@ -114,32 +114,55 @@ io.on("connection", (socket) => {
         socket.emit("dndUpdate", { roomNumber: "all", status: "available", dndLogs });
     });
     
- socket.on("dndUpdate", async ({ roomNumber, status }) => {
-    if (!roomNumber || roomNumber === "all") {
-        console.warn("⚠️ Invalid or global DND update request");
-        return;
+socket.on("dndUpdate", async ({ roomNumber, status }) => {
+    try {
+        if (!roomNumber || roomNumber === "all") {
+            console.warn("⚠️ Invalid or global DND update request. Skipping...");
+            return;
+        }
+
+        console.log(`📡 Processing DND update for Room ${roomNumber} -> ${status}`);
+
+        // ✅ Update the DND status in the database
+        const updatedRoom = await RoomDND.findOneAndUpdate(
+            { roomNumber },
+            { $set: { dndStatus: status === "dnd" } },
+            { upsert: true, new: true }
+        );
+
+        if (!updatedRoom) {
+            console.warn(`⚠️ Room ${roomNumber} not found in database. Skipping update.`);
+            return;
+        }
+
+        // ✅ Fetch updated DND logs after the change
+        const allDNDLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
+
+        // 🔍 Debugging: Log fetched DND statuses
+        console.log("📌 Updated DND Logs Before Emission:", JSON.stringify(allDNDLogs, null, 2));
+
+        // ✅ Ensure no "all" room exists in the logs
+        allDNDLogs.forEach(dnd => {
+            if (!dnd.roomNumber || dnd.roomNumber === "all") {
+                console.warn("⚠️ Invalid room entry found in DND logs. Skipping...");
+                return;
+            }
+
+            // ✅ Emit individual room updates
+            io.emit("dndUpdate", { 
+                roomNumber: dnd.roomNumber, 
+                status: dnd.dndStatus ? "dnd" : "available" 
+            });
+        });
+
+        console.log(`✅ Successfully processed and broadcasted DND update for Room ${roomNumber}`);
+
+    } catch (error) {
+        console.error("❌ Error processing DND update:", error);
     }
-
-    console.log(`📡 Broadcasting DND update for Room ${roomNumber} -> ${status}`);
-
-    const updatedRoom = await RoomDND.findOneAndUpdate(
-        { roomNumber },
-        { $set: { dndStatus: status === "dnd" } },
-        { upsert: true, new: true }
-    );
-
-    if (!updatedRoom) {
-        console.warn(`⚠️ Room ${roomNumber} not found in database`);
-        return;
-    }
-
-    const allDNDLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
-    allDNDLogs.forEach(dnd => {
-    io.emit("dndUpdate", { roomNumber: dnd.roomNumber, status: dnd.dndStatus ? "dnd" : "available" });
 });
 
-    console.log(`✅ Room ${roomNumber} DND Updated -> Status: ${status}`);
-});
+
     // ✅ Handle Cleaning Reset
     socket.on("resetCleaning", async ({ roomNumber }) => {
     if (!roomNumber) {
