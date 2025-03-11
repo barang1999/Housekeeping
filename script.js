@@ -1024,6 +1024,8 @@ async function clearLogs() {
         console.error("❌ Error clearing logs:", error);
     }
 }
+    
+    
     function exportLogs() {
     if (!window.jspdf) {
         console.error("❌ jsPDF library is not loaded.");
@@ -1070,5 +1072,4 @@ async function clearLogs() {
     });
 
     pdf.save("cleaning_logs_today.pdf");
-}
-
+} // ✅ Ensure this bracket exists!
