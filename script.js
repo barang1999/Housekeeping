@@ -906,6 +906,10 @@ async function loadLogs() {
 }
 
 function updateDNDStatus(roomNumber, status) {
+    if (!roomNumber || roomNumber === "all") {
+        console.warn("⚠️ Skipping DND update for 'all' rooms");
+        return;
+    }
     console.log(`🚨 Updating DND status for Room ${roomNumber} to: ${status}`);
 
     let formattedRoom = formatRoomNumber(roomNumber);
