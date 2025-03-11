@@ -80,30 +80,9 @@ async function connectWebSocket() {
     })();
 });
 
-
-
-    let pendingUpdates = [];
-    let updateTimeout = null;
-    
-       window.socket.on("dndUpdate", ({ roomNumber, status, dndLogs = [] }) => {
-    if (!Array.isArray(dndLogs)) {
-        console.warn("⚠ dndLogs is not an array, initializing as empty array.");
-        dndLogs = [];
-    }
-
-    pendingUpdates = dndLogs; // Store updates in memory
-
-    if (!updateTimeout) {
-        updateTimeout = setTimeout(() => {
-            pendingUpdates.forEach(({ roomNumber, dndStatus }) => {
-                updateButtonStatus(roomNumber, "available", dndStatus ? "dnd" : "available");
-            });
-
-            console.log("✅ Batched DND status update complete.");
-            pendingUpdates = [];
-            updateTimeout = null;
-        }, 200); // ✅ Wait 200ms to group updates
-    }
+    window.socket.on("dndUpdate", ({ roomNumber, status }) => {
+    console.log(`🚨 DND Update Received: Room ${roomNumber} -> Status: ${status}`);
+    updateDNDStatus(roomNumber, status);
 });
 
      window.socket.on("disconnect", (reason) => {
@@ -647,7 +626,7 @@ async function toggleDoNotDisturb(roomNumber) {
     const isDNDActive = dndButton.classList.contains("active-dnd");
     const newStatus = isDNDActive ? "available" : "dnd";
 
-    // ✅ Toggle button state instantly
+    // ✅ Instantly update the button UI before API call
     dndButton.classList.toggle("active-dnd");
     dndButton.style.backgroundColor = newStatus === "dnd" ? "red" : "#008CFF";
 
@@ -668,6 +647,7 @@ async function toggleDoNotDisturb(roomNumber) {
         alert("An error occurred while updating DND mode.");
     }
 }
+
 
 async function startCleaning(roomNumber) {
     let formattedRoom = formatRoomNumber(roomNumber);
