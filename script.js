@@ -520,31 +520,32 @@ function toggleFloor(floorId) {
 /** ✅ Load DND Status */
 async function loadDNDStatus() {
     try {
-        console.log("🔄 Fetching latest DND status...");
+        console.log("🔄 Fetching latest DND status from backend...");
         const dndLogs = await fetchWithErrorHandling(`${apiUrl}/logs/dnd`);
 
-        if (!dndLogs || !Array.isArray(dndLogs)) {
+        if (!Array.isArray(dndLogs) || dndLogs.length === 0) {
             console.warn("⚠️ No valid DND logs found.");
             return;
         }
 
-        // ✅ Apply fetched DND statuses
         dndLogs.forEach(dnd => {
-            let formattedRoom = formatRoomNumber(dnd.roomNumber);
-            let dndStatus = dnd.dndStatus ? "dnd" : "available";
-            
+            const formattedRoom = formatRoomNumber(dnd.roomNumber);
+            const dndStatus = dnd.dndStatus ? "dnd" : "available";
+
+            // ✅ Ensure status is applied correctly to UI
             updateDNDStatus(formattedRoom, dndStatus);
 
-            // ✅ Store in LocalStorage
+            // ✅ Store latest DND state in LocalStorage for persistence
             localStorage.setItem(`dnd-${formattedRoom}`, dndStatus);
         });
 
-        console.log("✅ DND status updated after page reload.");
+        console.log("✅ DND status restored successfully.");
 
     } catch (error) {
         console.error("❌ Error loading DND status:", error);
     }
 }
+
 
 // ✅ Call this function on page load **before** WebSocket connections
 document.addEventListener("DOMContentLoaded", async () => {
@@ -927,7 +928,7 @@ function updateDNDStatus(roomNumber, status) {
 
     console.log(`🚨 Updating DND status for Room ${roomNumber} to: ${status}`);
 
-    let formattedRoom = formatRoomNumber(roomNumber);
+    const formattedRoom = formatRoomNumber(roomNumber);
     const dndButton = document.getElementById(`dnd-${formattedRoom}`);
     const startButton = document.getElementById(`start-${formattedRoom}`);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
@@ -948,9 +949,13 @@ function updateDNDStatus(roomNumber, status) {
         dndButton.classList.remove("active-dnd");
         dndButton.style.backgroundColor = "#008CFF";
         startButton.disabled = false;
-        finishButton.disabled = false; // Ensure finish is enabled when needed
+        finishButton.disabled = false;
     }
+
+    // ✅ Ensure persistence across refreshes
+    localStorage.setItem(`dnd-${formattedRoom}`, status);
 }
+
 
 function logout() {
     console.log("🔴 Logging out...");
