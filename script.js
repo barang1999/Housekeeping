@@ -561,47 +561,56 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 async function restoreCleaningStatus() {
-    console.log("🔄 Restoring cleaning and DND status...");
+    try {
+        console.log("🔄 Restoring cleaning and DND status...");
 
-    // ✅ Restore from localStorage immediately
-    document.querySelectorAll(".room").forEach(roomDiv => {
-        const roomNumber = roomDiv.querySelector("span").innerText.replace("Room ", "").trim();
-        let status = localStorage.getItem(`status-${roomNumber}`) || "available";
-        let dndStatus = localStorage.getItem(`dnd-${roomNumber}`) || "available";
+        // 1️⃣ **Immediately restore from localStorage before API calls**
+        document.querySelectorAll(".room").forEach(roomDiv => {
+            const roomNumber = roomDiv.querySelector("span").innerText.replace("Room ", "").trim();
+            let status = localStorage.getItem(`status-${roomNumber}`) || "available";
+            let dndStatus = localStorage.getItem(`dnd-${roomNumber}`) || "available";
 
-        updateButtonStatus(roomNumber, status, dndStatus);
-    });
+            updateButtonStatus(roomNumber, status, dndStatus);
+        });
 
-    // ✅ Fetch latest logs from the server and apply updates
-    const [logs, dndLogs] = await Promise.all([
-        fetchWithErrorHandling(`${apiUrl}/logs`),
-        fetchWithErrorHandling(`${apiUrl}/logs/dnd`)
-    ]);
+        // 2️⃣ **Fetch latest logs from the server**
+        const [logs, dndLogs] = await Promise.all([
+            fetchWithErrorHandling(`${apiUrl}/logs`),
+            fetchWithErrorHandling(`${apiUrl}/logs/dnd`)
+        ]);
 
-    if (!logs || !Array.isArray(logs)) {
-        console.warn("⚠ No cleaning logs found.");
-        return;
+        if (!logs || !Array.isArray(logs)) {
+            console.warn("⚠ No cleaning logs found.");
+            return;
+        }
+
+        // Convert DND logs into a lookup map
+        const dndStatusMap = new Map(
+            (Array.isArray(dndLogs) ? dndLogs : []).map(dnd => [formatRoomNumber(dnd.roomNumber), dnd.dndStatus])
+        );
+
+        logs.forEach(log => {
+            let roomNumber = formatRoomNumber(log.roomNumber);
+            let status = log.finishTime ? "finished" : log.startTime ? "in_progress" : "available";
+            let dndStatus = dndStatusMap.get(roomNumber) ? "dnd" : "available";
+
+            console.log(`🎯 Restoring Room ${roomNumber} -> Status: ${status}, DND: ${dndStatus}`);
+            
+            // ✅ Update buttons properly
+            updateButtonStatus(roomNumber, status, dndStatus);
+
+            // ✅ Store status locally for faster restoration on next refresh
+            localStorage.setItem(`status-${roomNumber}`, status);
+            localStorage.setItem(`dnd-${roomNumber}`, dndStatus);
+        });
+
+        console.log("✅ Cleaning and DND status restored successfully.");
+
+    } catch (error) {
+        console.error("❌ Error restoring cleaning status:", error);
     }
-
-    const dndStatusMap = new Map(
-        (Array.isArray(dndLogs) ? dndLogs : []).map(dnd => [formatRoomNumber(dnd.roomNumber), dnd.dndStatus])
-    );
-
-    logs.forEach(log => {
-        let roomNumber = formatRoomNumber(log.roomNumber);
-        let status = log.finishTime ? "finished" : "in_progress";
-        let dndStatus = dndStatusMap.get(roomNumber) || "available";
-
-        console.log(`🎯 Updating Room ${roomNumber} -> Status: ${status}, DND: ${dndStatus}`);
-        updateButtonStatus(roomNumber, status, dndStatus);
-
-        // ✅ Store updated status locally
-        localStorage.setItem(`status-${roomNumber}`, status);
-        localStorage.setItem(`dnd-${roomNumber}`, dndStatus);
-    });
-
-    console.log("✅ Cleaning and DND status restored from server.");
 }
+
 
 async function resetCleaningStatus(roomNumber) {
     const numericRoomNumber = parseInt(roomNumber, 10); // ✅ Ensure it's a Number
@@ -836,7 +845,6 @@ async function finishCleaning(roomNumber) {
 
 function updateButtonStatus(roomNumber, status, dndStatus = "available") {
     let formattedRoom = formatRoomNumber(roomNumber);
-
     const startButton = document.getElementById(`start-${formattedRoom}`);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
     const dndButton = document.getElementById(`dnd-${formattedRoom}`);
@@ -846,8 +854,9 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         return;
     }
 
-    console.log(`🎯 Updating Room ${formattedRoom} -> Status: ${status}`);
+    console.log(`🎯 Updating Room ${formattedRoom} -> Status: ${status}, DND: ${dndStatus}`);
 
+    // ✅ Update Start and Finish buttons based on cleaning status
     if (status === "finished") {
         startButton.disabled = true;
         startButton.style.backgroundColor = "grey";
@@ -865,11 +874,23 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         finishButton.style.backgroundColor = "grey";
     }
 
-    // Handle DND Mode
-    if (dndButton.classList.contains("active-dnd")) {
+    // ✅ Ensure DND mode is handled separately
+    if (dndStatus === "dnd") {
+        console.log(`🚨 Room ${formattedRoom} is in DND mode - Disabling Start Cleaning`);
         startButton.disabled = true;
-        finishButton.disabled = true;
-        console.log(`🚨 Room ${formattedRoom} is in DND mode - Cleaning disabled`);
+        startButton.style.backgroundColor = "grey";
+        dndButton.classList.add("active-dnd");
+        dndButton.style.backgroundColor = "red";
+    } else {
+        console.log(`✅ Room ${formattedRoom} is available - Enabling Start Cleaning`);
+        dndButton.classList.remove("active-dnd");
+        dndButton.style.backgroundColor = "#008CFF";
+
+        // Only enable start button if cleaning is not in progress or finished
+        if (status === "available") {
+            startButton.disabled = false;
+            startButton.style.backgroundColor = "#008CFF";
+        }
     }
 }
 
