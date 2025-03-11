@@ -1073,3 +1073,4 @@ async function clearLogs() {
 
     pdf.save("cleaning_logs_today.pdf");
 }
+}); // ✅ Close last unclosed function (if needed)
