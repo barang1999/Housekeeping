@@ -134,7 +134,9 @@ io.on("connection", (socket) => {
     }
 
     const allDNDLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
-    io.emit("dndUpdate", { roomNumber, status, dndLogs: allDNDLogs });
+    allDNDLogs.forEach(dnd => {
+    io.emit("dndUpdate", { roomNumber: dnd.roomNumber, status: dnd.dndStatus ? "dnd" : "available" });
+});
 
     console.log(`✅ Room ${roomNumber} DND Updated -> Status: ${status}`);
 });
@@ -340,7 +342,7 @@ app.get("/logs/dnd", async (req, res) => {
         const dndLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
 
         if (!dndLogs || dndLogs.length === 0) {
-            return res.json([]); // ✅ Return an empty array instead of `null`
+            return res.json([]); // ✅ Always return an array
         }
 
         console.log("✅ Successfully fetched DND logs:", dndLogs);
