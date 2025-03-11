@@ -8,8 +8,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.log("🔄 Initializing housekeeping system...");
 
     await ensureValidToken();
-    await loadLogs(); // ✅ Fetch logs before restoring buttons
     await loadDNDStatus();  // ✅ Load DND status first
+    await loadLogs(); // ✅ Fetch logs before restoring buttons
     await restoreCleaningStatus(); // ✅ Ensure buttons are updated after logs are loaded
     await connectWebSocket(); // ✅ Connect WebSocket first for real-time updates
 
@@ -83,6 +83,10 @@ async function connectWebSocket() {
 
     window.socket.on("dndUpdate", ({ roomNumber, status }) => {
     console.log(`🚨 DND Update Received: Room ${roomNumber} -> Status: ${status}`);
+
+    // ✅ Store latest DND state in LocalStorage
+    localStorage.setItem(`dnd-${roomNumber}`, status);
+
     updateDNDStatus(roomNumber, status);
 });
 
@@ -524,15 +528,19 @@ async function loadDNDStatus() {
             return;
         }
 
-        // ✅ Ensure DND buttons reflect the correct status
+        // ✅ Apply fetched DND statuses
         dndLogs.forEach(dnd => {
             let formattedRoom = formatRoomNumber(dnd.roomNumber);
             let dndStatus = dnd.dndStatus ? "dnd" : "available";
             
             updateDNDStatus(formattedRoom, dndStatus);
+
+            // ✅ Store in LocalStorage
+            localStorage.setItem(`dnd-${formattedRoom}`, dndStatus);
         });
 
         console.log("✅ DND status updated after page reload.");
+
     } catch (error) {
         console.error("❌ Error loading DND status:", error);
     }
@@ -637,20 +645,26 @@ async function toggleDoNotDisturb(roomNumber) {
     const isDNDActive = dndButton.classList.contains("active-dnd");
     const newStatus = isDNDActive ? "available" : "dnd";
 
-    // ✅ Instantly update the button UI before API call
-    dndButton.classList.toggle("active-dnd");
-    dndButton.style.backgroundColor = newStatus === "dnd" ? "red" : "#008CFF";
-
     try {
         // ✅ Send update to the server
-        await fetch(`${apiUrl}/logs/dnd`, {
+        const response = await fetch(`${apiUrl}/logs/dnd`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ roomNumber, status: newStatus }),
         });
 
+        if (!response.ok) {
+            throw new Error(`Failed to update DND status: ${response.status}`);
+        }
+
         // ✅ Emit WebSocket event (real-time update)
         safeEmit("dndUpdate", { roomNumber: formattedRoom, status: newStatus });
+
+        // ✅ Update LocalStorage for persistence
+        localStorage.setItem(`dnd-${formattedRoom}`, newStatus);
+
+        // ✅ Update UI after successful response
+        updateDNDStatus(formattedRoom, newStatus);
 
         console.log(`✅ DND mode toggled for Room ${formattedRoom} -> ${newStatus}`);
     } catch (error) {
@@ -910,6 +924,7 @@ function updateDNDStatus(roomNumber, status) {
         console.warn("⚠️ Skipping DND update for 'all' rooms");
         return;
     }
+
     console.log(`🚨 Updating DND status for Room ${roomNumber} to: ${status}`);
 
     let formattedRoom = formatRoomNumber(roomNumber);
@@ -933,6 +948,7 @@ function updateDNDStatus(roomNumber, status) {
         dndButton.classList.remove("active-dnd");
         dndButton.style.backgroundColor = "#008CFF";
         startButton.disabled = false;
+        finishButton.disabled = false; // Ensure finish is enabled when needed
     }
 }
 
