@@ -1123,4 +1123,8 @@ function exportLogs() {
     });
 
     pdf.save("cleaning_logs_today.pdf");
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> bace880 (Added Telegram bot functionality and updates)
