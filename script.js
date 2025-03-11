@@ -76,16 +76,16 @@ async function connectWebSocket() {
     }
 });
     
-       window.socket.on("dndUpdate", (data) => {
+      window.socket.on("dndUpdate", (data) => {
     if (!data) {
         console.warn("⚠️ Invalid DND update received:", data);
         return;
     }
 
-    // If the server sends 'all', ignore the update completely
+    // ✅ If the server sends 'all', completely ignore the event (DO NOT process)
     if (data.roomNumber === "all" || (Array.isArray(data) && data.some(d => d.roomNumber === "all"))) {
         console.warn("⚠️ Skipping invalid DND update for 'all' rooms");
-        return;  // ✅ Exit function immediately to prevent errors
+        return;  // 🚨 EXIT IMMEDIATELY - DO NOT PROCESS FURTHER
     }
 
     // ✅ If batch update, process each room
