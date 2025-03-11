@@ -107,10 +107,6 @@ io.on("connection", (socket) => {
 
     console.log(`🔐 WebSocket Authenticated: ${socket.user.username}`);
 
-    // Prevent memory leak
-    socket.removeAllListeners("dndUpdate");
-    socket.removeAllListeners("resetCleaning");
-
 
     socket.on("requestDNDStatus", async () => {
         const dndLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
@@ -136,22 +132,33 @@ io.on("connection", (socket) => {
         return;
     }
 
-    io.emit("dndUpdate", { roomNumber, status, dndLogs: [updatedRoom] });
+    const allDNDLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
+    io.emit("dndUpdate", { roomNumber, status, dndLogs: allDNDLogs });
 
     console.log(`✅ Room ${roomNumber} DND Updated -> Status: ${status}`);
 });
     // ✅ Handle Cleaning Reset
-    socket.on("resetCleaning", ({ roomNumber }) => {
-        if (!roomNumber) {
-            console.warn("⚠️ Invalid Cleaning Reset request");
-            return;
-        }
-        console.log(`🔄 Cleaning Reset Event Received for Room ${roomNumber}`);
-        io.emit("resetCleaning", { roomNumber, status: "available" });
-    });
+    socket.on("resetCleaning", async ({ roomNumber }) => {
+    if (!roomNumber) {
+        console.warn("⚠️ Invalid Cleaning Reset request");
+        return;
+    }
+
+    console.log(`🔄 Checking if Room ${roomNumber} exists...`);
+    const roomExists = await CleaningLog.findOne({ roomNumber });
+
+    if (!roomExists) {
+        console.warn(`⚠️ Room ${roomNumber} does not exist in the database.`);
+        return;
+    }
+
+    console.log(`✅ Resetting Cleaning Status for Room ${roomNumber}`);
+    io.emit("resetCleaning", { roomNumber, status: "available" });
+});
 
     socket.on("disconnect", (reason) => {
         console.warn(`🔴 WebSocket Client Disconnected: ${reason}`);
+        socket.removeAllListeners(); // ✅ Removes all event listeners
     });
 });
 
@@ -313,15 +320,12 @@ app.post("/logs/dnd", async (req, res) => {
         );
 
         if (!updatedRoom) {
-            console.warn(`⚠️ Warning: Room ${roomNumber} not found or not updated.`);
-            return res.status(500).json({ message: "Room update failed." });
-        }
-
-        console.log(`✅ Room ${roomNumber} DND mode updated -> ${status}`);
+        throw new Error(`Update failed for Room ${roomNumber}`);
+    }
 
         // ✅ Broadcast WebSocket Event
         io.emit("dndUpdate", { roomNumber, status });
-
+        console.log(`✅ Room ${roomNumber} DND mode updated -> ${status}`);
         res.json({ message: `DND mode ${status} for Room ${roomNumber}`, updatedRoom });
     } catch (error) {
         console.error("❌ Server Error updating DND status:", error);
@@ -338,8 +342,8 @@ app.get("/logs/dnd", async (req, res) => {
         const dndLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
 
         if (!dndLogs || dndLogs.length === 0) {
-            return res.json([]); // Return empty array if no logs
-        }
+        return res.json({ dndLogs: [] }); // ✅ Returns expected format
+    }
 
         console.log("✅ Successfully fetched DND logs:", dndLogs);
         res.json(dndLogs);
