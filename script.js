@@ -946,9 +946,6 @@ function logout() {
     localStorage.clear();
     sessionStorage.clear();
     alert("✅ You have been logged out.");
-
-    // Redirect to login page and clear cache
-    window.location.reload();
 }
 
 // ✅ Function to Clear Logs and Reset All Buttons including DND
