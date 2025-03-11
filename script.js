@@ -76,33 +76,31 @@ async function connectWebSocket() {
     }
 });
     
-        window.socket.on("dndUpdate", (data) => {
-        if (!data) {
-            console.warn("⚠️ Invalid DND update received:", data);
-            return;
-        }
+       window.socket.on("dndUpdate", (data) => {
+    if (!data) {
+        console.warn("⚠️ Invalid DND update received:", data);
+        return;
+    }
 
-        if (Array.isArray(data)) {
-            data.forEach(({ roomNumber, status }) => {
-                if (roomNumber === "all") {
-                    console.warn("⚠️ Skipping invalid DND update for 'all' rooms");
-                    return;
-                }
-                console.log(`🚨 DND Update Received: Room ${roomNumber} -> Status: ${status}`);
-                localStorage.setItem(`dnd-${roomNumber}`, status);
-                updateDNDStatus(roomNumber, status);
-            });
-        } else {
-            if (data.roomNumber === "all") {
-                console.warn("⚠️ Skipping invalid DND update for 'all' rooms");
-                return;
-            }
-            console.log(`🚨 DND Update Received: Room ${data.roomNumber} -> Status: ${data.status}`);
-            localStorage.setItem(`dnd-${data.roomNumber}`, data.status);
-            updateDNDStatus(data.roomNumber, data.status);
-        }
-    }); // ✅ Missing bracket added here!
-} // ✅ Ensure WebSocket function properly closes!
+    // If the server sends 'all', ignore the update completely
+    if (data.roomNumber === "all" || (Array.isArray(data) && data.some(d => d.roomNumber === "all"))) {
+        console.warn("⚠️ Skipping invalid DND update for 'all' rooms");
+        return;  // ✅ Exit function immediately to prevent errors
+    }
+
+    // ✅ If batch update, process each room
+    if (Array.isArray(data)) {
+        data.forEach(({ roomNumber, status }) => {
+            console.log(`🚨 DND Update Received: Room ${roomNumber} -> Status: ${status}`);
+            localStorage.setItem(`dnd-${roomNumber}`, status);
+            updateDNDStatus(roomNumber, status);
+        });
+    } else {
+        console.log(`🚨 DND Update Received: Room ${data.roomNumber} -> Status: ${data.status}`);
+        localStorage.setItem(`dnd-${data.roomNumber}`, data.status);
+        updateDNDStatus(data.roomNumber, data.status);
+    }
+});
 
 function reconnectWebSocket() {
     if (reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
