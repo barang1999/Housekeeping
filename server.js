@@ -9,6 +9,8 @@ const jwt = require("jsonwebtoken");
 
 const RoomDND = require("./RoomDND"); // ✅ Ensure RoomDND is imported
 const allowedOrigins = ["https://housekeepingmanagement.netlify.app"]; // Add your frontend domain
+// ✅ Ensure model is only defined once
+const CleaningLog = mongoose.models.CleaningLog || mongoose.model("CleaningLog", logSchema);
 
 // ✅ Initialize Express
 const app = express();
@@ -519,8 +521,6 @@ const logSchema = new mongoose.Schema({
     status: { type: String, default: "available" }
 });
 
-// ✅ Ensure model is only defined once
-const CleaningLog = mongoose.models.CleaningLog || mongoose.model("CleaningLog", logSchema);
 
 async function fixRoomNumbers() {
     try {
