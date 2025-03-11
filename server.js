@@ -117,31 +117,30 @@ io.on("connection", (socket) => {
         socket.emit("dndUpdate", { roomNumber: "all", status: "available", dndLogs });
     });
     
-        socket.on("dndUpdate", async ({ roomNumber, status }) => {
-        if (!roomNumber) {
-            console.warn("⚠️ Invalid DND update request");
-            return;
-        }
-    
-        console.log(`📡 Broadcasting DND update for Room ${roomNumber} -> ${status}`);
-    
-        await RoomDND.findOneAndUpdate(
-            { roomNumber },
-            { $set: { dndStatus: status === "dnd" } },
-            { upsert: true }
-        );
-    
-        // Fetch only the updated room
-        const updatedRoom = await RoomDND.findOne({ roomNumber }, "roomNumber dndStatus").lean();
-    
-        if (!updatedRoom) {
-            console.warn(`⚠️ Room ${roomNumber} not found in database`);
-            return;
-        }
-    
-        io.emit("dndUpdate", { roomNumber, status, dndLogs: [updatedRoom] });
-        console.log(`✅ Room ${roomNumber} DND Updated -> Status: ${status}`);
-    });
+       socket.on("dndUpdate", async ({ roomNumber, status }) => {
+    if (!roomNumber) {
+        console.warn("⚠️ Invalid DND update request");
+        return;
+    }
+
+    console.log(`📡 Broadcasting DND update for Room ${roomNumber} -> ${status}`);
+
+    // ✅ Corrected: This already updates the database
+    const updatedRoom = await RoomDND.findOneAndUpdate(
+        { roomNumber },
+        { $set: { dndStatus: status === "dnd" } },
+        { upsert: true, new: true }
+    );
+
+    if (!updatedRoom) {
+        console.warn(`⚠️ Room ${roomNumber} not found in database`);
+        return;
+    }
+
+    io.emit("dndUpdate", { roomNumber, status, dndLogs: [updatedRoom] });
+
+    console.log(`✅ Room ${roomNumber} DND Updated -> Status: ${status}`);
+});
     // ✅ Handle Cleaning Reset
     socket.on("resetCleaning", ({ roomNumber }) => {
         if (!roomNumber) {
