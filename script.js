@@ -1024,3 +1024,51 @@ async function clearLogs() {
         console.error("❌ Error clearing logs:", error);
     }
 }
+    function exportLogs() {
+    if (!window.jspdf) {
+        console.error("❌ jsPDF library is not loaded.");
+        return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF();
+    pdf.text("Cleaning Logs - Today's Records", 10, 10);
+
+    const rows = [];
+    
+    // Get today's date in "YYYY-MM-DD" format
+    const today = new Date().toISOString().split('T')[0]; 
+
+    document.querySelectorAll("#logTable tbody tr").forEach(row => {
+        const rowData = Array.from(row.children).map(cell => cell.innerText);
+        rowData[0] = formatRoomNumber(rowData[0].trim()); 
+
+        // Extract the timestamp
+        let logStartTime = rowData[1].trim();
+
+        // Validate and parse date
+        let logDate = "";
+        if (!isNaN(Date.parse(logStartTime))) {
+            logDate = new Date(logStartTime).toLocaleDateString('en-CA', { timeZone: 'Asia/Phnom_Penh' });
+        }
+
+        console.log(`Checking Log: ${logDate} vs Today: ${today}`);
+
+        if (logDate === today) {
+            rows.push(rowData);
+        }
+    });
+
+    if (rows.length === 0) {
+        alert("No logs found for today.");
+        return;
+    }
+
+    pdf.autoTable({
+        head: [["Room", "Start Time", "Started By", "Finish Time", "Finished By"]],
+        body: rows,
+    });
+
+    pdf.save("cleaning_logs_today.pdf");
+}
+
