@@ -101,6 +101,7 @@ async function connectWebSocket() {
         updateDNDStatus(data.roomNumber, data.status);
     }
 });
+}
 
 function reconnectWebSocket() {
     if (reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
