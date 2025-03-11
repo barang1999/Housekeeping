@@ -294,35 +294,41 @@ app.post("/logs/dnd", async (req, res) => {
         const { roomNumber, status } = req.body;
 
         if (!roomNumber) {
+            console.error("❌ Error: Room number is missing in request.");
             return res.status(400).json({ message: "Room number is required." });
         }
 
-        const isDND = status === "dnd";
+        if (!["available", "dnd"].includes(status)) {
+            console.error(`❌ Error: Invalid status "${status}" received.`);
+            return res.status(400).json({ message: "Invalid status. Must be 'available' or 'dnd'." });
+        }
 
-        // ✅ Debugging Log
         console.log(`🔍 Incoming DND Update -> Room: ${roomNumber}, Status: ${status}`);
 
         // ✅ Ensure RoomDND is properly updated
         const updatedRoom = await RoomDND.findOneAndUpdate(
             { roomNumber },
-            { $set: { dndStatus: isDND } },
+            { $set: { dndStatus: status === "dnd" } },
             { upsert: true, new: true }
         );
 
-        console.log(`✅ Room ${roomNumber} DND mode updated -> ${status}`);
+        if (!updatedRoom) {
+            console.warn(`⚠️ Warning: Room ${roomNumber} not found or not updated.`);
+            return res.status(500).json({ message: "Room update failed." });
+        }
 
-        // ✅ Save DND status in database (assumed logic)
-        updateDatabase(roomNumber, status);
+        console.log(`✅ Room ${roomNumber} DND mode updated -> ${status}`);
 
         // ✅ Broadcast WebSocket Event
         io.emit("dndUpdate", { roomNumber, status });
 
         res.json({ message: `DND mode ${status} for Room ${roomNumber}`, updatedRoom });
     } catch (error) {
-        console.error("❌ Error updating DND status:", error);
-        res.status(500).json({ message: "Internal server error." });
+        console.error("❌ Server Error updating DND status:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
     }
 });
+
 
 module.exports = router;
 
