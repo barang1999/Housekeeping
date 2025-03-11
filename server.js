@@ -522,8 +522,6 @@ const logSchema = new mongoose.Schema({
 // ✅ Ensure model is only defined once
 const CleaningLog = mongoose.models.CleaningLog || mongoose.model("CleaningLog", logSchema);
 
-module.exports = CleaningLog;
-
 async function fixRoomNumbers() {
     try {
         console.log("🔄 Fixing room number formats in database...");
