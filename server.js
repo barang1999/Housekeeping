@@ -333,9 +333,6 @@ app.post("/logs/dnd", async (req, res) => {
     }
 });
 
-
-module.exports = router;
-
 app.get("/logs/dnd", async (req, res) => {
     try {
         console.log("🔄 Fetching latest DND statuses...");
