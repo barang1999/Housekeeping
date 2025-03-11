@@ -340,8 +340,8 @@ app.get("/logs/dnd", async (req, res) => {
         const dndLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
 
         if (!dndLogs || dndLogs.length === 0) {
-        return res.json({ dndLogs: [] }); // ✅ Returns expected format
-    }
+            return res.json([]); // ✅ Return an empty array instead of `null`
+        }
 
         console.log("✅ Successfully fetched DND logs:", dndLogs);
         res.json(dndLogs);
@@ -350,6 +350,7 @@ app.get("/logs/dnd", async (req, res) => {
         res.status(500).json({ message: "Internal server error." });
     }
 });
+
 
 
 // ✅ Reset Cleaning Status When DND is Turned Off
