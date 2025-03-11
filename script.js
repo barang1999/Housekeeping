@@ -1075,7 +1075,7 @@ async function clearLogs() {
 }
     
     
-  function exportLogs() {
+function exportLogs() {
     if (!window.jspdf) {
         console.error("❌ jsPDF library is not loaded.");
         return;
@@ -1085,19 +1085,17 @@ async function clearLogs() {
     const pdf = new jsPDF();
     pdf.text("Cleaning Logs - Today's Records", 10, 10);
 
-    const rows = [];
+    let logs = [];
 
     // Get today's date in "YYYY-MM-DD" format
     const today = new Date().toISOString().split('T')[0];
 
     document.querySelectorAll("#logTable tbody tr").forEach(row => {
-        const rowData = Array.from(row.children).map(cell => cell.innerText);
-        rowData[0] = formatRoomNumber(rowData[0].trim()); // Ensure room format consistency
+        let rowData = Array.from(row.children).map(cell => cell.innerText);
+        let roomNumber = formatRoomNumber(rowData[0].trim()); // Ensure correct format
 
-        // Extract the timestamp
+        // Extract and validate date
         let logStartTime = rowData[1].trim();
-
-        // Validate and parse date
         let logDate = "";
         if (!isNaN(Date.parse(logStartTime))) {
             logDate = new Date(logStartTime).toLocaleDateString('en-CA', { timeZone: 'Asia/Phnom_Penh' });
@@ -1106,18 +1104,22 @@ async function clearLogs() {
         console.log(`Checking Log: ${logDate} vs Today: ${today}`);
 
         if (logDate === today) {
-            rows.push(rowData);
+            rowData[0] = roomNumber; // Ensure room numbers are formatted correctly
+            logs.push(rowData);
         }
     });
 
-    if (rows.length === 0) {
+    if (logs.length === 0) {
         alert("No logs found for today.");
         return;
     }
 
+    // ✅ Sort logs by Room Number (ascending order: 001, 002, 003...)
+    logs.sort((a, b) => parseInt(a[0], 10) - parseInt(b[0], 10));
+
     pdf.autoTable({
-        head: [["Room", "Start Time", "Started By", "Finish Time", "Finished By", "Duration"]], // ✅ Added "Duration" Column
-        body: rows,
+        head: [["Room", "Start Time", "Started By", "Finish Time", "Finished By", "Duration"]], // ✅ Includes Duration
+        body: logs,
     });
 
     pdf.save("cleaning_logs_today.pdf");
