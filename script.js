@@ -81,13 +81,20 @@ async function connectWebSocket() {
     })();
 });
 
-    window.socket.on("dndUpdate", ({ roomNumber, status }) => {
-    console.log(`🚨 DND Update Received: Room ${roomNumber} -> Status: ${status}`);
-
-    // ✅ Store latest DND state in LocalStorage
-    localStorage.setItem(`dnd-${roomNumber}`, status);
-
-    updateDNDStatus(roomNumber, status);
+    window.socket.on("dndUpdate", (data) => {
+    if (Array.isArray(data)) {
+        // ✅ Handle batch updates
+        data.forEach(({ roomNumber, status }) => {
+            console.log(`🚨 DND Update Received: Room ${roomNumber} -> Status: ${status}`);
+            localStorage.setItem(`dnd-${roomNumber}`, status);
+            updateDNDStatus(roomNumber, status);
+        });
+    } else {
+        // ✅ Handle single room update
+        console.log(`🚨 DND Update Received: Room ${data.roomNumber} -> Status: ${data.status}`);
+        localStorage.setItem(`dnd-${data.roomNumber}`, data.status);
+        updateDNDStatus(data.roomNumber, data.status);
+    }
 });
 
      window.socket.on("disconnect", (reason) => {
@@ -938,6 +945,13 @@ function updateDNDStatus(roomNumber, status) {
         return;
     }
 
+    // ✅ Retrieve stored DND status in case WebSocket sent an incorrect one
+    const storedDND = localStorage.getItem(`dnd-${formattedRoom}`);
+    if (storedDND && storedDND !== status) {
+        console.log(`🔄 Overriding WebSocket status with stored DND: ${storedDND}`);
+        status = storedDND;
+    }
+
     if (status === "dnd") {
         console.log(`🚨 Room ${formattedRoom} is now in DND mode`);
         dndButton.classList.add("active-dnd");
@@ -952,9 +966,10 @@ function updateDNDStatus(roomNumber, status) {
         finishButton.disabled = false;
     }
 
-    // ✅ Ensure persistence across refreshes
+    // ✅ Store updated status in localStorage
     localStorage.setItem(`dnd-${formattedRoom}`, status);
 }
+
 
 
 function logout() {
