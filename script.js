@@ -539,7 +539,15 @@ function toggleFloor(floorId) {
 async function loadDNDStatus() {
     console.log("🔄 Restoring DND status for all rooms...");
 
-    // ✅ Fetch stored DND data from the backend
+    // 1️⃣ **Restore from localStorage first**
+    document.querySelectorAll(".room").forEach(roomDiv => {
+        const roomNumber = roomDiv.querySelector("span").innerText.replace("Room ", "").trim();
+        let dndStatus = localStorage.getItem(`dnd-${roomNumber}`) || "available";
+
+        updateDNDStatus(roomNumber, dndStatus);
+    });
+
+    // 2️⃣ **Fetch stored DND data from the backend**
     const dndLogs = await fetchWithErrorHandling(`${apiUrl}/logs/dnd`);
 
     if (!Array.isArray(dndLogs) || dndLogs.length === 0) {
@@ -549,7 +557,7 @@ async function loadDNDStatus() {
 
     dndLogs.forEach(dnd => {
         const formattedRoom = formatRoomNumber(dnd.roomNumber);
-        const dndStatus = dnd.dndStatus ? "dnd" : "available";
+        const dndStatus = dnd.dndStatus || "available";
 
         // ✅ Restore button state based on stored DND status
         updateDNDStatus(formattedRoom, dndStatus);
@@ -558,11 +566,8 @@ async function loadDNDStatus() {
         localStorage.setItem(`dnd-${formattedRoom}`, dndStatus);
     });
 
-    console.log("✅ DND status restored for all rooms.");
+    console.log("✅ DND status restored from server.");
 }
-
-
-
 
 // ✅ Call this function on page load **before** WebSocket connections
 document.addEventListener("DOMContentLoaded", async () => {
@@ -571,9 +576,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 async function restoreCleaningStatus() {
     try {
-        console.log("🔄 Restoring cleaning status...");
+        console.log("🔄 Restoring cleaning and DND status...");
 
-        // Fetch logs and DND logs in parallel
+        // 1️⃣ **Immediately restore from localStorage**
+        document.querySelectorAll(".room").forEach(roomDiv => {
+            const roomNumber = roomDiv.querySelector("span").innerText.replace("Room ", "").trim();
+            let status = localStorage.getItem(`status-${roomNumber}`) || "available";
+            let dndStatus = localStorage.getItem(`dnd-${roomNumber}`) || "available";
+
+            updateButtonStatus(roomNumber, status, dndStatus);
+        });
+
+        // 2️⃣ **Fetch latest logs from the server**
         const [logs, dndLogs] = await Promise.all([
             fetchWithErrorHandling(`${apiUrl}/logs`),
             fetchWithErrorHandling(`${apiUrl}/logs/dnd`)
@@ -592,16 +606,23 @@ async function restoreCleaningStatus() {
         logs.forEach(log => {
             let roomNumber = formatRoomNumber(log.roomNumber);
             let status = log.finishTime ? "finished" : "in_progress";
-            let dndStatus = dndStatusMap.get(roomNumber) ? "dnd" : "available";
+            let dndStatus = dndStatusMap.get(roomNumber) || "available";
+
             console.log(`🎯 Updating Room ${roomNumber} -> Status: ${status}, DND: ${dndStatus}`);
             updateButtonStatus(roomNumber, status, dndStatus);
+
+            // ✅ Store updated status locally
+            localStorage.setItem(`status-${roomNumber}`, status);
+            localStorage.setItem(`dnd-${roomNumber}`, dndStatus);
         });
 
-        console.log("✅ Cleaning and DND status restored.");
+        console.log("✅ Cleaning and DND status restored from server.");
+
     } catch (error) {
         console.error("❌ Error restoring cleaning status:", error);
     }
 }
+
 
 async function resetCleaningStatus(roomNumber) {
     const numericRoomNumber = parseInt(roomNumber, 10); // ✅ Ensure it's a Number
