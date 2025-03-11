@@ -315,6 +315,9 @@ app.post("/logs/dnd", async (req, res) => {
 
         console.log(`✅ Room ${roomNumber} DND mode updated -> ${status}`);
 
+        // ✅ Save DND status in database (assumed logic)
+        updateDatabase(roomNumber, status);
+
         // ✅ Broadcast WebSocket Event
         io.emit("dndUpdate", { roomNumber, status });
 
