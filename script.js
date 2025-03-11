@@ -81,7 +81,7 @@ async function connectWebSocket() {
     })();
 });
 
-    wwindow.socket.on("dndUpdate", (data) => {
+    window.socket.on("dndUpdate", (data) => {
     if (!data) {
         console.warn("⚠️ Invalid DND update received:", data);
         return;
