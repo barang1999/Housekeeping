@@ -110,14 +110,23 @@ io.on("connection", (socket) => {
 
 
     socket.on("requestDNDStatus", async () => {
-        const dndLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
-        socket.emit("dndUpdate", { roomNumber: "all", status: "available", dndLogs });
+    const dndLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
+
+    dndLogs.forEach(dnd => {
+        socket.emit("dndUpdate", {
+            roomNumber: dnd.roomNumber,
+            status: dnd.dndStatus ? "dnd" : "available"
+        });
     });
+
+    console.log("✅ Sent DND status updates for individual rooms.");
+});
+
     
 socket.on("dndUpdate", async ({ roomNumber, status }) => {
     try {
-        if (!roomNumber || roomNumber === "all") {
-            console.warn("⚠️ Invalid or global DND update request. Skipping...");
+        if (!roomNumber) {
+            console.warn("⚠️ Invalid DND update request. Skipping...");
             return;
         }
 
@@ -135,33 +144,18 @@ socket.on("dndUpdate", async ({ roomNumber, status }) => {
             return;
         }
 
-        // ✅ Fetch updated DND logs after the change
-        const allDNDLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
-
-        // 🔍 Debugging: Log fetched DND statuses
-        console.log("📌 Updated DND Logs Before Emission:", JSON.stringify(allDNDLogs, null, 2));
-
-        // ✅ Ensure no "all" room exists in the logs
-        allDNDLogs.forEach(dnd => {
-            if (!dnd.roomNumber || dnd.roomNumber === "all") {
-                console.warn("⚠️ Invalid room entry found in DND logs. Skipping...");
-                return;
-            }
-
-            // ✅ Emit individual room updates
-            io.emit("dndUpdate", { 
-                roomNumber: dnd.roomNumber, 
-                status: dnd.dndStatus ? "dnd" : "available" 
-            });
+        // ✅ Emit WebSocket event only for this specific room
+        io.emit("dndUpdate", {
+            roomNumber: updatedRoom.roomNumber,
+            status: updatedRoom.dndStatus ? "dnd" : "available"
         });
 
-        console.log(`✅ Successfully processed and broadcasted DND update for Room ${roomNumber}`);
+        console.log(`✅ Successfully processed DND update for Room ${roomNumber}`);
 
     } catch (error) {
         console.error("❌ Error processing DND update:", error);
     }
 });
-
 
     // ✅ Handle Cleaning Reset
     socket.on("resetCleaning", async ({ roomNumber }) => {
@@ -327,18 +321,11 @@ app.post("/logs/dnd", async (req, res) => {
         const { roomNumber, status } = req.body;
 
         if (!roomNumber) {
-            console.error("❌ Error: Room number is missing in request.");
             return res.status(400).json({ message: "Room number is required." });
-        }
-
-        if (!["available", "dnd"].includes(status)) {
-            console.error(`❌ Error: Invalid status "${status}" received.`);
-            return res.status(400).json({ message: "Invalid status. Must be 'available' or 'dnd'." });
         }
 
         console.log(`🔍 Incoming DND Update -> Room: ${roomNumber}, Status: ${status}`);
 
-        // ✅ Ensure RoomDND is properly updated
         const updatedRoom = await RoomDND.findOneAndUpdate(
             { roomNumber },
             { $set: { dndStatus: status === "dnd" } },
@@ -346,11 +333,12 @@ app.post("/logs/dnd", async (req, res) => {
         );
 
         if (!updatedRoom) {
-        throw new Error(`Update failed for Room ${roomNumber}`);
-    }
+            throw new Error(`Update failed for Room ${roomNumber}`);
+        }
 
-        // ✅ Broadcast WebSocket Event
+        // ✅ Emit only the affected room
         io.emit("dndUpdate", { roomNumber, status });
+
         console.log(`✅ Room ${roomNumber} DND mode updated -> ${status}`);
         res.json({ message: `DND mode ${status} for Room ${roomNumber}`, updatedRoom });
     } catch (error) {
@@ -358,6 +346,7 @@ app.post("/logs/dnd", async (req, res) => {
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 });
+
 
 app.get("/logs/dnd", async (req, res) => {
     try {
