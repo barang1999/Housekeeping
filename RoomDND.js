@@ -1,7 +1,6 @@
-<<<<<<< HEAD
 const mongoose = require("mongoose");
 
-// ✅ Define the DND schema
+// ✅ Define the DND schema only once
 const dndSchema = new mongoose.Schema({
     roomNumber: { type: Number, required: true, unique: true },
     dndStatus: { type: Boolean, default: false }
@@ -10,18 +9,4 @@ const dndSchema = new mongoose.Schema({
 // ✅ Prevent duplicate model declaration
 const RoomDND = mongoose.models.RoomDND || mongoose.model("RoomDND", dndSchema);
 
-module.exports = RoomDND; // ✅ Ensure it is exported
-=======
-const mongoose = require("mongoose");
-
-// ✅ Define the DND schema
-const dndSchema = new mongoose.Schema({
-    roomNumber: { type: Number, required: true, unique: true },
-    dndStatus: { type: Boolean, default: false }
-});
-
-// ✅ Prevent duplicate model declaration
-const RoomDND = mongoose.models.RoomDND || mongoose.model("RoomDND", dndSchema);
-
-module.exports = RoomDND; // ✅ Ensure it is exported
->>>>>>> bace880 (Added Telegram bot functionality and updates)
+module.exports = RoomDND; // ✅ Export the model correctly

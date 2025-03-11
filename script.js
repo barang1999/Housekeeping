@@ -684,6 +684,11 @@ async function toggleDoNotDisturb(roomNumber) {
         if (!response.ok) {
             throw new Error(`Failed to update DND status: ${response.status}`);
         }
+        // ✅ Send notification to Telegram
+        const message = newStatus === "dnd"
+            ? `🚫 Room ${formattedRoom} set to Do Not Disturb by ${username}`
+            : `✅ Room ${formattedRoom} is now available for cleaning`;
+        sendTelegramMessage(message);
 
         safeEmit("dndUpdate", { roomNumber: formattedRoom, status: newStatus });
         localStorage.setItem(`dnd-${formattedRoom}`, newStatus);
@@ -715,6 +720,26 @@ async function toggleDoNotDisturb(roomNumber) {
     } catch (error) {
         console.error("❌ Error updating DND status:", error);
         alert("An error occurred while updating DND mode.");
+    }
+}
+
+async function sendTelegramMessage(message) {
+    try {
+        const res = await fetch(`${apiUrl}/api/send-telegram`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            console.error("❌ Failed to send Telegram message:", data);
+            return;
+        }
+
+        console.log("✅ Telegram message sent:", message);
+    } catch (error) {
+        console.error("❌ Error sending Telegram message:", error);
     }
 }
 
@@ -772,6 +797,9 @@ async function startCleaning(roomNumber) {
         finishButton.disabled = false;
         finishButton.style.backgroundColor = "#008CFF";
         console.log(`✅ Room ${formattedRoom} cleaning started.`);
+
+        // ✅ Send notification to Telegram
+        sendTelegramMessage(`🧹 Room ${formattedRoom} cleaning started by ${username}`);
         
         safeEmit("roomUpdate", { roomNumber, status: "in_progress" });
 
@@ -828,6 +856,9 @@ async function finishCleaning(roomNumber) {
          // Disable Finish Button and Change Color to Green
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "green";
+
+        // ✅ Send notification to Telegram
+        sendTelegramMessage(`✅ Room ${formattedRoom} cleaning finished by ${username}`);
 
        // ✅ Emit WebSocket Event for Real-Time Updates
         safeEmit("roomUpdate", { roomNumber, status: "finished" });
@@ -1123,8 +1154,5 @@ function exportLogs() {
     });
 
     pdf.save("cleaning_logs_today.pdf");
-<<<<<<< HEAD
+
 }
-=======
-}
->>>>>>> bace880 (Added Telegram bot functionality and updates)

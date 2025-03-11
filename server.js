@@ -6,15 +6,23 @@ const http = require("http");
 const { Server } = require("socket.io");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const axios = require("axios");
+const telegramRoutes = require("./telegram.js");
 
 const RoomDND = require("./RoomDND"); // ✅ Ensure RoomDND is imported
 const allowedOrigins = ["https://housekeepingmanagement.netlify.app"]; // Add your frontend domain
+
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID; // Replace with your Telegram chat ID
+
+
 
 
 // ✅ Initialize Express
 const app = express();
 app.use(express.json());
 app.use(cors());
+app.use("/api", telegramRoutes); // ✅ Add this line
 
 // ✅ Load MongoDB URI
 const mongoURI = process.env.MONGO_URI;
@@ -314,8 +322,6 @@ app.get("/logs/status", async (req, res) => {
     }
 });
 
-const router = express.Router();
-
 app.post("/logs/dnd", async (req, res) => {
     try {
         const { roomNumber, status } = req.body;
@@ -424,6 +430,41 @@ process.on("SIGINT", async () => {
     console.log("🔴 Closing Mongoose Connection...");
     await mongoose.connection.close();
     process.exit(0);
+});
+
+async function sendMessageToTelegram(message) {
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    try {
+        await axios.post(url, {
+            chat_id: TELEGRAM_CHAT_ID,
+            text: message
+        });
+        console.log("✅ Telegram message sent:", message);
+    } catch (error) {
+        console.error("❌ Error sending Telegram message:", error);
+    }
+}
+
+// ✅ API Route to Send Telegram Messages
+app.post("/send-telegram", async (req, res) => {
+    const { message } = req.body;
+    if (!message) return res.status(400).json({ error: "Message is required" });
+
+    try {
+        const response = await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            chat_id: TELEGRAM_CHAT_ID,
+            text: message,
+        });
+
+        if (response.data.ok) {
+            return res.json({ success: true, message: "Message sent to Telegram" });
+        } else {
+            return res.status(500).json({ error: "Failed to send message to Telegram" });
+        }
+    } catch (error) {
+        console.error("Telegram API Error:", error);
+        return res.status(500).json({ error: "Telegram API request failed" });
+    }
 });
 
 
