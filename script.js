@@ -972,7 +972,7 @@ async function toggleDoNotDisturb(roomNumber) {
 
         // ✅ Send notification to Telegram
         const message = newStatus === "dnd"
-            ? `🚫 Room ${formattedRoom} មិនត្រូវការសម្ងាត ${username}`
+            ? `🚫 Room ${formattedRoom} មិនត្រូវការសម្អាត ${username}`
             : `✅ Room ${formattedRoom} អាចចូលសម្អាតបាន`;
         sendTelegramMessage(message);
 

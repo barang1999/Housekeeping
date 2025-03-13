@@ -6,6 +6,20 @@
     <title>Housekeeping Management</title>
     <style>
         body, html {
+
+        .header-container {
+            display: flex;
+            flex-direction: column; /* Stack logo and text */
+            align-items: center; /* Center horizontally */
+            justify-content: center;
+        }
+
+        .logo {
+            max-width: 50%;  /* Makes the logo at most 50% of text width */
+            max-height: 40px; /* Restrict height for better proportions */
+            object-fit: contain;
+        }
+
             font-family: 'Poppins', sans-serif;
             background-color: #f8f9fa;
             color: #333;
@@ -283,6 +297,7 @@
         </div>
         
         <div id="dashboard" class="hidden">
+        <img src="Image\Logo.png" alt="Logo" class="logo">
             <h2>Welcome, <span id="user-name"></span></h2>
             <button onclick="fetchRoomStatuses()" class="reload-btn">🔄</button>
             <button onclick="logout()">Logout</button>
