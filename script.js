@@ -103,14 +103,15 @@ async function connectWebSocket() {
 
     
    window.socket.on("roomUpdate", async ({ roomNumber, status }) => {
-    try {
-        console.log(`🛎 Received Room Update: Room ${roomNumber} -> Status: ${status}`);
-        updateButtonStatus(roomNumber, status);
-        await loadLogs();
-    } catch (error) {
-        console.error("❌ Error processing room update:", error);
-    }
+    console.log(`📡 Received Room Update: Room ${roomNumber} -> Status: ${status}`);
+
+    // ✅ Ensure buttons update immediately
+    updateButtonStatus(roomNumber, status);
+
+    // ✅ Force-refresh logs to ensure UI consistency
+    await loadLogs();
 });
+
     
       window.socket.on("dndUpdate", (data) => {
     if (!data || !data.roomNumber) {
@@ -128,10 +129,16 @@ async function connectWebSocket() {
 });
 
     window.socket.on("restoreCleaning", ({ roomNumber, status }) => {
-        console.log(`🔄 Restoring Cleaning Status for Room ${roomNumber} -> ${status}`);
-        updateButtonStatus(roomNumber, status, localStorage.getItem(`dnd-${roomNumber}`) || "available");
-    });
-}
+    console.log(`🔄 Received Restore Event for Room ${roomNumber} -> ${status}`);
+
+    if (status !== "available") {
+        console.warn(`⚠️ Skipping update: Room ${roomNumber} is still ${status}`);
+        return;
+    }
+
+    updateButtonStatus(roomNumber, status);
+});
+
 
 function reconnectWebSocket() {
     if (reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
@@ -1152,6 +1159,9 @@ async function restoreCleaning(roomNumber) {
 
         safeEmit("roomUpdate", { roomNumber, status: "available" });
 
+        // ✅ Fix: Add LocalStorage update to prevent re-disabling after refresh
+        localStorage.setItem(`status-${formattedRoom}`, "available");
+
         // ✅ FIX: Delayed `loadLogs()` ensures database update is complete before UI fetch
         setTimeout(async () => {
             console.log("⏳ Waiting for DB sync before fetching logs...");
@@ -1162,8 +1172,6 @@ async function restoreCleaning(roomNumber) {
         console.error("❌ Error restoring cleaning:", error);
     }
 }
-
-
 
 async function finishCleaning(roomNumber) {
     const formattedRoom = formatRoomNumber(roomNumber);

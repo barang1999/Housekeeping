@@ -224,6 +224,28 @@ socket.on("dndUpdate", async ({ roomNumber, status }) => {
         console.error("❌ Error processing DND update:", error);
     }
 });
+
+socket.on("roomUpdate", async ({ roomNumber, status }) => {
+    try {
+        if (!roomNumber || !status) {
+            console.warn("⚠️ Invalid room update data received:", { roomNumber, status });
+            return;
+        }
+
+        // ✅ Convert roomNumber to string to maintain consistency
+        const formattedRoomNumber = String(roomNumber);
+
+        console.log(`🛎 Received Room Update: Room ${formattedRoomNumber} -> Status: ${status}`);
+
+        // ✅ Emit event to ALL connected clients
+        io.emit("roomUpdate", { roomNumber: formattedRoomNumber, status });
+
+        console.log(`📡 WebSocket Event Sent: Room ${formattedRoomNumber} -> ${status}`);
+    } catch (error) {
+        console.error("❌ Error processing room update:", error);
+    }
+});
+
 socket.on("restoreCleaning", async ({ roomNumber }) => {
     if (!roomNumber) {
         console.warn("⚠️ Invalid Restore request. Skipping...");
@@ -254,14 +276,17 @@ socket.on("restoreCleaning", async ({ roomNumber }) => {
 
         console.log(`✅ Cleaning restored in DB for Room ${roomNumber}.`);
 
-        // ✅ Emit event **after** updating database
+        // ✅ Ensure WebSocket event **updates all clients**
+        io.emit("roomUpdate", { roomNumber, status: "available" });
         io.emit("restoreCleaning", { roomNumber, status: "available" });
 
         console.log(`📡 WebSocket: Cleaning restored for Room ${roomNumber}`);
+
     } catch (error) {
         console.error(`❌ Error restoring cleaning for Room ${roomNumber}:`, error);
     }
 });
+
 
 
     // ✅ Handle Cleaning Reset
