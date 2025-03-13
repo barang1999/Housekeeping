@@ -243,11 +243,10 @@
         }
 
         .priority-toggle {
-            background: none;
-            border: 1px solid #ccc;
-            padding: 5px;
-            cursor: pointer;
+            background: transparent; /* ✅ Transparent background */
+            border: none; /* ✅ Remove border */
             font-size: 20px;
+            cursor: pointer;
             width: 40px;
             height: 40px;
             text-align: center;
@@ -256,7 +255,7 @@
         .priority-dropdown {
             display: none; /* ✅ Initially hidden */
             position: absolute;
-            background: white;
+            background: rgba(255, 255, 255, 0.9); /* ✅ Light transparent background */
             border: 1px solid #ccc;
             padding: 5px;
             width: 120px;
@@ -271,10 +270,19 @@
         .priority-option {
             padding: 5px;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px; /* ✅ Add spacing between icon and text */
         }
 
         .priority-option:hover {
-            background: #f0f0f0;
+            background: rgba(0, 0, 0, 0.05); /* ✅ Slight hover effect */
+        }
+
+        /* ✅ Remove extra border behind the circles */
+        .priority-option span {
+            font-size: 18px;
+            display: inline-block;
         }
 
 
