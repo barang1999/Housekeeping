@@ -1459,6 +1459,23 @@ function logout() {
 async function clearLogs() {
     console.log("🧹 Clearing all logs and resetting room statuses...");
 
+    // ✅ Show confirmation popup before proceeding
+    const confirmClear = await Swal.fire({
+        title: "អ្នកប្រាកដទេ?",
+        text: "វានឹងលុចចោលទិន្នន័យការសម្អាតនៅថ្ងៃនេះ!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "យល់ព្រម!",
+        cancelButtonText: "អត់ទេ"
+    });
+
+    if (!confirmClear.isConfirmed) {
+        console.log("🚫 Log clearing canceled.");
+        return;
+    }
+
     try {
         // ✅ Send request to clear logs on the server first
         const res = await fetch(`${apiUrl}/logs/clear`, { method: "POST" });
@@ -1522,10 +1539,23 @@ async function clearLogs() {
 
         // ✅ Reload logs after clearing to ensure UI consistency
         await loadLogs();
+        // ✅ Show Success Notification
+        Swal.fire({
+            icon: "ជោគជ័យ",
+            title: "របាយការណ៍ត្រូវបានលុច",
+            text: "របាយការណ៍ចាស់នៅថ្ងៃនេះត្រូបានលុចចេញ.",
+            timer: 2000,
+            showConfirmButton: false
+        });
 
     } catch (error) {
         console.error("❌ Error clearing logs:", error);
-        alert("An unexpected error occurred while clearing logs.");
+        Swal.fire({
+            icon: "error",
+            title: "មានបញ្ហា",
+            text: "សូមអភ័យទោស មានបញ្ចាបច្ចេកទេសតិចតួច ក្នុងពេលលុបទិន្នន័យ",
+            confirmButtonText: "OK"
+        });
     }
 }
 
