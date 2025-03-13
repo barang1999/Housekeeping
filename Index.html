@@ -260,6 +260,25 @@
 .priority-toggle.early-arrival { background-color: yellow; }
 .priority-toggle.vacancy { background-color: black; }
 
+.restore-button {
+    display: none;
+    background: transparent;
+    border: none;
+    font-size: 18px; /* Adjust icon size */
+    cursor: pointer;
+    transition: transform 0.2s ease-in-out, opacity 0.3s;
+    opacity: 0.8;
+  }
+
+  .restore-button:hover {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+
+  .restore-button:active {
+    transform: scale(1);
+    opacity: 0.7;
+  }
     
     </style>
 </head>

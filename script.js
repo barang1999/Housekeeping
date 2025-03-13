@@ -438,7 +438,7 @@ async function loadRooms() {
                 </div>
                 <button id="start-${room}" onclick="startCleaning('${room}')">Cleaning</button>
                 <button id="finish-${room}" onclick="finishCleaning('${room}')" disabled>Done</button>
-                <button id="restore-${room}" onclick="restoreCleaning('${room}')" style="display:none;">🔃</button>
+                <button id="restore-${room}" onclick="restoreCleaning('${room}')" class="restore-button">🔃</button>
                 <button id="dnd-${room}" class="dnd-btn" onclick="toggleDoNotDisturb('${room}')">🚫</button>
             `;
 
@@ -1126,20 +1126,20 @@ async function restoreCleaning(roomNumber) {
     }
 
     try {
-        const res = await fetch(`${apiUrl}/logs/reset-cleaning`, {
+        const response = await fetch(`${apiUrl}/logs/reset-cleaning`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ roomNumber: formattedRoom })
         });
 
-        const data = await res.json();
-        if (!res.ok) {
-            console.error("❌ Failed to Restore Cleaning:", data);
-            alert(`❌ Failed: ${data.message}`);
+        if (!response.ok) {
+            console.error("❌ Failed to restore cleaning:", await response.json());
             return;
         }
 
-        // ✅ Enable Start Cleaning, Disable Finish Cleaning
+        console.log(`✅ Cleaning restored for Room ${formattedRoom}`);
+
+        // ✅ Enable Start Cleaning and Disable Finish Cleaning
         startButton.disabled = false;
         startButton.style.backgroundColor = "#008CFF";
         finishButton.disabled = true;
@@ -1148,19 +1148,21 @@ async function restoreCleaning(roomNumber) {
         // ✅ Hide Restore Button
         restoreButton.style.display = "none";
 
-        console.log(`✅ Room ${formattedRoom} cleaning status restored.`);
         sendTelegramMessage(`🔄 Cleaning status restored for Room ${formattedRoom}`);
 
         safeEmit("roomUpdate", { roomNumber, status: "available" });
 
-        // ✅ Remove Status Locally
-        localStorage.removeItem(`status-${formattedRoom}`);
+        // ✅ FIX: Delayed `loadLogs()` ensures database update is complete before UI fetch
+        setTimeout(async () => {
+            console.log("⏳ Waiting for DB sync before fetching logs...");
+            await loadLogs();
+        }, 2000); // 🔄 Wait 2 seconds before fetching logs
 
-        await loadLogs();
     } catch (error) {
         console.error("❌ Error restoring cleaning:", error);
     }
 }
+
 
 
 async function finishCleaning(roomNumber) {

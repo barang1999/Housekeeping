@@ -230,13 +230,39 @@ socket.on("restoreCleaning", async ({ roomNumber }) => {
         return;
     }
 
-    console.log(`🔄 Processing Cleaning Restore for Room ${roomNumber}`);
+    console.log(`🔄 Processing Cleaning Restore for Room ${roomNumber}...`);
 
-    // ✅ Emit the update event to all clients
-    io.emit("restoreCleaning", { roomNumber, status: "available" });
+    try {
+        const updatedLog = await CleaningLog.findOneAndUpdate(
+            { roomNumber },
+            { 
+                $set: {
+                    startTime: null,
+                    finishTime: null,
+                    startedBy: null,
+                    finishedBy: null,
+                    status: "available" // ✅ Ensure DB is updated
+                }
+            },
+            { new: true }
+        );
 
-    console.log(`✅ Restore Cleaning emitted for Room ${roomNumber}`);
+        if (!updatedLog) {
+            console.warn(`⚠️ Room ${roomNumber} not found in logs. Skipping restore.`);
+            return;
+        }
+
+        console.log(`✅ Cleaning restored in DB for Room ${roomNumber}.`);
+
+        // ✅ Emit event **after** updating database
+        io.emit("restoreCleaning", { roomNumber, status: "available" });
+
+        console.log(`📡 WebSocket: Cleaning restored for Room ${roomNumber}`);
+    } catch (error) {
+        console.error(`❌ Error restoring cleaning for Room ${roomNumber}:`, error);
+    }
 });
+
 
     // ✅ Handle Cleaning Reset
     socket.on("resetCleaning", async ({ roomNumber }) => {
