@@ -154,13 +154,13 @@
     background: gray;
     cursor: not-allowed;
 }
-    /* Remove default dropdown styles */
+     /* Remove default dropdown styles */
     .priority-select {
         -webkit-appearance: none;
         -moz-appearance: none;
         appearance: none;
-        background: none;
-        border: none;
+        background: white;
+        border: 1px solid #ccc;
         font-size: 16px;
         font-weight: bold;
         cursor: pointer;
@@ -169,73 +169,91 @@
         display: flex;
         align-items: center;
         position: relative;
+        width: 150px;
+        border-radius: 5px;
     }
 
-    /* Dropdown wrapper to position elements properly */
+    /* Dropdown wrapper */
     .dropdown-container {
         position: relative;
         display: inline-block;
     }
 
-    /* Custom dropdown indicator (circle) */
-    .dropdown-container::before {
-        content: "";
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        border: 2px solid #ccc;
-        display: inline-block;
-        margin-right: 8px;
-        vertical-align: middle;
-    }
-
-    /* Active selected state */
-    .priority-select:focus + .dropdown-container::before,
-    .priority-select.active + .dropdown-container::before {
-        background: red;
-        border: none;
-    }
-
-    /* Dropdown arrow */
+    /* Add dropdown arrow */
     .dropdown-container::after {
         content: "▼";
         font-size: 12px;
         color: #666;
-        margin-left: 8px;
+        margin-left: auto;
+        margin-right: 10px;
         pointer-events: none;
     }
 
-    /* Hover effects */
-    .priority-select:hover + .dropdown-container::before {
-        border-color: black;
+    /* Custom dropdown options */
+    .priority-dropdown {
+        display: none;
+        position: absolute;
+        background: white;
+        border: 1px solid #ccc;
+        padding: 5px;
+        width: 150px;
+        box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+        z-index: 10;
+        border-radius: 5px;
     }
 
-    /* Dropdown list styling */
-    .priority-select option {
-        padding: 10px;
+    /* Show dropdown when active */
+    .priority-dropdown.show {
+        display: block;
+    }
+
+    /* Dropdown options styling */
+    .priority-option {
+        padding: 8px 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
         font-size: 14px;
+        font-weight: bold;
+        border-bottom: 1px solid #ddd;
     }
 
-    /* Specific styles for different statuses */
-    .priority-select option[value="default"] {
-        color: #333;
-        background-color: #ffffff;
+    /* Remove border from last option */
+    .priority-option:last-child {
+        border-bottom: none;
     }
 
-    .priority-select option[value="sunrise"] {
-        color: red;
-        background-color: #ffe6e6;
+    /* Hover effect */
+    .priority-option:hover {
+        background: rgba(0, 0, 0, 0.05);
     }
 
-    .priority-select option[value="early_arrival"] {
-        color: orange;
-        background-color: #fff4cc;
+    /* Color indicators */
+    .priority-option span {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        display: inline-block;
     }
 
-    .priority-select option[value="vacancy"] {
-        color: black;
-        background-color: #e6ffe6;
+    /* Status colors */
+    .priority-option[data-value="default"] span {
+        background-color: #ccc;
     }
+
+    .priority-option[data-value="sunrise"] span {
+        background-color: red;
+    }
+
+    .priority-option[data-value="early_arrival"] span {
+        background-color: orange;
+    }
+
+    .priority-option[data-value="vacancy"] span {
+        background-color: black;
+    }
+
 
     </style>
 </head>

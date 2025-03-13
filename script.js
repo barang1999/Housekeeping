@@ -315,6 +315,46 @@ function togglePriorityDropdown(roomNumber) {
     dropdown.classList.toggle("show");
 }
 
+function toggleDropdown() {
+    document.querySelector(".priority-dropdown").classList.toggle("show");
+}
+
+function selectOption(element) {
+    const button = document.querySelector(".priority-select");
+    button.innerHTML = element.innerHTML; // Update button text with selected option
+    document.querySelector(".priority-dropdown").classList.remove("show"); // Close dropdown
+}
+
+function togglePriorityDropdown(room) {
+    // Close all dropdowns first
+    document.querySelectorAll(".priority-dropdown").forEach(dropdown => {
+        if (dropdown.id !== `priority-${room}`) {
+            dropdown.classList.remove("show");
+        }
+    });
+
+    // Toggle the selected dropdown
+    document.getElementById(`priority-${room}`).classList.toggle("show");
+}
+
+function updatePriority(room, status) {
+    const button = document.getElementById(`selected-priority-${room}`);
+    const statusIcons = {
+        "default": "⚪",
+        "sunrise": "🔴",
+        "early-arrival": "🟡",
+        "vacancy": "⚫"
+    };
+
+    // Update button icon based on selected status
+    button.innerHTML = statusIcons[status];
+
+    // Hide the dropdown after selection
+    document.getElementById(`priority-${room}`).classList.remove("show");
+
+    // Optionally, update backend or store selection in local storage
+    console.log(`Room ${room} status updated to: ${status}`);
+}
 
 async function loadRooms() {
     console.log("🔄 Loading rooms...");
@@ -354,10 +394,10 @@ async function loadRooms() {
                   <div class="priority-container">
                     <button class="priority-toggle" id="selected-priority-${room}" onclick="togglePriorityDropdown('${room}')">⚪</button>
                     <div class="priority-dropdown" id="priority-${room}">
-                        <div class="priority-option" onclick="updatePriority('${room}', 'default')"><span class="white">⚪</span> Default</div>
-                        <div class="priority-option" onclick="updatePriority('${room}', 'sunrise')"><span class="red">🔴</span> Sunrise</div>
-                        <div class="priority-option" onclick="updatePriority('${room}', 'early-arrival')"><span class="yellow">🟡</span> Early Arrival</div>
-                        <div class="priority-option" onclick="updatePriority('${room}', 'vacancy')"><span class="black">⚫</span> Vacancy</div>
+                        <div class="priority-option" onclick="updatePriority('${room}', 'default')"><span class="white">⚪</span></div>
+                        <div class="priority-option" onclick="updatePriority('${room}', 'sunrise')"><span class="red">🔴</span></div>
+                        <div class="priority-option" onclick="updatePriority('${room}', 'early-arrival')"><span class="yellow">🟡</span></div>
+                        <div class="priority-option" onclick="updatePriority('${room}', 'vacancy')"><span class="black">⚫</span></div>
                     </div>
                 </div>
                 <button id="start-${room}" onclick="startCleaning('${room}')">Start Cleaning</button>
