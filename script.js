@@ -551,13 +551,6 @@ document.addEventListener("DOMContentLoaded", () => {
         updateSelectedPriorityDisplay(roomNumber, savedPriority);
     });
 });
-/** ✅ WebSocket Listener for Priority Updates */
-    window.socket.on("priorityUpdate", ({ roomNumber, priority }) => {
-        console.log(`📡 Received Priority Update: Room ${roomNumber} -> ${priority}`);
-
-        // ✅ Update UI Immediately
-        updateSelectedPriorityDisplay(roomNumber, priority);
-    });
 
 
 async function refreshToken() {
