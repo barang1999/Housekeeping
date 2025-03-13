@@ -12,7 +12,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadLogs(); // ✅ Fetch logs before restoring buttons
     await restoreCleaningStatus(); // ✅ Ensure buttons are updated after logs are loaded
     await connectWebSocket(); // ✅ Connect WebSocket first for real-time updates
-    await loadRoomPriorities();
 
     console.log("🎯 Cleaning status restored successfully.");
     checkAuth();
