@@ -13,8 +13,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     await restoreCleaningStatus(); // ✅ Ensure buttons are updated after logs are loaded
     await connectWebSocket(); // ✅ Connect WebSocket first for real-time updates
      
-   // ✅ REQUEST PRIORITY STATUSES IMMEDIATELY
-    window.socket.emit("requestPriorityStatus");
+    // ✅ REQUEST PRIORITY STATUSES IMMEDIATELY (Ensure socket exists)
+    if (window.socket) {
+        window.socket.emit("requestPriorityStatus");
+    } else {
+        console.warn("⚠️ WebSocket is not initialized yet.");
+    }
 
     console.log("🎯 Cleaning status restored successfully.");
     checkAuth();
