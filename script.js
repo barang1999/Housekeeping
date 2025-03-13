@@ -247,6 +247,16 @@ async function login(event) {
     const username = document.getElementById("login-username").value;
     const password = document.getElementById("login-password").value;
 
+     if (!username || !password) {
+        Swal.fire({
+            icon: "warning",
+            title: "ពត៏មានមិនត្រឹមត្រូវ",
+            text: "សូមបញ្ចូលឈ្មោះនិងលេខកូដសម្ងាត់ឲ្យបានត្រឹមត្រូវ.",
+            confirmButtonText: "OK"
+        });
+        return;
+    }
+
     try {
         const response = await fetch("https://housekeeping-production.up.railway.app/auth/login", {
             method: "POST",
@@ -261,6 +271,15 @@ async function login(event) {
             localStorage.setItem("token", data.token);
             localStorage.setItem("username", data.username);
 
+            // ✅ Show Success Notification
+            Swal.fire({
+                icon: "ជោគជ័យ",
+                title: "ការតភ្ជាប់បានជោគជ័យ",
+                text: `ស្វាគមន៍, ${data.username}!`,
+                timer: 2000,
+                showConfirmButton: false
+            });
+
             // Debugging: Check if this function runs
             console.log("showDashboard is being called with username:", data.username);
             
@@ -268,11 +287,22 @@ async function login(event) {
                 showDashboard(data.username); // Ensure UI updates correctly
             }, 500); // Small delay to allow UI update
         } else {
-            alert("❌ Login failed: " + data.message);
+            Swal.fire({
+                icon: "error",
+                title: "ការតភ្ជាប់ បរាជ័យ",
+                text: data.message || "ឈ្មោះនិងលេខសម្ងាត់មិនត្រឹមត្រូវ",
+                confirmButtonText: "ព្យាយាមម្ដងទៀត"
+            });
         }
     } catch (error) {
         console.error("❌ Error logging in:", error);
         alert("An error occurred. Please try again.");
+        Swal.fire({
+            icon: "error",
+            title: "មិនដំណើរការ",
+            text: "សូមអភ័យទោស មានបញ្ចាបច្ចេកទេសតិចតួច សូមព្យាយាមម្ដងទៀត",
+            confirmButtonText: "OK"
+        });
     }
 }
 
