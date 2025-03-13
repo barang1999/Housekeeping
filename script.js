@@ -299,7 +299,15 @@ async function checkAuth() {
 function toggleAuth() {
     const signupForm = document.getElementById("signup-form");
     signupForm.classList.toggle("hidden");
+ 
     signupForm.reset(); // Clears input fields
+}
+function togglePriorityDropdown(roomNumber) {
+    const dropdown = document.getElementById(`priority-${roomNumber}`);
+    if (!dropdown) return;
+    
+    // ✅ Toggle visibility
+    dropdown.classList.toggle("show");
 }
 
 
@@ -338,11 +346,14 @@ async function loadRooms() {
             // ✅ FIXED TEMPLATE STRING ERROR
             roomDiv.innerHTML = `
                 <span>Room ${room}</span>
+                <div class="priority-container">
+                <button class="priority-toggle" onclick="togglePriorityDropdown('${room}')">⚪</button>
                 <div class="priority-dropdown" id="priority-${room}">
-                    <div class="priority-option white" onclick="updatePriority('${room}', 'default')">⚪</div>
-                    <div class="priority-option red" onclick="updatePriority('${room}', 'sunrise')">🔴</div>
-                    <div class="priority-option yellow" onclick="updatePriority('${room}', 'early-arrival')">🟡</div>
-                    <div class="priority-option black" onclick="updatePriority('${room}', 'vacancy')">⚫</div>
+                    <div class="priority-option white" onclick="updatePriority('${room}', 'default')">⚪ Default</div>
+                    <div class="priority-option red" onclick="updatePriority('${room}', 'sunrise')">🔴 Sunrise</div>
+                    <div class="priority-option yellow" onclick="updatePriority('${room}', 'early-arrival')">🟡 Early Arrival</div>
+                    <div class="priority-option black" onclick="updatePriority('${room}', 'vacancy')">⚫ Vacancy</div>
+                    </div>
                 </div>
                 <button id="start-${room}" onclick="startCleaning('${room}')">Start Cleaning</button>
                 <button id="finish-${room}" onclick="finishCleaning('${room}')" disabled>Finish</button>
@@ -395,6 +406,7 @@ function showDashboard(username) {
         toggleFloor("ground-floor"); // Ensure it's visible after rooms load
     }, 1000);
 }
+
 
 /** ✅ Update Room Priority and Emit WebSocket Event */
 function updatePriority(roomNumber, priority) {
