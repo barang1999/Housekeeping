@@ -125,6 +125,14 @@
     box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
 }
 
+.dnd-btn {
+    color: white;  /* Makes the 🚫 emoji appear white */
+    background: transparent; /* Optional: Remove button background */
+    border: none;
+    font-size: 18px; /* Adjust size if needed */
+}
+
+
 .header-buttons {
     display: flex;
     position: absolute; /* Absolute positioning within the parent container */
@@ -155,14 +163,15 @@
     cursor: not-allowed;
 }
 /* Minimalist Dropdown Styling */
+/* Fix dropdown positioning */
 .priority-dropdown {
     position: absolute;
     background: white;
     border-radius: 8px;
     border: 1px solid #ddd;
     box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-    padding: 5px 0;
-    min-width: 120px;
+    padding: 0; /* Remove unnecessary padding */
+    min-width: 80px; /* Adjust width for compact design */
     z-index: 10;
     left: 50%;
     transform: translateX(-50%);
@@ -181,10 +190,11 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 12px;
+    padding: 8px; /* Reduce padding for a compact look */
     cursor: pointer;
     transition: background 0.2s ease-in-out;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid #ddd;
+    justify-content: center;
 }
 
 .priority-option:last-child {
@@ -197,10 +207,13 @@
 
 /* Circular icons for options */
 .priority-option span {
-    width: 20px;
-    height: 20px;
-    display: inline-block;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     border-radius: 50%;
+    border: 1px solid #000; /* Make sure the circle is visible */
 }
 
 /* Define colors for different statuses */
@@ -237,6 +250,17 @@
     justify-content: center;
 }
 
+.minimal-dropdown {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+.priority-toggle.default { background-color: transparent; }
+.priority-toggle.sunrise { background-color: red; }
+.priority-toggle.early-arrival { background-color: yellow; }
+.priority-toggle.vacancy { background-color: black; }
+
+    
     </style>
 </head>
 <body>

@@ -325,18 +325,19 @@ function togglePriorityDropdown(roomNumber) {
     const dropdown = document.getElementById(`priority-${roomNumber}`);
     if (!dropdown) return;
 
-    // Close all other dropdowns
-    document.querySelectorAll(".priority-dropdown").forEach(drop => {
-        if (drop !== dropdown) drop.classList.remove("show");
-    });
+    const isOpen = dropdown.classList.contains("show");
 
-    // Toggle the current dropdown
-    dropdown.classList.toggle("show");
+    // Close all dropdowns before toggling
+    document.querySelectorAll(".priority-dropdown").forEach(drop => drop.classList.remove("show"));
+
+    if (!isOpen) {
+        dropdown.classList.add("show");
+    }
 }
 
 // Close dropdown when clicking outside
 document.addEventListener("click", (event) => {
-    if (!event.target.closest(".priority-container")) {
+    if (!event.target.closest(".priority-container") && !event.target.classList.contains("priority-toggle")) {
         document.querySelectorAll(".priority-dropdown").forEach(dropdown => {
             dropdown.classList.remove("show");
         });
@@ -356,11 +357,10 @@ function selectOption(element) {
 
 // Remove border and make background transparent for dropdown
 const dropdowns = document.querySelectorAll(".priority-dropdown");
-dropdowns.forEach(dropdown => {
-    dropdown.style.border = "none";
-    dropdown.style.background = "rgba(255, 255, 255, 0.8)"; // Transparent background
-    dropdown.style.boxShadow = "none";
+document.querySelectorAll(".priority-dropdown").forEach(dropdown => {
+    dropdown.classList.add("minimal-dropdown"); // Instead of applying styles inline
 });
+
 async function loadRooms() {
     console.log("🔄 Loading rooms...");
 
@@ -405,9 +405,9 @@ async function loadRooms() {
                         <div class="priority-option" onclick="updatePriority('${room}', 'vacancy')"><span class="black">⚫</span></div>
                     </div>
                 </div>
-                <button id="start-${room}" onclick="startCleaning('${room}')">Start Cleaning</button>
-                <button id="finish-${room}" onclick="finishCleaning('${room}')" disabled>Finish</button>
-                <button id="dnd-${room}" class="dnd-btn" onclick="toggleDoNotDisturb('${room}')">DND</button>
+                <button id="start-${room}" onclick="startCleaning('${room}')">Cleaning</button>
+                <button id="finish-${room}" onclick="finishCleaning('${room}')" disabled>Done</button>
+                <button id="dnd-${room}" class="dnd-btn" onclick="toggleDoNotDisturb('${room}')">🚫</button>
             `;
 
             floorDiv.appendChild(roomDiv);
@@ -459,16 +459,11 @@ function showDashboard(username) {
 
 function updatePriority(roomNumber, status) {
     const button = document.getElementById(`selected-priority-${roomNumber}`);
-    const statusIcons = {
-        "default": "⚪",
-        "sunrise": "🔴",
-        "early-arrival": "🟡",
-        "vacancy": "⚫"
-    };
+    if (!button) return;
 
-    button.innerHTML = statusIcons[status];
+    button.dataset.priority = status; // Store the status in a data attribute
+    button.className = `priority-toggle ${status}`; // Apply a CSS class instead
     document.getElementById(`priority-${roomNumber}`).classList.remove("show"); // Close dropdown
-    console.log(`Room ${roomNumber} status updated to: ${status}`);
 }
 
 /** ✅ Update Room Priority and Emit WebSocket Event */
@@ -532,10 +527,6 @@ function updateSelectedPriorityDisplay(roomNumber, priority) {
     }
 }
 
-
-
-
-/** ✅ Highlight Selected Priority in UI */
 function highlightSelectedPriority(roomNumber, priority) {
     const priorityContainer = document.getElementById(`priority-${roomNumber}`);
     if (!priorityContainer) {
@@ -543,14 +534,17 @@ function highlightSelectedPriority(roomNumber, priority) {
         return;
     }
 
-    // ✅ Reset borders for all priority options
+    // ✅ Reset previous selections using class-based approach
     const priorityOptions = priorityContainer.querySelectorAll(".priority-option");
-    priorityOptions.forEach(option => option.style.border = "1px solid #333");
+    priorityOptions.forEach(option => option.classList.remove("selected"));
 
-    // ✅ Apply highlight to selected priority
-    const selected = priorityContainer.querySelector(`.${priority.replace('-', '')}`);
-    if (selected) selected.style.border = "3px solid blue";
+    // ✅ Apply selection class to the correct priority option
+    const selectedOption = priorityContainer.querySelector(`.priority-option[data-value="${priority}"]`);
+    if (selectedOption) {
+        selectedOption.classList.add("selected");
+    }
 }
+
 
 // ✅ Load Saved Priority on Page Load
 document.addEventListener("DOMContentLoaded", () => {
