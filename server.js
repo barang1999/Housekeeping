@@ -57,6 +57,13 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model("User", userSchema);
 
+const prioritySchema = new mongoose.Schema({
+    roomNumber: { type: String, required: true, unique: true },
+    priority: { type: String, default: "default" }
+});
+const RoomPriority = mongoose.model("RoomPriority", prioritySchema);
+
+
 // ✅ CORS Configuration
 app.use(cors({
     origin: "https://housekeepingmanagement.netlify.app",
@@ -366,12 +373,6 @@ app.post("/logs/priority", async (req, res) => {
         res.status(500).json({ message: "Server error", error });
     }
 });
-
-const prioritySchema = new mongoose.Schema({
-    roomNumber: { type: String, required: true, unique: true },
-    priority: { type: String, default: "default" }
-});
-const RoomPriority = mongoose.model("RoomPriority", prioritySchema);
 
 app.post("/logs/dnd", async (req, res) => {
     try {
