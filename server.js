@@ -181,15 +181,19 @@ socket.on("priorityUpdate", async ({ roomNumber, priority }) => {
 });
 
 socket.on("updatePriorityStatus", (data) => {
-    io.emit("updatePriorityStatus", data);
-});
-
-socket.on("updatePriorityStatus", (data) => {
     console.log("🔄 Priority status update received:", data);
+
+    // ✅ Broadcast to all connected clients (only if on the server side)
+    if (typeof io !== "undefined") {
+        io.emit("updatePriorityStatus", data);
+    }
+
+    // ✅ Update UI (only if in the frontend)
     document.querySelectorAll(".priority-toggle").forEach(button => {
         button.innerHTML = "⚪"; // Reset to default state
     });
 });
+
     
 socket.on("dndUpdate", async ({ roomNumber, status }) => {
     try {
