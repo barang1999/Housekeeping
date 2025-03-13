@@ -898,23 +898,49 @@ async function toggleDoNotDisturb(roomNumber) {
     const isDNDActive = dndButton.classList.contains("active-dnd");
     const newStatus = isDNDActive ? "available" : "dnd";
 
+    // ✅ Ensure username is properly retrieved
+    const username = localStorage.getItem("username");
+    if (!username) {
+        console.error("❌ No username found in localStorage. Cannot update DND.");
+        alert("You must be logged in to update DND mode.");
+        return;
+    }
+
     try {
+        console.log(`🔄 Sending DND update for Room ${formattedRoom} -> ${newStatus}`);
+
         const response = await fetch(`${apiUrl}/logs/dnd`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roomNumber, status: newStatus }),
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                roomNumber: formattedRoom,  // Ensure correct format
+                status: newStatus,
+                updatedBy: username // ✅ Include username for logging
+            }),
         });
 
+        // ✅ Check for API errors
         if (!response.ok) {
-            throw new Error(`Failed to update DND status: ${response.status}`);
+            const errorData = await response.json();
+            console.error(`❌ Failed to update DND status: ${response.status}`, errorData);
+            alert(`Error: ${errorData.message || "Failed to update DND status."}`);
+            return;
         }
+
+        console.log(`✅ DND status updated successfully for Room ${formattedRoom}`);
+
         // ✅ Send notification to Telegram
         const message = newStatus === "dnd"
             ? `🚫 Room ${formattedRoom} set to Do Not Disturb by ${username}`
             : `✅ Room ${formattedRoom} is now available for cleaning`;
         sendTelegramMessage(message);
 
+        // ✅ Emit WebSocket Event
         safeEmit("dndUpdate", { roomNumber: formattedRoom, status: newStatus });
+
+        // ✅ Save DND status to LocalStorage
         localStorage.setItem(`dnd-${formattedRoom}`, newStatus);
 
         // ✅ Update UI
@@ -922,23 +948,19 @@ async function toggleDoNotDisturb(roomNumber) {
 
         // ✅ Disable Start Cleaning when DND is active
         if (newStatus === "dnd") {
-            if (startButton) {
-                startButton.disabled = true;
-                startButton.style.backgroundColor = "grey";
-            }
-            if (finishButton) {
-                finishButton.disabled = true;
-                finishButton.style.backgroundColor = "grey";
-            }
+            startButton?.setAttribute("disabled", "true");
+            startButton?.style.setProperty("background-color", "grey");
+            finishButton?.setAttribute("disabled", "true");
+            finishButton?.style.setProperty("background-color", "grey");
+            dndButton.classList.add("active-dnd");
+            dndButton.style.backgroundColor = "red";
         } else {
-            if (startButton) {
-                startButton.disabled = false;
-                startButton.style.backgroundColor = "#008CFF";
-            }
-            if (finishButton) {
-                finishButton.disabled = true;
-                finishButton.style.backgroundColor = "grey";
-            }
+            startButton?.removeAttribute("disabled");
+            startButton?.style.setProperty("background-color", "#008CFF");
+            finishButton?.setAttribute("disabled", "true");
+            finishButton?.style.setProperty("background-color", "grey");
+            dndButton.classList.remove("active-dnd");
+            dndButton.style.backgroundColor = "#008CFF";
         }
 
     } catch (error) {
@@ -946,6 +968,7 @@ async function toggleDoNotDisturb(roomNumber) {
         alert("An error occurred while updating DND mode.");
     }
 }
+
 
 async function sendTelegramMessage(message) {
     try {
