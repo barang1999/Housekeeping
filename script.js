@@ -1044,6 +1044,13 @@ async function startCleaning(roomNumber) {
 
     if (startButton.disabled) return; // Prevent multiple clicks
 
+     // Show confirmation dialog
+    const confirmStart = confirm(`Start cleaning Room ${roomNumber}?`);
+    if (!confirmStart) {
+        console.log(`🚫 Cleaning not started for Room ${roomNumber}`);
+        return; // Exit function if user clicks "No"
+    }
+
     const username = localStorage.getItem("username"); // ✅ Ensure username is retrieved
     if (!username) {
         console.error("❌ No username found in localStorage. Cannot start cleaning.");
