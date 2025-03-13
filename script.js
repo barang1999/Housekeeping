@@ -691,9 +691,11 @@ async function fetchRoomStatuses() {
         Object.entries(statuses).forEach(([roomNumber, status]) => {
             updateButtonStatus(roomNumber, status);
             
-            // Find the matching priority for the room
-            const roomPriority = priorities.find(p => p.roomNumber === roomNumber)?.priority || "default";
-            
+            // ✅ Ensure `roomNumber` is treated as a string before matching
+            const roomPriority = priorities.find(p => String(p.roomNumber) === String(roomNumber))?.priority || "default";
+
+            console.log(`🔄 Restoring priority for Room ${roomNumber}: ${roomPriority}`);
+
             // Update the priority dropdown selection
             updateSelectedPriorityDisplay(roomNumber, roomPriority);
         });
@@ -703,7 +705,6 @@ async function fetchRoomStatuses() {
         alert("Failed to fetch room data. Check console for details.");
     }
 }
-
 
 // Call on page load
 window.addEventListener("DOMContentLoaded", async () => {
