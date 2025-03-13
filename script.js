@@ -325,17 +325,13 @@ function selectOption(element) {
     document.querySelector(".priority-dropdown").classList.remove("show"); // Close dropdown
 }
 
-function togglePriorityDropdown(room) {
-    // Close all dropdowns first
-    document.querySelectorAll(".priority-dropdown").forEach(dropdown => {
-        if (dropdown.id !== `priority-${room}`) {
-            dropdown.classList.remove("show");
-        }
-    });
-
-    // Toggle the selected dropdown
-    document.getElementById(`priority-${room}`).classList.toggle("show");
-}
+// Remove border and make background transparent for dropdown
+const dropdowns = document.querySelectorAll(".priority-dropdown");
+dropdowns.forEach(dropdown => {
+    dropdown.style.border = "none";
+    dropdown.style.background = "rgba(255, 255, 255, 0.8)"; // Transparent background
+    dropdown.style.boxShadow = "none";
+});
 
 function updatePriority(room, status) {
     const button = document.getElementById(`selected-priority-${room}`);
@@ -457,9 +453,11 @@ function showDashboard(username) {
 function updatePriority(roomNumber, priority) {
     console.log(`🛎 Updating priority for Room ${roomNumber} -> ${priority}`);
     
-    // ✅ Save priority selection
+    // ✅ Save priority selection in localStorage
     localStorage.setItem(`priority-${roomNumber}`, priority);
-    window.socket.emit("priorityUpdate", { roomNumber, priority });
+
+    // ✅ Emit WebSocket Event SAFELY
+    safeEmit("priorityUpdate", { roomNumber, priority });
 
     // ✅ Update UI immediately
     updateSelectedPriorityDisplay(roomNumber, priority);
@@ -510,6 +508,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 // ✅ WebSocket Listener for Priority Updates
 window.socket?.on("priorityUpdate", ({ roomNumber, priority }) => {
+    console.log(`📡 Received Priority Update: Room ${roomNumber} -> ${priority}`);
     updateSelectedPriorityDisplay(roomNumber, priority);
 });
 
