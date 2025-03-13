@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadLogs(); // ✅ Fetch logs before restoring buttons
     await restoreCleaningStatus(); // ✅ Ensure buttons are updated after logs are loaded
     await connectWebSocket(); // ✅ Connect WebSocket first for real-time updates
+    await loadRoomPriorities();
 
     console.log("🎯 Cleaning status restored successfully.");
     checkAuth();
@@ -361,6 +362,57 @@ function showDashboard(username) {
         toggleFloor("ground-floor"); // Ensure it's visible after rooms load
     }, 1000);
 }
+
+async function loadRoomPriorities() {
+    const response = await fetch("https://housekeeping-production.up.railway.app/logs/priority");
+    const priorities = await response.json();
+    
+    const roomList = document.getElementById("room-list");
+    roomList.innerHTML = "";
+
+    const floors = {
+        "ground-floor": ["001", "002", "003", "004", "005", "006", "007", "011", "012", "013", "014", "015", "016", "017"],
+        "second-floor": ["101", "102", "103", "104", "105", "106", "107", "108", "109", "110", "111", "112", "113", "114", "115", "116", "117"],
+        "third-floor": ["201", "202", "203", "204", "205", "208", "209", "210", "211", "212", "213", "214", "215", "216", "217"]
+    };
+
+    Object.entries(floors).forEach(([floor, rooms]) => {
+        rooms.forEach(roomNumber => {
+            const roomDiv = document.createElement("div");
+            roomDiv.classList.add("room");
+            roomDiv.innerHTML = `
+                <span>Room ${roomNumber}</span>
+                <div class="priority-dropdown" id="priority-${roomNumber}">
+                    <div class="priority-option white" onclick="updatePriority('${roomNumber}', 'default')">⚪</div>
+                    <div class="priority-option red" onclick="updatePriority('${roomNumber}', 'sunrise')">🔴</div>
+                    <div class="priority-option yellow" onclick="updatePriority('${roomNumber}', 'early-arrival')">🟡</div>
+                    <div class="priority-option black" onclick="updatePriority('${roomNumber}', 'vacancy')">⚫</div>
+                </div>
+            `;
+            roomList.appendChild(roomDiv);
+
+            const savedPriority = priorities.find(p => p.roomNumber === roomNumber)?.priority || "default";
+            highlightSelectedPriority(roomNumber, savedPriority);
+        });
+    });
+}
+
+function updatePriority(roomNumber, priority) {
+    socket.emit("priorityUpdate", { roomNumber, priority });
+    highlightSelectedPriority(roomNumber, priority);
+}
+
+function highlightSelectedPriority(roomNumber, priority) {
+    const priorityOptions = document.querySelectorAll(`#priority-${roomNumber} .priority-option`);
+    priorityOptions.forEach(option => option.style.border = "1px solid #333");
+    
+    const selected = document.querySelector(`#priority-${roomNumber} .${priority.replace('-', '')}`);
+    if (selected) selected.style.border = "3px solid blue";
+}
+
+socket.on("priorityUpdate", ({ roomNumber, priority }) => {
+    highlightSelectedPriority(roomNumber, priority);
+});
 
 async function refreshToken() {
     const refreshToken = localStorage.getItem("refreshToken");

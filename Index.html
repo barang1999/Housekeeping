@@ -154,6 +154,88 @@
     background: gray;
     cursor: not-allowed;
 }
+/* Remove default dropdown styles */
+        .priority-select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background: none;
+            border: none;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 8px 12px;
+            outline: none;
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+
+        /* Dropdown wrapper to position elements properly */
+        .dropdown-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        /* Custom dropdown indicator (circle) */
+        .dropdown-container::before {
+            content: "";
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid #ccc;
+            display: inline-block;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        /* Active selected state */
+        .priority-select:focus + .dropdown-container::before,
+        .priority-select.active + .dropdown-container::before {
+            background: red;
+            border: none;
+        }
+
+        /* Dropdown arrow */
+        .dropdown-container::after {
+            content: "▼";
+            font-size: 12px;
+            color: #666;
+            margin-left: 8px;
+            pointer-events: none;
+        }
+
+        /* Hover effects */
+        .priority-select:hover + .dropdown-container::before {
+            border-color: black;
+        }
+
+        /* Dropdown list styling */
+        .priority-select option {
+            padding: 10px;
+            font-size: 14px;
+        }
+
+        /* Specific styles for different statuses */
+        .priority-select option[value="default"] {
+            color: #333;
+            background-color: #ffffff;
+        }
+
+        .priority-select option[value="sunrise"] {
+            color: red;
+            background-color: #ffe6e6;
+        }
+
+        .priority-select option[value="early_arrival"] {
+            color: yellow;
+            background-color: #ffff99;
+        }
+
+        .priority-select option[value="vacancy"] {
+            color: black;
+            background-color: #e6ffe6;
+        }
 
     </style>
 </head>

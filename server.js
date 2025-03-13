@@ -10,6 +10,7 @@ const axios = require("axios");
 const telegramRoutes = require("./telegram.js");
 
 const RoomDND = require("./RoomDND"); // ✅ Ensure RoomDND is imported
+const RoomPriority = require("./RoomPriority"); // ✅ Import Priority Model
 const allowedOrigins = ["https://housekeepingmanagement.netlify.app"]; // Add your frontend domain
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -130,6 +131,19 @@ io.on("connection", (socket) => {
     console.log("✅ Sent DND status updates for individual rooms.");
 });
 
+ socket.on("priorityUpdate", async ({ roomNumber, priority }) => {
+        try {
+            console.log(`📡 Priority Update for Room ${roomNumber} -> ${priority}`);
+            await RoomPriority.findOneAndUpdate(
+                { roomNumber },
+                { priority },
+                { upsert: true, new: true }
+            );
+            io.emit("priorityUpdate", { roomNumber, priority });
+        } catch (error) {
+            console.error("❌ Error updating priority:", error);
+        }
+    });
     
 socket.on("dndUpdate", async ({ roomNumber, status }) => {
     try {
@@ -321,6 +335,39 @@ app.get("/logs/status", async (req, res) => {
         res.status(500).json({ message: "Server error", error });
     }
 });
+
+app.get("/logs/priority", async (req, res) => {
+    try {
+        const priorities = await RoomPriority.find({}, "roomNumber priority").lean();
+        res.json(priorities);
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error });
+    }
+});
+
+app.post("/logs/priority", async (req, res) => {
+    try {
+        const { roomNumber, priority } = req.body;
+        if (!roomNumber || !priority) {
+            return res.status(400).json({ message: "Room number and priority are required." });
+        }
+        await RoomPriority.findOneAndUpdate(
+            { roomNumber },
+            { priority },
+            { upsert: true, new: true }
+        );
+        io.emit("priorityUpdate", { roomNumber, priority });
+        res.json({ message: "Priority updated successfully" });
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error });
+    }
+});
+
+const prioritySchema = new mongoose.Schema({
+    roomNumber: { type: String, required: true, unique: true },
+    priority: { type: String, default: "default" }
+});
+const RoomPriority = mongoose.model("RoomPriority", prioritySchema);
 
 app.post("/logs/dnd", async (req, res) => {
     try {
