@@ -100,43 +100,33 @@ async function connectWebSocket() {
         updateSelectedPriorityDisplay(String(roomNumber), priority);
     });
 
+
+    
    window.socket.on("roomUpdate", async ({ roomNumber, status }) => {
-        console.log(`📡 Received Room Update: Room ${roomNumber} -> Status: ${status}`);
-
-        // ✅ Ensure buttons update immediately
+    try {
+        console.log(`🛎 Received Room Update: Room ${roomNumber} -> Status: ${status}`);
         updateButtonStatus(roomNumber, status);
-
-        // ✅ Force-refresh logs to ensure UI consistency
         await loadLogs();
-    });
+    } catch (error) {
+        console.error("❌ Error processing room update:", error);
+    }
+});
+    
+      window.socket.on("dndUpdate", (data) => {
+    if (!data || !data.roomNumber) {
+        console.warn("⚠️ Invalid DND update received:", data);
+        return;
+    }
 
-    window.socket.on("dndUpdate", (data) => {
-        if (!data || !data.roomNumber) {
-            console.warn("⚠️ Invalid DND update received:", data);
-            return;
-        }
+    console.log(`🚨 DND Update Received: Room ${data.roomNumber} -> Status: ${data.status}`);
 
-        console.log(`🚨 DND Update Received: Room ${data.roomNumber} -> Status: ${data.status}`);
+    // ✅ Update localStorage immediately to restore faster after refresh
+    localStorage.setItem(`dnd-${data.roomNumber}`, data.status);
 
-        // ✅ Update localStorage immediately to restore faster after refresh
-        localStorage.setItem(`dnd-${data.roomNumber}`, data.status);
-
-        // ✅ Update UI immediately
-        updateDNDStatus(data.roomNumber, data.status);
-    });
-
-    window.socket.on("restoreCleaning", ({ roomNumber, status }) => {
-        console.log(`🔄 Received Restore Event for Room ${roomNumber} -> ${status}`);
-
-        if (status !== "available") {
-            console.warn(`⚠️ Skipping update: Room ${roomNumber} is still ${status}`);
-            return;
-        }
-
-        updateButtonStatus(roomNumber, status);
-    });
-} // <-- Missing closing bracket added
-
+    // ✅ Update UI immediately
+    updateDNDStatus(data.roomNumber, data.status);
+});
+}
 
 function reconnectWebSocket() {
     if (reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
@@ -443,7 +433,6 @@ async function loadRooms() {
                 </div>
                 <button id="start-${room}" onclick="startCleaning('${room}')">Cleaning</button>
                 <button id="finish-${room}" onclick="finishCleaning('${room}')" disabled>Done</button>
-                <button id="restore-${room}" onclick="restoreCleaning('${room}')" class="restore-button">🔃</button>
                 <button id="dnd-${room}" class="dnd-btn" onclick="toggleDoNotDisturb('${room}')">🚫</button>
             `;
 
@@ -1046,10 +1035,9 @@ async function startCleaning(roomNumber) {
     let numericRoomNumber = Number(roomNumber);
     const startButton = document.getElementById(`start-${formattedRoom}`);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
-    const restoreButton = document.getElementById(`restore-${formattedRoom}`);
     const dndButton = document.getElementById(`dnd-${formattedRoom}`);
 
-    if (!startButton || !finishButton || !restoreButton || !dndButton) {
+    if (!startButton || !finishButton || !dndButton) {
         console.error(`❌ Buttons not found for Room ${formattedRoom}`);
         return;
     }
@@ -1094,12 +1082,7 @@ async function startCleaning(roomNumber) {
         startButton.style.backgroundColor = "grey";
         finishButton.disabled = false;
         finishButton.style.backgroundColor = "#008CFF";
-
-        // ✅ Show Restore Button
-        restoreButton.style.display = "inline-block";
-
         console.log(`✅ Room ${formattedRoom} cleaning started.`);
-
 
         // ✅ Send notification to Telegram
         sendTelegramMessage(`🧹 Room ${formattedRoom} cleaning started by ${username}`);
@@ -1115,59 +1098,6 @@ async function startCleaning(roomNumber) {
     } catch (error) {
         console.error("❌ Error starting cleaning:", error);
         startButton.disabled = false; // Re-enable button on failure
-    }
-}
-
-
-async function restoreCleaning(roomNumber) {
-    let formattedRoom = formatRoomNumber(roomNumber);
-    const startButton = document.getElementById(`start-${formattedRoom}`);
-    const finishButton = document.getElementById(`finish-${formattedRoom}`);
-    const restoreButton = document.getElementById(`restore-${formattedRoom}`);
-
-    if (!startButton || !finishButton || !restoreButton) {
-        console.error(`❌ Restore button or other buttons missing for Room ${formattedRoom}`);
-        return;
-    }
-
-    try {
-        const response = await fetch(`${apiUrl}/logs/reset-cleaning`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roomNumber: formattedRoom })
-        });
-
-        if (!response.ok) {
-            console.error("❌ Failed to restore cleaning:", await response.json());
-            return;
-        }
-
-        console.log(`✅ Cleaning restored for Room ${formattedRoom}`);
-
-        // ✅ Enable Start Cleaning and Disable Finish Cleaning
-        startButton.disabled = false;
-        startButton.style.backgroundColor = "#008CFF";
-        finishButton.disabled = true;
-        finishButton.style.backgroundColor = "grey";
-
-        // ✅ Hide Restore Button
-        restoreButton.style.display = "none";
-
-        sendTelegramMessage(`🔄 Cleaning status restored for Room ${formattedRoom}`);
-
-        safeEmit("roomUpdate", { roomNumber, status: "available" });
-
-        // ✅ Fix: Add LocalStorage update to prevent re-disabling after refresh
-        localStorage.setItem(`status-${formattedRoom}`, "available");
-
-        // ✅ FIX: Delayed `loadLogs()` ensures database update is complete before UI fetch
-        setTimeout(async () => {
-            console.log("⏳ Waiting for DB sync before fetching logs...");
-            await loadLogs();
-        }, 2000); // 🔄 Wait 2 seconds before fetching logs
-
-    } catch (error) {
-        console.error("❌ Error restoring cleaning:", error);
     }
 }
 
@@ -1421,7 +1351,7 @@ function logout() {
     sessionStorage.clear();
     alert("✅ You have been logged out.");
 }
-    
+
 async function clearLogs() {
     console.log("🧹 Clearing all logs and resetting room statuses...");
 
@@ -1494,6 +1424,8 @@ async function clearLogs() {
         alert("An unexpected error occurred while clearing logs.");
     }
 }
+
+    
 function exportLogs() {
     if (!window.jspdf) {
         console.error("❌ jsPDF library is not loaded.");
@@ -1538,8 +1470,9 @@ function exportLogs() {
 
     pdf.autoTable({
         head: [["Room", "Start Time", "Started By", "Finish Time", "Finished By", "Duration"]], // ✅ Includes Duration
-        body: logs
+        body: logs,
     });
 
     pdf.save("cleaning_logs_today.pdf");
-}// JavaScript source code
+
+}
