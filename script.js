@@ -13,11 +13,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     await restoreCleaningStatus(); // ✅ Ensure buttons are updated after logs are loaded
     await connectWebSocket(); // ✅ Connect WebSocket first for real-time updates
      
-    // ✅ REQUEST PRIORITY STATUSES IMMEDIATELY (Ensure socket exists)
+    // ✅ Ensure socket is available before emitting
     if (window.socket) {
         window.socket.emit("requestPriorityStatus");
     } else {
-        console.warn("⚠️ WebSocket is not initialized yet.");
+        console.warn("⚠️ WebSocket is not initialized. Retrying...");
+        setTimeout(() => {
+            if (window.socket) {
+                window.socket.emit("requestPriorityStatus");
+            } else {
+                console.error("❌ WebSocket still not initialized. Check connection setup.");
+            }
+        }, 1000);
     }
 
     console.log("🎯 Cleaning status restored successfully.");
@@ -1358,12 +1365,18 @@ async function clearLogs() {
     // ✅ Emit WebSocket event to sync across all clients
     safeEmit("clearLogs");
 
+    // ✅ Emit an update for the priority dropdown status
+    safeEmit("updatePriorityStatus", { status: "reset" });
+
     // ✅ API request to clear logs from the database
     try {
         const res = await fetch(`${apiUrl}/logs/clear`, { method: "POST" });
         if (res.ok) {
             console.log("✅ Logs, DND statuses, and priority selections cleared successfully on server.");
             await loadLogs(); // ✅ Reload logs to ensure UI consistency
+
+            // ✅ Emit WebSocket event again to ensure UI updates in all clients
+            safeEmit("updatePriorityStatus", { status: "reset" });
         } else {
             console.error("❌ Error clearing logs on server.", await res.json());
         }
@@ -1371,8 +1384,6 @@ async function clearLogs() {
         console.error("❌ Error clearing logs:", error);
     }
 }
-
-    
     
 function exportLogs() {
     if (!window.jspdf) {

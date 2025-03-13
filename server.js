@@ -180,6 +180,16 @@ socket.on("priorityUpdate", async ({ roomNumber, priority }) => {
     }
 });
 
+socket.on("updatePriorityStatus", (data) => {
+    io.emit("updatePriorityStatus", data);
+});
+
+socket.on("updatePriorityStatus", (data) => {
+    console.log("🔄 Priority status update received:", data);
+    document.querySelectorAll(".priority-toggle").forEach(button => {
+        button.innerHTML = "⚪"; // Reset to default state
+    });
+});
     
 socket.on("dndUpdate", async ({ roomNumber, status }) => {
     try {
@@ -724,33 +734,54 @@ app.get("/logs", async (req, res) => {
 });
 
 app.post("/logs/clear", async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
         console.log("🧹 Clearing all cleaning logs, DND statuses, and priorities...");
 
-        // ✅ Clear Cleaning Logs
-        await CleaningLog.deleteMany({});
+        // ✅ Check if there are logs before deleting
+        const logCount = await CleaningLog.countDocuments();
+        if (logCount > 0) {
+            await CleaningLog.deleteMany({}).session(session);
+            console.log(`✅ ${logCount} cleaning logs cleared.`);
+        } else {
+            console.log("ℹ️ No cleaning logs found.");
+        }
 
         // ✅ Reset DND Status for All Rooms
-        await RoomDND.updateMany({}, { $set: { dndStatus: false } });
+        const dndResetResult = await RoomDND.updateMany({}, { $set: { dndStatus: false } }).session(session);
+        console.log(`✅ Reset DND status for ${dndResetResult.modifiedCount} rooms.`);
+
+        // ✅ Fetch latest DND statuses (after reset)
+        const dndLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
+
+        // ✅ Commit transaction
+        await session.commitTransaction();
+        session.endSession();
 
         console.log("✅ All logs, DND statuses, and priority selections reset.");
-
-        // ✅ Fetch latest DND statuses
-        const dndLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
 
         // ✅ Broadcast WebSocket Events
         io.emit("clearLogs");
         io.emit("dndUpdate", { roomNumber: "all", status: "available", dndLogs });
-
-        // ✅ Reset priority dropdowns on all clients
         io.emit("priorityUpdate", { roomNumber: "all", priority: "default" });
 
-        res.json({ message: "All cleaning logs, DND statuses, and priority selections cleared.", dndLogs });
+        res.json({ 
+            message: "All cleaning logs, DND statuses, and priority selections cleared.",
+            dndLogs
+        });
     } catch (error) {
         console.error("❌ Error clearing logs:", error);
+
+        // ❌ Rollback transaction on error
+        await session.abortTransaction();
+        session.endSession();
+
         res.status(500).json({ message: "Internal server error." });
     }
 });
+
 
 
 
