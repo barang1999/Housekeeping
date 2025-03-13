@@ -972,8 +972,8 @@ async function toggleDoNotDisturb(roomNumber) {
 
         // ✅ Send notification to Telegram
         const message = newStatus === "dnd"
-            ? `🚫 Room ${formattedRoom} set to Do Not Disturb by ${username}`
-            : `✅ Room ${formattedRoom} is now available for cleaning`;
+            ? `🚫 Room ${formattedRoom} មិនត្រូវការសម្ងាត ${username}`
+            : `✅ Room ${formattedRoom} អាចចូលសម្អាតបាន`;
         sendTelegramMessage(message);
 
         // ✅ Emit WebSocket Event
@@ -1046,8 +1046,8 @@ async function startCleaning(roomNumber) {
 
     // ✅ Show custom confirmation popup
     const confirmStart = await Swal.fire({
-        title: `Start Cleaning Room ${roomNumber}?`,
-        text: "Are you sure you want to begin cleaning this room?",
+        title: `ចាប់ផ្ដើមសម្អាតបន្ទប់ ${roomNumber}?`,
+        text: "អ្នកនឹងសម្អាតបន្ទប់នេះ?",
         icon: "question",
         showCancelButton: true,
         confirmButtonColor: "#3085d6",
@@ -1166,7 +1166,7 @@ async function finishCleaning(roomNumber) {
         finishButton.style.backgroundColor = "green";
 
         // ✅ Send notification to Telegram
-        sendTelegramMessage(`✅ Room ${formattedRoom} cleaning finished by ${username}`);
+        sendTelegramMessage(`✅ Room ${formattedRoom} ត្រូវបានសម្អាតរួចរាល់ដោយ ${username}`);
 
        // ✅ Emit WebSocket Event for Real-Time Updates
         safeEmit("roomUpdate", { roomNumber, status: "finished" });
