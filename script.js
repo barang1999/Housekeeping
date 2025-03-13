@@ -1044,11 +1044,21 @@ async function startCleaning(roomNumber) {
 
     if (startButton.disabled) return; // Prevent multiple clicks
 
-     // Show confirmation dialog
-    const confirmStart = confirm(`Start cleaning Room ${roomNumber}?`);
-    if (!confirmStart) {
+    // ✅ Show custom confirmation popup
+    const confirmStart = await Swal.fire({
+        title: `Start Cleaning Room ${roomNumber}?`,
+        text: "Are you sure you want to begin cleaning this room?",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Yes",
+        cancelButtonText: "No"
+    });
+
+      if (!confirmStart.isConfirmed) {
         console.log(`🚫 Cleaning not started for Room ${roomNumber}`);
-        return; // Exit function if user clicks "No"
+        return; // Exit function if user clicks "Cancel"
     }
 
     const username = localStorage.getItem("username"); // ✅ Ensure username is retrieved
@@ -1084,6 +1094,10 @@ async function startCleaning(roomNumber) {
             alert(`❌ Failed: ${data.message}`);
             return;
         }
+
+        // ✅ Success message
+        Swal.fire("Success!", `Room ${formattedRoom} cleaning started!`, "success");
+
         // Disable Start Cleaning and Enable Finish Cleaning
         startButton.disabled = true;
         startButton.style.backgroundColor = "grey";
@@ -1105,6 +1119,7 @@ async function startCleaning(roomNumber) {
     } catch (error) {
         console.error("❌ Error starting cleaning:", error);
         startButton.disabled = false; // Re-enable button on failure
+        Swal.fire("Error", "An unexpected error occurred while starting cleaning.", "error");
     }
 }
 
