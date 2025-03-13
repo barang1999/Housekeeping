@@ -1396,15 +1396,25 @@ function updateDNDStatus(roomNumber, status) {
 
 function logout() {
     console.log("🔴 Logging out...");
+
     if (window.socket) {
         window.socket.disconnect();
         window.socket = null;
     }
 
+    // Clear stored authentication data
     localStorage.clear();
     sessionStorage.clear();
+    document.cookie = "refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"; // Remove refresh token
+
+    // Show an alert (optional)
     alert("✅ You have been logged out.");
+
+    // ✅ Show the login form & hide the dashboard
+    document.getElementById("auth-section").style.display = "block";
+    document.getElementById("dashboard").style.display = "none";
 }
+
 
 async function clearLogs() {
     console.log("🧹 Clearing all logs and resetting room statuses...");
