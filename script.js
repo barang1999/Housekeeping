@@ -1096,7 +1096,7 @@ async function startCleaning(roomNumber) {
         }
 
         // ✅ Success message
-        Swal.fire("Success!", `Room ${formattedRoom} cleaning started!`, "success");
+        Swal.fire("ល្អ!", `បាន ${formattedRoom}ផ្ដើមសម្អាត អនាម័យ!`, "អាទិភាព");
 
         // Disable Start Cleaning and Enable Finish Cleaning
         startButton.disabled = true;
@@ -1293,7 +1293,7 @@ async function loadLogs() {
             let roomNumber = String(log.roomNumber).padStart(3, "0"); // ✅ Ensure consistent 3-digit format
             let startTime = log.startTime ? new Date(log.startTime).toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' }) : "N/A";
             let startedBy = log.startedBy || "-";
-            let finishTime = log.finishTime ? new Date(log.finishTime).toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' }) : "In Progress...";
+            let finishTime = log.finishTime ? new Date(log.finishTime).toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' }) : "កំពុងសម្អាត....";
             let finishedBy = log.finishedBy || "-";
             let status = log.finishTime ? "finished" : "in_progress";
             let dndStatus = dndStatusMap.get(log.roomNumber) ? "dnd" : "available";
