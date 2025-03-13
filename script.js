@@ -67,8 +67,9 @@ async function connectWebSocket() {
         return;
     }
 
-    window.socket = io(apiUrl, {
+     window.socket = io(apiUrl, {
         auth: { token },
+        reconnection: true,  // ✅ Allow automatic reconnection
         reconnectionAttempts: MAX_RECONNECT_ATTEMPTS,
         timeout: 5000
     });
@@ -646,15 +647,16 @@ async function refreshToken() {
 
 async function ensureValidToken() {
     let token = localStorage.getItem("token");
+    let refreshToken = localStorage.getItem("refreshToken");
 
     if (!token) {
         console.warn("⚠ No token found. Attempting to refresh...");
         token = await refreshToken();
         if (!token) {
             console.error("❌ Token refresh failed. User must log in.");
+            logout();
             return null;
         }
-        localStorage.setItem("token", token); // ✅ Store new token
     }
 
     try {
@@ -665,12 +667,12 @@ async function ensureValidToken() {
             token = await refreshToken();
             if (!token) {
                 console.error("❌ Token refresh unsuccessful. User must log in.");
+                logout();
                 return null;
             }
-            localStorage.setItem("token", token); // ✅ Store new token
         }
 
-        localStorage.setItem("token", token); // ✅ Store the new token immediately
+        localStorage.setItem("token", token); // ✅ Store the new token
         console.log("✅ Token is valid.");
         return token;
     } catch (error) {
@@ -679,6 +681,14 @@ async function ensureValidToken() {
         return null;
     }
 }
+
+setInterval(async () => {
+    const token = await ensureValidToken();
+    if (token) {
+        console.log("✅ Token refreshed in the background.");
+    }
+}, 15 * 60 * 1000); // ✅ Refresh every 15 minutes
+
 
 
 function getToken() {

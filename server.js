@@ -295,7 +295,7 @@ app.post("/auth/login", async (req, res) => {
         }
 
         // ✅ Generate JWT token
-        const token = jwt.sign({ username: user.username }, process.env.JWT_SECRET, { expiresIn: "1h" });
+        const token = jwt.sign({ username: user.username }, process.env.JWT_SECRET, { expiresIn: "16h" });
         const refreshToken = jwt.sign({ username: user.username }, process.env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
 
         user.refreshToken = refreshToken;
