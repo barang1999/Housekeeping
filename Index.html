@@ -154,61 +154,21 @@
     background: gray;
     cursor: not-allowed;
 }
-    /* Remove default dropdown styles */
-.priority-select {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    background: white;
-    border: 1px solid #ccc;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    padding: 8px 12px;
-    outline: none;
-    display: flex;
-    align-items: center;
-    justify-content: space-between; /* Ensures text & arrow are aligned */
-    position: relative;
-    width: 150px;
-    border-radius: 5px;
-}
-
-/* Dropdown wrapper */
-.dropdown-container {
-    position: relative;
-    display: inline-block;
-}
-
-/* Add dropdown arrow */
-.dropdown-container::after {
-    content: "▼";
-    font-size: 12px;
-    color: #666;
-    margin-left: auto;
-    margin-right: 10px;
-    pointer-events: none;
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-}
-
-/* Custom dropdown options */
+/* Improve the dropdown styling */
 .priority-dropdown {
     position: absolute;
     background: white;
-    border-radius: 8px; /* Rounded corners */
+    border-radius: 8px;
     border: 1px solid #ddd;
     box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
     padding: 5px 0;
-    min-width: 150px; /* Ensures enough space for options */
+    min-width: 120px; /* Ensures enough space */
     z-index: 10;
     left: 50%;
     transform: translateX(-50%);
-    max-height: 200px; /* ✅ Fixed typo: changed ax-height to max-height */
+    max-height: 200px;
     overflow-y: auto;
-    display: none; /* ✅ Ensures dropdown is hidden by default */
+    display: none; /* Hide by default */
 }
 
 /* Show dropdown when active */
@@ -216,14 +176,15 @@
     display: block;
 }
 
-/* Dropdown options styling */
+/* Style each dropdown option */
 .priority-option {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 12px;
+    padding: 10px 12px;
     cursor: pointer;
     transition: background 0.2s ease-in-out;
+    border-bottom: 1px solid #eee;
 }
 
 /* Remove border from last option */
@@ -233,35 +194,66 @@
 
 /* Hover effect */
 .priority-option:hover {
-    background: rgba(0, 0, 0, 0.05); /* Light hover effect */
+    background: rgba(0, 0, 0, 0.05);
 }
 
-/* Color indicators */
+/* Fix the icons and alignment */
 .priority-option span {
-    font-size: 18px;
-    width: 20px; /* ✅ Ensures color indicators are properly sized */
+    font-size: 16px;
+    width: 20px;
     height: 20px;
     display: inline-block;
-    border-radius: 50%; /* ✅ Makes colors circular */
+    text-align: center;
 }
 
-/* Status colors */
+/* Define colors for different statuses */
 .priority-option[data-value="default"] span {
     background-color: #ccc;
+    border-radius: 50%;
 }
 
 .priority-option[data-value="sunrise"] span {
     background-color: red;
+    border-radius: 50%;
 }
 
-.priority-option[data-value="early_arrival"] span {
-    background-color: orange;
+.priority-option[data-value="early-arrival"] span {
+    background-color: yellow;
+    border-radius: 50%;
 }
 
 .priority-option[data-value="vacancy"] span {
     background-color: black;
+    border-radius: 50%;
 }
 
+/* Improve the button that triggers the dropdown */
+.priority-toggle {
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    width: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Add an arrow to indicate dropdown */
+.priority-toggle::after {
+    content: "▼";
+    font-size: 12px;
+    color: #666;
+    margin-left: 8px;
+}
+
+/* Ensure the dropdown aligns properly */
+.priority-container {
+    position: relative;
+    display: inline-block;
+}
 
     </style>
 </head>

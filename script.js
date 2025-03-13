@@ -306,14 +306,24 @@ function togglePriorityDropdown(roomNumber) {
     const dropdown = document.getElementById(`priority-${roomNumber}`);
     if (!dropdown) return;
 
-    // ✅ Close all other dropdowns
+    // Close all other dropdowns
     document.querySelectorAll(".priority-dropdown").forEach(drop => {
         if (drop !== dropdown) drop.classList.remove("show");
     });
 
-    // ✅ Toggle visibility
+    // Toggle the current dropdown
     dropdown.classList.toggle("show");
 }
+
+// Close dropdown when clicking outside
+document.addEventListener("click", (event) => {
+    if (!event.target.closest(".priority-container")) {
+        document.querySelectorAll(".priority-dropdown").forEach(dropdown => {
+            dropdown.classList.remove("show");
+        });
+    }
+});
+
 
 function toggleDropdown() {
     document.querySelector(".priority-dropdown").classList.toggle("show");
@@ -428,8 +438,8 @@ function showDashboard(username) {
     }, 1000);
 }
 
-function updatePriority(room, status) {
-    const button = document.getElementById(`selected-priority-${room}`);
+function updatePriority(roomNumber, status) {
+    const button = document.getElementById(`selected-priority-${roomNumber}`);
     const statusIcons = {
         "default": "⚪",
         "sunrise": "🔴",
@@ -437,14 +447,9 @@ function updatePriority(room, status) {
         "vacancy": "⚫"
     };
 
-    // Update button icon based on selected status
     button.innerHTML = statusIcons[status];
-
-    // Hide the dropdown after selection
-    document.getElementById(`priority-${room}`).classList.remove("show");
-
-    // Optionally, update backend or store selection in local storage
-    console.log(`Room ${room} status updated to: ${status}`);
+    document.getElementById(`priority-${roomNumber}`).classList.remove("show"); // Close dropdown
+    console.log(`Room ${roomNumber} status updated to: ${status}`);
 }
 
 /** ✅ Update Room Priority and Emit WebSocket Event */
