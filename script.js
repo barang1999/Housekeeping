@@ -1106,7 +1106,7 @@ async function startCleaning(roomNumber) {
         console.log(`✅ Room ${formattedRoom} cleaning started.`);
 
         // ✅ Send notification to Telegram
-        sendTelegramMessage(`🧹 Room ${formattedRoom} cleaning started by ${username}`);
+        sendTelegramMessage(`🧹 Room ${formattedRoom} ចាប់ផ្ដើមសម្អាតដោយ ${username}`);
         
         safeEmit("roomUpdate", { roomNumber, status: "in_progress" });
 
