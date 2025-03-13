@@ -100,44 +100,42 @@ async function connectWebSocket() {
         updateSelectedPriorityDisplay(String(roomNumber), priority);
     });
 
-
-    
    window.socket.on("roomUpdate", async ({ roomNumber, status }) => {
-    console.log(`📡 Received Room Update: Room ${roomNumber} -> Status: ${status}`);
+        console.log(`📡 Received Room Update: Room ${roomNumber} -> Status: ${status}`);
 
-    // ✅ Ensure buttons update immediately
-    updateButtonStatus(roomNumber, status);
+        // ✅ Ensure buttons update immediately
+        updateButtonStatus(roomNumber, status);
 
-    // ✅ Force-refresh logs to ensure UI consistency
-    await loadLogs();
-});
+        // ✅ Force-refresh logs to ensure UI consistency
+        await loadLogs();
+    });
 
-    
-      window.socket.on("dndUpdate", (data) => {
-    if (!data || !data.roomNumber) {
-        console.warn("⚠️ Invalid DND update received:", data);
-        return;
-    }
+    window.socket.on("dndUpdate", (data) => {
+        if (!data || !data.roomNumber) {
+            console.warn("⚠️ Invalid DND update received:", data);
+            return;
+        }
 
-    console.log(`🚨 DND Update Received: Room ${data.roomNumber} -> Status: ${data.status}`);
+        console.log(`🚨 DND Update Received: Room ${data.roomNumber} -> Status: ${data.status}`);
 
-    // ✅ Update localStorage immediately to restore faster after refresh
-    localStorage.setItem(`dnd-${data.roomNumber}`, data.status);
+        // ✅ Update localStorage immediately to restore faster after refresh
+        localStorage.setItem(`dnd-${data.roomNumber}`, data.status);
 
-    // ✅ Update UI immediately
-    updateDNDStatus(data.roomNumber, data.status);
-});
+        // ✅ Update UI immediately
+        updateDNDStatus(data.roomNumber, data.status);
+    });
 
     window.socket.on("restoreCleaning", ({ roomNumber, status }) => {
-    console.log(`🔄 Received Restore Event for Room ${roomNumber} -> ${status}`);
+        console.log(`🔄 Received Restore Event for Room ${roomNumber} -> ${status}`);
 
-    if (status !== "available") {
-        console.warn(`⚠️ Skipping update: Room ${roomNumber} is still ${status}`);
-        return;
-    }
+        if (status !== "available") {
+            console.warn(`⚠️ Skipping update: Room ${roomNumber} is still ${status}`);
+            return;
+        }
 
-    updateButtonStatus(roomNumber, status);
-});
+        updateButtonStatus(roomNumber, status);
+    });
+} // <-- Missing closing bracket added
 
 
 function reconnectWebSocket() {
@@ -1423,7 +1421,7 @@ function logout() {
     sessionStorage.clear();
     alert("✅ You have been logged out.");
 }
-
+    
 async function clearLogs() {
     console.log("🧹 Clearing all logs and resetting room statuses...");
 
@@ -1496,8 +1494,6 @@ async function clearLogs() {
         alert("An unexpected error occurred while clearing logs.");
     }
 }
-
-    
 function exportLogs() {
     if (!window.jspdf) {
         console.error("❌ jsPDF library is not loaded.");
@@ -1542,9 +1538,8 @@ function exportLogs() {
 
     pdf.autoTable({
         head: [["Room", "Start Time", "Started By", "Finish Time", "Finished By", "Duration"]], // ✅ Includes Duration
-        body: logs,
+        body: logs
     });
 
     pdf.save("cleaning_logs_today.pdf");
-
-}
+}// JavaScript source code
