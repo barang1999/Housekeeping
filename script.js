@@ -12,6 +12,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadLogs(); // ✅ Fetch logs before restoring buttons
     await restoreCleaningStatus(); // ✅ Ensure buttons are updated after logs are loaded
     await connectWebSocket(); // ✅ Connect WebSocket first for real-time updates
+     
+   // ✅ REQUEST PRIORITY STATUSES IMMEDIATELY
+    window.socket.emit("requestPriorityStatus");
 
     console.log("🎯 Cleaning status restored successfully.");
     checkAuth();
@@ -67,14 +70,20 @@ async function connectWebSocket() {
         safeEmit("requestPriorityStatus"); // ✅ Request priority data
     });
 
+   // ✅ Handle incoming priority status updates
     window.socket.on("priorityStatus", (priorities) => {
-    console.log("📡 Received Room Priority Data:", priorities);
-
-    priorities.forEach(({ roomNumber, priority }) => {
-        roomNumber = String(roomNumber); // ✅ Ensure it's a string
-        updateSelectedPriorityDisplay(roomNumber, priority);
+        console.log("📡 Received Room Priority Data:", priorities);
+        priorities.forEach(({ roomNumber, priority }) => {
+            updateSelectedPriorityDisplay(String(roomNumber), priority);
+        });
     });
-});
+
+    // ✅ Handle real-time priority updates
+    window.socket.on("priorityUpdate", ({ roomNumber, priority }) => {
+        console.log(`📡 Real-time Priority Update: Room ${roomNumber} -> ${priority}`);
+        updateSelectedPriorityDisplay(String(roomNumber), priority);
+    });
+
     
    window.socket.on("roomUpdate", async ({ roomNumber, status }) => {
     try {

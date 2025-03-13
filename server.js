@@ -161,24 +161,25 @@ socket.on("requestPriorityStatus", async () => {
 });
 
 
- socket.on("priorityUpdate", async ({ roomNumber, priority }) => {
+socket.on("priorityUpdate", async ({ roomNumber, priority }) => {
     try {
         console.log(`📡 Received priorityUpdate -> Room: ${roomNumber}, Priority: ${priority}`);
 
         await RoomPriority.findOneAndUpdate(
-            { roomNumber },
+            { roomNumber: String(roomNumber) }, // ✅ Ensure it's stored as a string
             { priority },
             { upsert: true, new: true }
         );
 
         // ✅ Ensure all clients receive the event
-        io.emit("priorityUpdate", { roomNumber, priority });
+        io.emit("priorityUpdate", { roomNumber: String(roomNumber), priority });
 
         console.log(`✅ Priority update sent to all clients for Room ${roomNumber}`);
     } catch (error) {
         console.error("❌ Error updating priority:", error);
     }
 });
+
     
 socket.on("dndUpdate", async ({ roomNumber, status }) => {
     try {
