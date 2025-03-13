@@ -137,6 +137,30 @@ io.on("connection", (socket) => {
     console.log("✅ Sent DND status updates for individual rooms.");
 });
 
+socket.on("requestPriorityStatus", async () => {
+    try {
+        const priorities = await RoomPriority.find({}, "roomNumber priority").lean();
+        
+        if (!priorities || priorities.length === 0) {
+            console.warn("⚠️ No priorities found in database. Sending empty list.");
+            socket.emit("priorityStatus", []);
+            return;
+        }
+
+        // ✅ Ensure roomNumber is always sent as a string
+        const formattedPriorities = priorities.map(p => ({
+            roomNumber: String(p.roomNumber), // Force roomNumber to string
+            priority: p.priority
+        }));
+
+        socket.emit("priorityStatus", formattedPriorities);
+        console.log("✅ Sent priority statuses to client:", formattedPriorities);
+    } catch (error) {
+        console.error("❌ Error sending priority statuses:", error);
+    }
+});
+
+
  socket.on("priorityUpdate", async ({ roomNumber, priority }) => {
     try {
         console.log(`📡 Received priorityUpdate -> Room: ${roomNumber}, Priority: ${priority}`);
@@ -350,8 +374,22 @@ app.get("/logs/status", async (req, res) => {
 app.get("/logs/priority", async (req, res) => {
     try {
         const priorities = await RoomPriority.find({}, "roomNumber priority").lean();
-        res.json(priorities);
+
+        if (!priorities || priorities.length === 0) {
+            console.warn("⚠️ No priorities found in database. Returning default values.");
+            return res.json([]);
+        }
+
+        // ✅ Ensure all roomNumbers are strings
+        const formattedPriorities = priorities.map(p => ({
+            roomNumber: String(p.roomNumber), 
+            priority: p.priority
+        }));
+
+        res.json(formattedPriorities);
+        console.log("✅ Returning priority data:", formattedPriorities);
     } catch (error) {
+        console.error("❌ Error fetching priorities:", error);
         res.status(500).json({ message: "Server error", error });
     }
 });

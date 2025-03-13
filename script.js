@@ -64,7 +64,17 @@ async function connectWebSocket() {
         reconnectAttempts = 0;  // Reset attempts on successful connection
         safeEmit("requestDNDStatus"); // Ensure DND data loads
         safeEmit("requestButtonStatus"); // Ensure button statuses load
+        safeEmit("requestPriorityStatus"); // ✅ Request priority data
     });
+
+    window.socket.on("priorityStatus", (priorities) => {
+    console.log("📡 Received Room Priority Data:", priorities);
+
+    priorities.forEach(({ roomNumber, priority }) => {
+        roomNumber = String(roomNumber); // ✅ Ensure it's a string
+        updateSelectedPriorityDisplay(roomNumber, priority);
+    });
+});
     
    window.socket.on("roomUpdate", async ({ roomNumber, status }) => {
     try {
@@ -455,9 +465,15 @@ function updatePriority(roomNumber, status) {
 /** ✅ Update Room Priority and Emit WebSocket Event */
 function updatePriority(roomNumber, priority) {
     console.log(`🛎 Emitting WebSocket event: priorityUpdate for Room ${roomNumber} -> ${priority}`);
-    
+
     // ✅ Save priority selection in localStorage
     localStorage.setItem(`priority-${roomNumber}`, priority);
+
+    // ✅ Ensure WebSocket Connection before emitting
+    if (!window.socket || !window.socket.connected) {
+        console.warn(`⛔ WebSocket not connected. Reconnecting before emitting priority update...`);
+        reconnectWebSocket();
+    }
 
     // ✅ Emit WebSocket Event SAFELY
     safeEmit("priorityUpdate", { roomNumber, priority });
@@ -473,7 +489,7 @@ function updatePriority(roomNumber, priority) {
 function updateSelectedPriorityDisplay(roomNumber, priority) {
     console.log(`🔄 Restoring dropdown for Room ${roomNumber} -> Priority: ${priority}`);
 
-    // Get the priority button (the one user clicks to open the dropdown)
+    // Get the priority button (display button)
     const button = document.getElementById(`selected-priority-${roomNumber}`);
     
     // Get the dropdown list
@@ -484,7 +500,7 @@ function updateSelectedPriorityDisplay(roomNumber, priority) {
         return;
     }
 
-    // Define priority icons for display
+    // ✅ Define priority icons for display
     const priorityIcons = {
         "default": "⚪",
         "sunrise": "🔴",
@@ -506,6 +522,7 @@ function updateSelectedPriorityDisplay(roomNumber, priority) {
         selectedOption.classList.add("selected"); // Mark as selected
     }
 }
+
 
 
 
@@ -534,13 +551,13 @@ document.addEventListener("DOMContentLoaded", () => {
         updateSelectedPriorityDisplay(roomNumber, savedPriority);
     });
 });
-// ✅ WebSocket Listener for Priority Updates
-window.socket?.on("priorityUpdate", ({ roomNumber, priority }) => {
-    console.log(`📡 Received Priority Update: Room ${roomNumber} -> ${priority}`);
+/** ✅ WebSocket Listener for Priority Updates */
+    window.socket.on("priorityUpdate", ({ roomNumber, priority }) => {
+        console.log(`📡 Received Priority Update: Room ${roomNumber} -> ${priority}`);
 
-    // ✅ Update UI Immediately
-    updateSelectedPriorityDisplay(roomNumber, priority);
-});
+        // ✅ Update UI Immediately
+        updateSelectedPriorityDisplay(roomNumber, priority);
+    });
 
 
 async function refreshToken() {
