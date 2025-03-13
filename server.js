@@ -740,8 +740,8 @@ app.post("/logs/clear", async (req, res) => {
     try {
         console.log("🧹 Clearing all cleaning logs, DND statuses, and priorities...");
 
-        // ✅ Check if there are logs before deleting
-        const logCount = await CleaningLog.countDocuments();
+        // ✅ Delete Cleaning Logs Safely
+        const logCount = await CleaningLog.countDocuments().session(session);
         if (logCount > 0) {
             await CleaningLog.deleteMany({}).session(session);
             console.log(`✅ ${logCount} cleaning logs cleared.`);
@@ -753,37 +753,39 @@ app.post("/logs/clear", async (req, res) => {
         const dndResetResult = await RoomDND.updateMany({}, { $set: { dndStatus: false } }).session(session);
         console.log(`✅ Reset DND status for ${dndResetResult.modifiedCount} rooms.`);
 
+        // ✅ Reset Priorities (if needed)
+        const priorityResetResult = await RoomPriority.updateMany({}, { $set: { priority: "default" } }).session(session);
+        console.log(`✅ Reset priorities for ${priorityResetResult.modifiedCount} rooms.`);
+
         // ✅ Fetch latest DND statuses (after reset)
         const dndLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
 
-        // ✅ Commit transaction
+        // ✅ Commit transaction to make changes permanent
         await session.commitTransaction();
         session.endSession();
 
-        console.log("✅ All logs, DND statuses, and priority selections reset.");
+        console.log("✅ All logs, DND statuses, and priorities reset successfully.");
 
-        // ✅ Broadcast WebSocket Events
+        // ✅ Emit WebSocket Events **AFTER** transaction is successful
         io.emit("clearLogs");
         io.emit("dndUpdate", { roomNumber: "all", status: "available", dndLogs });
         io.emit("priorityUpdate", { roomNumber: "all", priority: "default" });
 
-        res.json({ 
-            message: "All cleaning logs, DND statuses, and priority selections cleared.",
+        return res.json({ 
+            message: "All cleaning logs, DND statuses, and priority selections cleared successfully.",
             dndLogs
         });
+
     } catch (error) {
         console.error("❌ Error clearing logs:", error);
 
-        // ❌ Rollback transaction on error
+        // ❌ Rollback transaction if an error occurs
         await session.abortTransaction();
         session.endSession();
 
-        res.status(500).json({ message: "Internal server error." });
+        return res.status(500).json({ message: "Internal server error. Logs were not cleared." });
     }
 });
-
-
-
 
 
 // 🏠 Home Route

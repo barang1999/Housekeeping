@@ -1354,64 +1354,77 @@ function logout() {
 
 async function clearLogs() {
     console.log("🧹 Clearing all logs and resetting room statuses...");
-    document.querySelector("#logTable tbody").innerHTML = "";
 
-    // ✅ Reset all button states including DND
-    document.querySelectorAll(".room button").forEach(button => {
-        if (button.id.startsWith("start-")) {
-            button.style.backgroundColor = "#008CFF";
-            button.disabled = false;
-        } else if (button.id.startsWith("finish-")) {
-            button.style.backgroundColor = "grey";
-            button.disabled = true;
-        } else if (button.id.startsWith("dnd-")) {
-            button.style.backgroundColor = "#008CFF";
-            button.classList.remove("active-dnd");
-        }
-    });
-
-    // ✅ Reset all priority dropdown buttons
-    document.querySelectorAll(".priority-toggle").forEach(button => {
-        button.innerHTML = "⚪"; // Default white circle
-    });
-
-    // ✅ Reset all priority dropdowns in LocalStorage
-    document.querySelectorAll(".priority-dropdown").forEach(dropdown => {
-        dropdown.classList.remove("show"); // Close dropdowns
-    });
-
-    // ✅ Clear priority selections from LocalStorage
-    Object.keys(localStorage).forEach(key => {
-        if (key.startsWith("priority-")) {
-            localStorage.removeItem(key);
-        }
-    });
-
-    // ✅ Ensure DND status is cleared from LocalStorage
-    localStorage.removeItem("dndStatus");
-
-    // ✅ Emit WebSocket event to sync across all clients
-    safeEmit("clearLogs");
-
-    // ✅ Emit an update for the priority dropdown status
-    safeEmit("updatePriorityStatus", { status: "reset" });
-
-    // ✅ API request to clear logs from the database
     try {
+        // ✅ Send request to clear logs on the server first
         const res = await fetch(`${apiUrl}/logs/clear`, { method: "POST" });
-        if (res.ok) {
-            console.log("✅ Logs, DND statuses, and priority selections cleared successfully on server.");
-            await loadLogs(); // ✅ Reload logs to ensure UI consistency
 
-            // ✅ Emit WebSocket event again to ensure UI updates in all clients
-            safeEmit("updatePriorityStatus", { status: "reset" });
-        } else {
-            console.error("❌ Error clearing logs on server.", await res.json());
+        if (!res.ok) {
+            const errorData = await res.json();
+            console.error("❌ Error clearing logs on server:", errorData);
+            alert(`❌ Failed to clear logs: ${errorData.message}`);
+            return;
         }
+
+        console.log("✅ Logs cleared successfully on the server.");
+
+        // ✅ Reset UI only after API confirmation
+        document.querySelector("#logTable tbody").innerHTML = "";
+
+        // ✅ Reset all button states including DND
+        document.querySelectorAll(".room button").forEach(button => {
+            if (button.id.startsWith("start-")) {
+                button.style.backgroundColor = "#008CFF";
+                button.disabled = false;
+            } else if (button.id.startsWith("finish-")) {
+                button.style.backgroundColor = "grey";
+                button.disabled = true;
+            } else if (button.id.startsWith("dnd-")) {
+                button.style.backgroundColor = "#008CFF";
+                button.classList.remove("active-dnd");
+            }
+        });
+
+        // ✅ Reset all priority dropdown buttons
+        document.querySelectorAll(".priority-toggle").forEach(button => {
+            button.innerHTML = "⚪"; // Default white circle
+        });
+
+        // ✅ Reset all priority dropdowns in LocalStorage
+        document.querySelectorAll(".priority-dropdown").forEach(dropdown => {
+            dropdown.classList.remove("show"); // Close dropdowns
+        });
+
+        // ✅ Clear relevant keys from LocalStorage
+        Object.keys(localStorage).forEach(key => {
+            if (key.startsWith("priority-") || key.startsWith("status-") || key.startsWith("dnd-")) {
+                localStorage.removeItem(key);
+            }
+        });
+
+        console.log("✅ Local storage logs and statuses cleared.");
+
+        // ✅ Ensure WebSocket is connected before emitting
+        if (window.socket && window.socket.connected) {
+            console.log("📡 Emitting WebSocket event: clearLogs");
+            window.socket.emit("clearLogs");
+
+            console.log("📡 Emitting WebSocket event: updatePriorityStatus");
+            window.socket.emit("updatePriorityStatus", { status: "reset" });
+        } else {
+            console.warn("⚠️ WebSocket is not connected. Attempting to reconnect...");
+            reconnectWebSocket();
+        }
+
+        // ✅ Reload logs after clearing to ensure UI consistency
+        await loadLogs();
+
     } catch (error) {
         console.error("❌ Error clearing logs:", error);
+        alert("An unexpected error occurred while clearing logs.");
     }
 }
+
     
 function exportLogs() {
     if (!window.jspdf) {
