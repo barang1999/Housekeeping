@@ -629,6 +629,8 @@ function storeTokens(accessToken, refreshToken) {
 async function fetchRoomStatuses() {
     try {
         console.log("🔄 Fetching room statuses...");
+        
+        // Fetch cleaning statuses
         const response = await fetch("https://housekeeping-production.up.railway.app/logs/status", {
             method: "GET",
             headers: {
@@ -638,20 +640,41 @@ async function fetchRoomStatuses() {
         });
 
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-
         const statuses = await response.json();
+
         console.log("✅ Room Statuses Fetched:", statuses);
 
-        // Loop through each room and update buttons
+        // Fetch room priorities
+        const priorityResponse = await fetch("https://housekeeping-production.up.railway.app/logs/priority", {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${localStorage.getItem("token")}`
+            }
+        });
+
+        if (!priorityResponse.ok) throw new Error(`HTTP error! Status: ${priorityResponse.status}`);
+        const priorities = await priorityResponse.json();
+        
+        console.log("✅ Room Priorities Fetched:", priorities);
+
+        // Loop through each room and update buttons & priority dropdowns
         Object.entries(statuses).forEach(([roomNumber, status]) => {
             updateButtonStatus(roomNumber, status);
+            
+            // Find the matching priority for the room
+            const roomPriority = priorities.find(p => p.roomNumber === roomNumber)?.priority || "default";
+            
+            // Update the priority dropdown selection
+            updateSelectedPriorityDisplay(roomNumber, roomPriority);
         });
 
     } catch (error) {
-        console.error("❌ Error fetching room statuses:", error);
-        alert("Failed to fetch room statuses. Check console for details.");
+        console.error("❌ Error fetching room statuses or priorities:", error);
+        alert("Failed to fetch room data. Check console for details.");
     }
 }
+
 
 // Call on page load
 window.addEventListener("DOMContentLoaded", async () => {
