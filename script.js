@@ -290,7 +290,7 @@ async function login(event) {
             Swal.fire({
                 icon: "error",
                 title: "ការតភ្ជាប់ បរាជ័យ",
-                text: data.message || "ឈ្មោះនិងលេខសម្ងាត់មិនត្រឹមត្រូវ",
+                text: "ឈ្មោះនិងលេខសម្ងាត់មិនត្រឹមត្រូវ",
                 confirmButtonText: "ព្យាយាមម្ដងទៀត"
             });
         }
