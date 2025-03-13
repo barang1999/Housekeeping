@@ -325,14 +325,20 @@ function togglePriorityDropdown(roomNumber) {
     const dropdown = document.getElementById(`priority-${roomNumber}`);
     if (!dropdown) return;
 
-    const isOpen = dropdown.classList.contains("show");
+    const button = document.getElementById(`selected-priority-${roomNumber}`);
 
-    // Close all dropdowns before toggling
-    document.querySelectorAll(".priority-dropdown").forEach(drop => drop.classList.remove("show"));
+    // Ensure dropdown is properly centered
+    const buttonRect = button.getBoundingClientRect();
+    dropdown.style.top = `${buttonRect.bottom + window.scrollY}px`;
+    dropdown.style.left = `${buttonRect.left + buttonRect.width / 2}px`;
+    
+    // Close all dropdowns before opening
+    document.querySelectorAll(".priority-dropdown").forEach(drop => {
+        if (drop !== dropdown) drop.classList.remove("show");
+    });
 
-    if (!isOpen) {
-        dropdown.classList.add("show");
-    }
+    // Toggle the current dropdown
+    dropdown.classList.toggle("show");
 }
 
 // Close dropdown when clicking outside

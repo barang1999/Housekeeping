@@ -162,7 +162,7 @@
     background: gray;
     cursor: not-allowed;
 }
-/* Minimalist Dropdown Styling */
+
 /* Fix dropdown positioning */
 .priority-dropdown {
     position: absolute;
@@ -170,31 +170,31 @@
     border-radius: 8px;
     border: 1px solid #ddd;
     box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-    padding: 0; /* Remove unnecessary padding */
-    min-width: 80px; /* Adjust width for compact design */
+    padding: 5px 0;
+    min-width: 50px; /* Make sure it is not too wide */
     z-index: 10;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-50%); /* Center the dropdown */
     max-height: 200px;
     overflow-y: auto;
-    display: none;
+    display: none; /* Hide by default */
+    text-align: center; /* Align text properly */
 }
-
 /* Show dropdown when active */
 .priority-dropdown.show {
     display: block;
 }
 
-/* Style dropdown options */
+/* Style each dropdown option */
 .priority-option {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px; /* Reduce padding for a compact look */
+    justify-content: center;  /* Center the content */
+    gap: 5px;  /* Reduce spacing */
+    padding: 8px 10px; /* Adjust padding */
     cursor: pointer;
     transition: background 0.2s ease-in-out;
-    border-bottom: 1px solid #ddd;
-    justify-content: center;
+    border-bottom: 1px solid #eee;
 }
 
 .priority-option:last-child {
@@ -205,15 +205,15 @@
     background: rgba(0, 0, 0, 0.05);
 }
 
-/* Circular icons for options */
+/* Fix the icon and text alignment */
 .priority-option span {
-    width: 16px;
+    font-size: 14px; /* Adjust icon size */
+    width: 16px;  /* Keep width uniform */
     height: 16px;
     display: flex;
-    justify-content: center;
     align-items: center;
-    border-radius: 50%;
-    border: 1px solid #000; /* Make sure the circle is visible */
+    justify-content: center;
+    text-align: center;
 }
 
 /* Define colors for different statuses */
@@ -239,15 +239,15 @@
     font-weight: bold;
 }
 
-/* Remove the box and unnecessary button styling */
 .priority-toggle {
-    background: transparent;
+    background: transparent; /* No background */
     border: none;
-    padding: 0;
-    cursor: pointer;
+    padding: 5px;
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 24px; /* Adjust width */
+    height: 24px;
 }
 
 .minimal-dropdown {
