@@ -725,7 +725,7 @@ app.get("/logs", async (req, res) => {
 
 app.post("/logs/clear", async (req, res) => {
     try {
-        console.log("🧹 Clearing all cleaning logs and DND statuses...");
+        console.log("🧹 Clearing all cleaning logs, DND statuses, and priorities...");
 
         // ✅ Clear Cleaning Logs
         await CleaningLog.deleteMany({});
@@ -733,21 +733,25 @@ app.post("/logs/clear", async (req, res) => {
         // ✅ Reset DND Status for All Rooms
         await RoomDND.updateMany({}, { $set: { dndStatus: false } });
 
-        console.log("✅ All logs and DND statuses reset.");
+        console.log("✅ All logs, DND statuses, and priority selections reset.");
 
         // ✅ Fetch latest DND statuses
         const dndLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
 
-        // ✅ Broadcast WebSocket Event
+        // ✅ Broadcast WebSocket Events
         io.emit("clearLogs");
         io.emit("dndUpdate", { roomNumber: "all", status: "available", dndLogs });
 
-        res.json({ message: "All cleaning logs and DND statuses cleared.", dndLogs });
+        // ✅ Reset priority dropdowns on all clients
+        io.emit("priorityUpdate", { roomNumber: "all", priority: "default" });
+
+        res.json({ message: "All cleaning logs, DND statuses, and priority selections cleared.", dndLogs });
     } catch (error) {
         console.error("❌ Error clearing logs:", error);
         res.status(500).json({ message: "Internal server error." });
     }
 });
+
 
 
 

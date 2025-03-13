@@ -1290,7 +1290,6 @@ function logout() {
     alert("✅ You have been logged out.");
 }
 
-// ✅ Function to Clear Logs and Reset All Buttons including DND
 async function clearLogs() {
     console.log("🧹 Clearing all logs and resetting room statuses...");
     document.querySelector("#logTable tbody").innerHTML = "";
@@ -1309,7 +1308,24 @@ async function clearLogs() {
         }
     });
 
-    // ✅ Ensure DND status is cleared from localStorage
+    // ✅ Reset all priority dropdown buttons
+    document.querySelectorAll(".priority-toggle").forEach(button => {
+        button.innerHTML = "⚪"; // Default white circle
+    });
+
+    // ✅ Reset all priority dropdowns in LocalStorage
+    document.querySelectorAll(".priority-dropdown").forEach(dropdown => {
+        dropdown.classList.remove("show"); // Close dropdowns
+    });
+
+    // ✅ Clear priority selections from LocalStorage
+    Object.keys(localStorage).forEach(key => {
+        if (key.startsWith("priority-")) {
+            localStorage.removeItem(key);
+        }
+    });
+
+    // ✅ Ensure DND status is cleared from LocalStorage
     localStorage.removeItem("dndStatus");
 
     // ✅ Emit WebSocket event to sync across all clients
@@ -1319,7 +1335,7 @@ async function clearLogs() {
     try {
         const res = await fetch(`${apiUrl}/logs/clear`, { method: "POST" });
         if (res.ok) {
-            console.log("✅ Logs and DND statuses cleared successfully on server.");
+            console.log("✅ Logs, DND statuses, and priority selections cleared successfully on server.");
             await loadLogs(); // ✅ Reload logs to ensure UI consistency
         } else {
             console.error("❌ Error clearing logs on server.", await res.json());
@@ -1328,6 +1344,7 @@ async function clearLogs() {
         console.error("❌ Error clearing logs:", error);
     }
 }
+
     
     
 function exportLogs() {
