@@ -126,6 +126,11 @@ async function connectWebSocket() {
     // ✅ Update UI immediately
     updateDNDStatus(data.roomNumber, data.status);
 });
+
+    window.socket.on("restoreCleaning", ({ roomNumber, status }) => {
+        console.log(`🔄 Restoring Cleaning Status for Room ${roomNumber} -> ${status}`);
+        updateButtonStatus(roomNumber, status, localStorage.getItem(`dnd-${roomNumber}`) || "available");
+    });
 }
 
 function reconnectWebSocket() {
@@ -433,6 +438,7 @@ async function loadRooms() {
                 </div>
                 <button id="start-${room}" onclick="startCleaning('${room}')">Cleaning</button>
                 <button id="finish-${room}" onclick="finishCleaning('${room}')" disabled>Done</button>
+                <button id="restore-${room}" onclick="restoreCleaning('${room}')" style="display:none;">🔃</button>
                 <button id="dnd-${room}" class="dnd-btn" onclick="toggleDoNotDisturb('${room}')">🚫</button>
             `;
 
@@ -1035,9 +1041,10 @@ async function startCleaning(roomNumber) {
     let numericRoomNumber = Number(roomNumber);
     const startButton = document.getElementById(`start-${formattedRoom}`);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
+    const restoreButton = document.getElementById(`restore-${formattedRoom}`);
     const dndButton = document.getElementById(`dnd-${formattedRoom}`);
 
-    if (!startButton || !finishButton || !dndButton) {
+    if (!startButton || !finishButton || !restoreButton || !dndButton) {
         console.error(`❌ Buttons not found for Room ${formattedRoom}`);
         return;
     }
@@ -1082,7 +1089,12 @@ async function startCleaning(roomNumber) {
         startButton.style.backgroundColor = "grey";
         finishButton.disabled = false;
         finishButton.style.backgroundColor = "#008CFF";
+
+        // ✅ Show Restore Button
+        restoreButton.style.display = "inline-block";
+
         console.log(`✅ Room ${formattedRoom} cleaning started.`);
+
 
         // ✅ Send notification to Telegram
         sendTelegramMessage(`🧹 Room ${formattedRoom} cleaning started by ${username}`);
@@ -1100,6 +1112,56 @@ async function startCleaning(roomNumber) {
         startButton.disabled = false; // Re-enable button on failure
     }
 }
+
+
+async function restoreCleaning(roomNumber) {
+    let formattedRoom = formatRoomNumber(roomNumber);
+    const startButton = document.getElementById(`start-${formattedRoom}`);
+    const finishButton = document.getElementById(`finish-${formattedRoom}`);
+    const restoreButton = document.getElementById(`restore-${formattedRoom}`);
+
+    if (!startButton || !finishButton || !restoreButton) {
+        console.error(`❌ Restore button or other buttons missing for Room ${formattedRoom}`);
+        return;
+    }
+
+    try {
+        const res = await fetch(`${apiUrl}/logs/reset-cleaning`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ roomNumber: formattedRoom })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            console.error("❌ Failed to Restore Cleaning:", data);
+            alert(`❌ Failed: ${data.message}`);
+            return;
+        }
+
+        // ✅ Enable Start Cleaning, Disable Finish Cleaning
+        startButton.disabled = false;
+        startButton.style.backgroundColor = "#008CFF";
+        finishButton.disabled = true;
+        finishButton.style.backgroundColor = "grey";
+
+        // ✅ Hide Restore Button
+        restoreButton.style.display = "none";
+
+        console.log(`✅ Room ${formattedRoom} cleaning status restored.`);
+        sendTelegramMessage(`🔄 Cleaning status restored for Room ${formattedRoom}`);
+
+        safeEmit("roomUpdate", { roomNumber, status: "available" });
+
+        // ✅ Remove Status Locally
+        localStorage.removeItem(`status-${formattedRoom}`);
+
+        await loadLogs();
+    } catch (error) {
+        console.error("❌ Error restoring cleaning:", error);
+    }
+}
+
 
 async function finishCleaning(roomNumber) {
     const formattedRoom = formatRoomNumber(roomNumber);

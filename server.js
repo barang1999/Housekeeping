@@ -224,6 +224,19 @@ socket.on("dndUpdate", async ({ roomNumber, status }) => {
         console.error("❌ Error processing DND update:", error);
     }
 });
+socket.on("restoreCleaning", async ({ roomNumber }) => {
+    if (!roomNumber) {
+        console.warn("⚠️ Invalid Restore request. Skipping...");
+        return;
+    }
+
+    console.log(`🔄 Processing Cleaning Restore for Room ${roomNumber}`);
+
+    // ✅ Emit the update event to all clients
+    io.emit("restoreCleaning", { roomNumber, status: "available" });
+
+    console.log(`✅ Restore Cleaning emitted for Room ${roomNumber}`);
+});
 
     // ✅ Handle Cleaning Reset
     socket.on("resetCleaning", async ({ roomNumber }) => {
@@ -607,6 +620,52 @@ app.post("/logs/start", async (req, res) => {
         res.status(500).json({ message: "Server error", error });
     }
 });
+
+app.post("/logs/restore", async (req, res) => {
+    try {
+        let { roomNumber } = req.body;
+        if (!roomNumber || isNaN(roomNumber)) {
+            return res.status(400).json({ message: "Room number must be a valid number." });
+        }
+
+        roomNumber = parseInt(roomNumber, 10); // Convert to a number
+
+        console.log(`🔄 Restoring cleaning status for Room ${roomNumber}...`);
+
+        const existingLog = await CleaningLog.findOne({ roomNumber });
+
+        if (!existingLog) {
+            console.warn(`⚠️ Room ${roomNumber} not found in logs. Cannot restore.`);
+            return res.status(400).json({ message: `Room ${roomNumber} not found in logs.` });
+        }
+
+        // ✅ Update the status to "available" while keeping the DND state unchanged
+        await CleaningLog.updateOne(
+            { _id: existingLog._id },
+            {
+                $set: {
+                    startTime: null,
+                    finishTime: null,
+                    startedBy: null,
+                    finishedBy: null,
+                    status: "available"
+                }
+            }
+        );
+
+        console.log(`✅ Cleaning status restored successfully for Room ${roomNumber}.`);
+
+        // ✅ Notify all WebSocket clients
+        io.emit("restoreCleaning", { roomNumber, status: "available" });
+
+        res.json({ message: `✅ Cleaning status restored for Room ${roomNumber}` });
+
+    } catch (error) {
+        console.error("❌ Error restoring cleaning status:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+});
+
 
 // ✅ Finish Cleaning - FIXED
 app.post("/logs/finish", async (req, res) => {
