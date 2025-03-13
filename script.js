@@ -332,26 +332,6 @@ dropdowns.forEach(dropdown => {
     dropdown.style.background = "rgba(255, 255, 255, 0.8)"; // Transparent background
     dropdown.style.boxShadow = "none";
 });
-
-function updatePriority(room, status) {
-    const button = document.getElementById(`selected-priority-${room}`);
-    const statusIcons = {
-        "default": "⚪",
-        "sunrise": "🔴",
-        "early-arrival": "🟡",
-        "vacancy": "⚫"
-    };
-
-    // Update button icon based on selected status
-    button.innerHTML = statusIcons[status];
-
-    // Hide the dropdown after selection
-    document.getElementById(`priority-${room}`).classList.remove("show");
-
-    // Optionally, update backend or store selection in local storage
-    console.log(`Room ${room} status updated to: ${status}`);
-}
-
 async function loadRooms() {
     console.log("🔄 Loading rooms...");
 
@@ -448,10 +428,28 @@ function showDashboard(username) {
     }, 1000);
 }
 
+function updatePriority(room, status) {
+    const button = document.getElementById(`selected-priority-${room}`);
+    const statusIcons = {
+        "default": "⚪",
+        "sunrise": "🔴",
+        "early-arrival": "🟡",
+        "vacancy": "⚫"
+    };
+
+    // Update button icon based on selected status
+    button.innerHTML = statusIcons[status];
+
+    // Hide the dropdown after selection
+    document.getElementById(`priority-${room}`).classList.remove("show");
+
+    // Optionally, update backend or store selection in local storage
+    console.log(`Room ${room} status updated to: ${status}`);
+}
 
 /** ✅ Update Room Priority and Emit WebSocket Event */
 function updatePriority(roomNumber, priority) {
-    console.log(`🛎 Updating priority for Room ${roomNumber} -> ${priority}`);
+    console.log(`🛎 Emitting WebSocket event: priorityUpdate for Room ${roomNumber} -> ${priority}`);
     
     // ✅ Save priority selection in localStorage
     localStorage.setItem(`priority-${roomNumber}`, priority);
@@ -468,8 +466,13 @@ function updatePriority(roomNumber, priority) {
 
 // ✅ Function to Update Displayed Priority Button
 function updateSelectedPriorityDisplay(roomNumber, priority) {
+    console.log(`🔄 Updating UI: Room ${roomNumber} -> Priority: ${priority}`);
+
     const button = document.getElementById(`selected-priority-${roomNumber}`);
-    if (!button) return;
+    if (!button) {
+        console.error(`❌ Priority button not found for Room ${roomNumber}`);
+        return;
+    }
 
     const priorityIcons = {
         "default": "⚪",
@@ -480,6 +483,7 @@ function updateSelectedPriorityDisplay(roomNumber, priority) {
 
     button.innerHTML = priorityIcons[priority] || "⚪"; // ✅ Update button display
 }
+
 
 /** ✅ Highlight Selected Priority in UI */
 function highlightSelectedPriority(roomNumber, priority) {
@@ -509,6 +513,8 @@ document.addEventListener("DOMContentLoaded", () => {
 // ✅ WebSocket Listener for Priority Updates
 window.socket?.on("priorityUpdate", ({ roomNumber, priority }) => {
     console.log(`📡 Received Priority Update: Room ${roomNumber} -> ${priority}`);
+
+    // ✅ Update UI Immediately
     updateSelectedPriorityDisplay(roomNumber, priority);
 });
 

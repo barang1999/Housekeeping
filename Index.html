@@ -154,105 +154,113 @@
     background: gray;
     cursor: not-allowed;
 }
-     /* Remove default dropdown styles */
-    .priority-select {
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        appearance: none;
-        background: white;
-        border: 1px solid #ccc;
-        font-size: 16px;
-        font-weight: bold;
-        cursor: pointer;
-        padding: 8px 12px;
-        outline: none;
-        display: flex;
-        align-items: center;
-        position: relative;
-        width: 150px;
-        border-radius: 5px;
-    }
+    /* Remove default dropdown styles */
+.priority-select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background: white;
+    border: 1px solid #ccc;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 8px 12px;
+    outline: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Ensures text & arrow are aligned */
+    position: relative;
+    width: 150px;
+    border-radius: 5px;
+}
 
-    /* Dropdown wrapper */
-    .dropdown-container {
-        position: relative;
-        display: inline-block;
-    }
+/* Dropdown wrapper */
+.dropdown-container {
+    position: relative;
+    display: inline-block;
+}
 
-    /* Add dropdown arrow */
-    .dropdown-container::after {
-        content: "▼";
-        font-size: 12px;
-        color: #666;
-        margin-left: auto;
-        margin-right: 10px;
-        pointer-events: none;
-    }
+/* Add dropdown arrow */
+.dropdown-container::after {
+    content: "▼";
+    font-size: 12px;
+    color: #666;
+    margin-left: auto;
+    margin-right: 10px;
+    pointer-events: none;
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+}
 
-    /* Custom dropdown options */
-    .priority-dropdown {
-        display: none;
-        position: absolute;
-        background: white;
-        border: 1px solid #ccc;
-        padding: 5px;
-        width: 150px;
-        box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
-        z-index: 10;
-        border-radius: 5px;
-    }
+/* Custom dropdown options */
+.priority-dropdown {
+    position: absolute;
+    background: white;
+    border-radius: 8px; /* Rounded corners */
+    border: 1px solid #ddd;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 5px 0;
+    min-width: 150px; /* Ensures enough space for options */
+    z-index: 10;
+    left: 50%;
+    transform: translateX(-50%);
+    max-height: 200px; /* ✅ Fixed typo: changed ax-height to max-height */
+    overflow-y: auto;
+    display: none; /* ✅ Ensures dropdown is hidden by default */
+}
 
-    /* Show dropdown when active */
-    .priority-dropdown.show {
-        display: block;
-    }
+/* Show dropdown when active */
+.priority-dropdown.show {
+    display: block;
+}
 
-    /* Dropdown options styling */
-    .priority-option {
-        padding: 8px 12px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 14px;
-        font-weight: bold;
-        border-bottom: 1px solid #ddd;
-    }
+/* Dropdown options styling */
+.priority-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background 0.2s ease-in-out;
+}
 
-    /* Remove border from last option */
-    .priority-option:last-child {
-        border-bottom: none;
-    }
+/* Remove border from last option */
+.priority-option:last-child {
+    border-bottom: none;
+}
 
-    /* Hover effect */
-    .priority-option:hover {
-        background: rgba(0, 0, 0, 0.05);
-    }
+/* Hover effect */
+.priority-option:hover {
+    background: rgba(0, 0, 0, 0.05); /* Light hover effect */
+}
 
-    /* Color indicators */
-    .priority-option span {
-        width: 14px;
-        height: 14px;
-        border-radius: 50%;
-        display: inline-block;
-    }
+/* Color indicators */
+.priority-option span {
+    font-size: 18px;
+    width: 20px; /* ✅ Ensures color indicators are properly sized */
+    height: 20px;
+    display: inline-block;
+    border-radius: 50%; /* ✅ Makes colors circular */
+}
 
-    /* Status colors */
-    .priority-option[data-value="default"] span {
-        background-color: #ccc;
-    }
+/* Status colors */
+.priority-option[data-value="default"] span {
+    background-color: #ccc;
+}
 
-    .priority-option[data-value="sunrise"] span {
-        background-color: red;
-    }
+.priority-option[data-value="sunrise"] span {
+    background-color: red;
+}
 
-    .priority-option[data-value="early_arrival"] span {
-        background-color: orange;
-    }
+.priority-option[data-value="early_arrival"] span {
+    background-color: orange;
+}
 
-    .priority-option[data-value="vacancy"] span {
-        background-color: black;
-    }
+.priority-option[data-value="vacancy"] span {
+    background-color: black;
+}
 
 
     </style>
