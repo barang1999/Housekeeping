@@ -1135,9 +1135,6 @@ async function startCleaning(roomNumber) {
             return;
         }
 
-        // ✅ Success message
-        Swal.fire("ល្អ!", `បន្ទប់ ${formattedRoom}ផ្ដើមសម្អាត!`, "អនាម័យ");
-
         // Disable Start Cleaning and Enable Finish Cleaning
         startButton.disabled = true;
         startButton.style.backgroundColor = "grey";
@@ -1217,9 +1214,6 @@ async function finishCleaning(roomNumber) {
             alert(`❌ Failed: ${data.message}`);
             return;
         }
-
-        // ✅ Success message
-        Swal.fire("ល្អ!", `បន្ទប់ ${formattedRoom}​បានសម្អាត`, "រួចរាល់");
 
          // Disable Finish Button and Change Color to Green
         finishButton.disabled = true;
