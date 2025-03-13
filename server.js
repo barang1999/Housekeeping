@@ -10,7 +10,6 @@ const axios = require("axios");
 const telegramRoutes = require("./telegram.js");
 
 const RoomDND = require("./RoomDND"); // ✅ Ensure RoomDND is imported
-const RoomPriority = require("./RoomPriority"); // ✅ Import Priority Model
 const allowedOrigins = ["https://housekeepingmanagement.netlify.app"]; // Add your frontend domain
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
