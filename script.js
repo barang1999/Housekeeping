@@ -471,14 +471,20 @@ function updatePriority(roomNumber, priority) {
 
 // ✅ Function to Update Displayed Priority Button
 function updateSelectedPriorityDisplay(roomNumber, priority) {
-    console.log(`🔄 Updating UI: Room ${roomNumber} -> Priority: ${priority}`);
+    console.log(`🔄 Restoring dropdown for Room ${roomNumber} -> Priority: ${priority}`);
 
+    // Get the priority button (the one user clicks to open the dropdown)
     const button = document.getElementById(`selected-priority-${roomNumber}`);
-    if (!button) {
-        console.error(`❌ Priority button not found for Room ${roomNumber}`);
+    
+    // Get the dropdown list
+    const dropdown = document.getElementById(`priority-${roomNumber}`);
+    
+    if (!button || !dropdown) {
+        console.error(`❌ Missing priority elements for Room ${roomNumber}`);
         return;
     }
 
+    // Define priority icons for display
     const priorityIcons = {
         "default": "⚪",
         "sunrise": "🔴",
@@ -486,8 +492,21 @@ function updateSelectedPriorityDisplay(roomNumber, priority) {
         "vacancy": "⚫"
     };
 
-    button.innerHTML = priorityIcons[priority] || "⚪"; // ✅ Update button display
+    // ✅ Update button display with selected priority icon
+    button.innerHTML = priorityIcons[priority] || "⚪";
+
+    // ✅ Reset all dropdown options first (remove selection styles)
+    dropdown.querySelectorAll(".priority-option").forEach(option => {
+        option.classList.remove("selected");  // Remove any previous selection
+    });
+
+    // ✅ Highlight the correct selection in the dropdown
+    const selectedOption = dropdown.querySelector(`.priority-option[data-value="${priority}"]`);
+    if (selectedOption) {
+        selectedOption.classList.add("selected"); // Mark as selected
+    }
 }
+
 
 
 /** ✅ Highlight Selected Priority in UI */
