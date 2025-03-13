@@ -995,11 +995,11 @@ async function toggleDoNotDisturb(roomNumber) {
             dndButton.style.backgroundColor = "red";
         } else {
             startButton?.removeAttribute("disabled");
-            startButton?.style.setProperty("background-color", "#008CFF");
+            startButton?.style.setProperty("background-color", "#008CFF00");
             finishButton?.setAttribute("disabled", "true");
             finishButton?.style.setProperty("background-color", "grey");
             dndButton.classList.remove("active-dnd");
-            dndButton.style.backgroundColor = "#008CFF";
+            dndButton.style.backgroundColor = "#008CFF00";
         }
 
     } catch (error) {
