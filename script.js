@@ -1096,7 +1096,7 @@ async function startCleaning(roomNumber) {
         }
 
         // ✅ Success message
-        Swal.fire("ល្អ!", `បាន ${formattedRoom}ផ្ដើមសម្អាត អនាម័យ!`, "អាទិភាព");
+        Swal.fire("ល្អ!", `បន្ទប់ ${formattedRoom}ផ្ដើមសម្អាត!`, "អនាម័យ");
 
         // Disable Start Cleaning and Enable Finish Cleaning
         startButton.disabled = true;
