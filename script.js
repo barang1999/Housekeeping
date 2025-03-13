@@ -1174,11 +1174,20 @@ async function finishCleaning(roomNumber) {
         console.error(`❌ Finish button not found for Room ${formattedRoom}`);
         return;
     }
+    // ✅ Calculate Cleaning Duration using your logic
+        let duration = "-";
+        if (roomLog && roomLog.startTime) {
+            let startTime = new Date(roomLog.startTime);
+            let finishTime = new Date();
+            let durationMs = finishTime - startTime;
+            let minutes = Math.floor(durationMs / (1000 * 60));
+            duration = minutes > 0 ? `${minutes} min` : "< 1 min";
+        }
 
     // ✅ Show custom confirmation popup
     const confirmStart = await Swal.fire({
         title: `សម្អាតរួចរាល់ ${roomNumber}?`,
-        text: "អ្នកបានសម្អាតបន្ទប់នេះ?",
+        text: `អ្នកបានសម្អាតបន្ទប់នេះ ក្នុងថេរវេលា: ${duration}`,
         icon: "question",
         showCancelButton: true,
         confirmButtonColor: "#3085d6",
