@@ -89,11 +89,17 @@ async function connectWebSocket() {
         });
     });
 
-    // ✅ Handle real-time priority updates
+    // ✅ Handle real-time priority updates safely
     window.socket.on("priorityUpdate", ({ roomNumber, priority }) => {
+        if (!roomNumber || !priority) {
+            console.warn("⚠️ Received invalid priorityUpdate event:", { roomNumber, priority });
+            return;
+        }
+
         console.log(`📡 Real-time Priority Update: Room ${roomNumber} -> ${priority}`);
         updateSelectedPriorityDisplay(String(roomNumber), priority);
     });
+
 
     
    window.socket.on("roomUpdate", async ({ roomNumber, status }) => {
@@ -189,9 +195,9 @@ function ensureWebSocketConnection() {
 }
 
 
-// ✅ Ensure buttons update after logs are loaded
+// ✅ Ensure buttons & priority dropdowns update after logs are loaded
 async function updateButtonsFromLogs() {
-    console.log("🔄 Updating button status from logs...");
+    console.log("🔄 Updating button status and priority from logs...");
 
     const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
     if (!logs || !Array.isArray(logs)) {
@@ -200,15 +206,18 @@ async function updateButtonsFromLogs() {
     }
 
     logs.forEach(log => {
-        let roomNumber = formatRoomNumber(log.roomNumber); // FIX: Corrected variable reference
+        let roomNumber = formatRoomNumber(log.roomNumber); // Ensure correct format
         const status = log.status || "pending";
         const dndStatus = log.dndStatus || "available";
+        const priority = log.priority || "default"; // ✅ Ensure priority status is fetched
 
         updateButtonStatus(roomNumber, status, dndStatus);
+        updatePriorityDropdown(roomNumber, priority); // ✅ Update priority dropdowns
     });
 
-    console.log("✅ Buttons updated based on logs.");
+    console.log("✅ Buttons and priority dropdowns updated based on logs.");
 }
+
 
 
 async function fetchWithErrorHandling(url, options = {}) {
@@ -472,6 +481,25 @@ function showDashboard(username) {
         console.log("✅ Activating ground floor...");
         toggleFloor("ground-floor"); // Ensure it's visible after rooms load
     }, 1000);
+}
+
+function updatePriorityDropdown(roomNumber, priority) {
+    console.log(`🎯 Updating priority dropdown for Room ${roomNumber}: ${priority}`);
+
+    const dropdownButton = document.querySelector(`#priority-${roomNumber}`);
+    if (dropdownButton) {
+        // Set the dropdown button display based on priority status
+        const priorityIcons = {
+            "high": "🔴",    // Red circle
+            "medium": "🟠",  // Orange circle
+            "low": "🟡",     // Yellow circle
+            "default": "⚪"  // White circle (reset)
+        };
+
+        dropdownButton.innerHTML = priorityIcons[priority] || "⚪"; // Default to white
+    } else {
+        console.warn(`⚠️ Priority dropdown not found for Room ${roomNumber}`);
+    }
 }
 
 function updatePriority(roomNumber, status) {
