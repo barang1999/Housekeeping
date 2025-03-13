@@ -1138,6 +1138,23 @@ async function finishCleaning(roomNumber) {
         return;
     }
 
+    // ✅ Show custom confirmation popup
+    const confirmStart = await Swal.fire({
+        title: `សម្អាតរួចរាល់ ${roomNumber}?`,
+        text: "អ្នកបានសម្អាតបន្ទប់នេះ?",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Yes",
+        cancelButtonText: "No"
+    });
+
+      if (!confirmStart.isConfirmed) {
+        console.log(`🚫 Cleaning not started for Room ${roomNumber}`);
+        return; // Exit function if user clicks "Cancel"
+    }
+
     // Ensure roomNumber is converted properly
     const numericRoomNumber = parseInt(roomNumber, 10);
     if (isNaN(numericRoomNumber)) {
@@ -1161,6 +1178,9 @@ async function finishCleaning(roomNumber) {
             return;
         }
 
+        // ✅ Success message
+        Swal.fire("ល្អ!", `បន្ទប់ ${formattedRoom}​បានសម្អាត`, "រួចរាល់");
+
          // Disable Finish Button and Change Color to Green
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "green";
@@ -1179,6 +1199,8 @@ async function finishCleaning(roomNumber) {
 
     } catch (error) {
         console.error("❌ Error finishing cleaning:", error);
+        Swal.fire("Error", "An unexpected error occurred while finnish cleaning.", "error");
+
     }
 }
 
