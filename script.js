@@ -1407,13 +1407,23 @@ function logout() {
     sessionStorage.clear();
     document.cookie = "refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"; // Remove refresh token
 
-    // Show an alert (optional)
-    alert("✅ You have been logged out.");
+    // ✅ Show a clean, modern notification
+    Swal.fire({
+        icon: "success",
+        title: "ចាកចេញ",
+        text: "អ្នកចាកចេញដោយជោគជ័យ.",
+        confirmButtonText: "OK",
+        timer: 2000, // Auto-close in 2 seconds
+        showConfirmButton: false // Removes OK button for a cleaner look
+    });
 
     // ✅ Show the login form & hide the dashboard
-    document.getElementById("auth-section").style.display = "block";
-    document.getElementById("dashboard").style.display = "none";
+    setTimeout(() => {
+        document.getElementById("auth-section").style.display = "block";
+        document.getElementById("dashboard").style.display = "none";
+    }, 2000);
 }
+
 
 
 async function clearLogs() {
