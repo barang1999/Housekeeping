@@ -1419,7 +1419,7 @@ async function loadLogs() {
 
             // ✅ Update button status but do NOT override DND mode
             updateButtonStatus(roomNumber, status, dndStatus);
-            updateSelectedPriorityDisplay(roomNumber, priority);
+         
 
             // ✅ Store cleaning status
             cleaningStatus[roomNumber] = {
