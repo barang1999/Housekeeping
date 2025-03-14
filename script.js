@@ -472,7 +472,7 @@ async function loadRooms() {
             // ✅ FIX: Ensure `priorities` is an array before calling `.find()`
             if (Array.isArray(priorities)) {
                 const savedPriority = priorities.find(p => p.roomNumber === room)?.priority || "default";
-                highlightSelectedPriority(room, savedPriority);
+                updateSelectedPriorityDisplay(roomNumber, priority);
             } else {
                 console.warn(`⚠️ Priorities data is not in expected format.`);
             }
@@ -1419,6 +1419,7 @@ async function loadLogs() {
 
             // ✅ Update button status but do NOT override DND mode
             updateButtonStatus(roomNumber, status, dndStatus);
+            updateSelectedPriorityDisplay(roomNumber, priority);
 
             // ✅ Store cleaning status
             cleaningStatus[roomNumber] = {
