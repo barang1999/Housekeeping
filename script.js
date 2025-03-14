@@ -645,17 +645,6 @@ function highlightSelectedPriority(roomNumber, priority) {
     }
 }
 
-
-// ✅ Load Saved Priority on Page Load
-document.addEventListener("DOMContentLoaded", () => {
-    document.querySelectorAll(".priority-toggle").forEach(button => {
-        const roomNumber = button.id.replace("selected-priority-", "");
-        const savedPriority = localStorage.getItem(`priority-${roomNumber}`) || "default";
-        updateSelectedPriorityDisplay(roomNumber, savedPriority);
-    });
-});
-
-
 async function refreshToken() {
     const refreshToken = localStorage.getItem("refreshToken");
 
