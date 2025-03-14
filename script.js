@@ -427,61 +427,63 @@ async function loadRooms() {
         "third-floor": ["201", "202", "203", "204", "205", "208", "209", "210", "211", "212", "213", "214", "215", "216", "217"]
     };
 
-    // ✅ Fetch room priorities before rendering rooms
     let priorities = [];
     try {
         const response = await fetch(`${apiUrl}/logs/priority`);
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
         priorities = await response.json();
         console.log("✅ Room Priorities Fetched:", priorities);
     } catch (error) {
         console.error("❌ Error fetching room priorities:", error);
     }
 
-    Object.keys(floors).forEach(floor => {
-        const floorDiv = document.getElementById(floor);
-        if (!floorDiv) {
-            console.warn(`⚠️ Floor ${floor} element not found. Skipping.`);
-            return;
+    // ✅ Small delay before rendering rooms to ensure priority data is available
+    setTimeout(() => {
+        for (const [floor, rooms] of Object.entries(floors)) {
+            const floorDiv = document.getElementById(floor);
+            if (!floorDiv) {
+                console.warn(`⚠️ Floor ${floor} element not found. Skipping.`);
+                continue;
+            }
+
+            floorDiv.innerHTML = ""; // Clear previous content
+
+            rooms.forEach(room => {
+                const roomDiv = document.createElement("div");
+                roomDiv.classList.add("room");
+
+                // Find saved priority, default to "default" if not found
+                const savedPriority = Array.isArray(priorities)
+                    ? priorities.find(p => p.roomNumber === room)?.priority || "default"
+                    : "default";
+
+                roomDiv.innerHTML = `
+                    <span>Room ${room}</span>
+                    <div class="priority-container">
+                        <button class="priority-toggle" id="selected-priority-${room}" onclick="togglePriorityDropdown('${room}')">⚪</button>
+                        <div class="priority-dropdown" id="priority-${room}">
+                            <div class="priority-option" onclick="updatePriority('${room}', 'default')"><span class="white">⚪</span></div>
+                            <div class="priority-option" onclick="updatePriority('${room}', 'sunrise')"><span class="red">🔴</span></div>
+                            <div class="priority-option" onclick="updatePriority('${room}', 'early-arrival')"><span class="yellow">🟡</span></div>
+                            <div class="priority-option" onclick="updatePriority('${room}', 'vacancy')"><span class="black">⚫</span></div>
+                        </div>
+                    </div>
+                    <button id="start-${room}" onclick="startCleaning('${room}')">Cleaning</button>
+                    <button id="finish-${room}" onclick="finishCleaning('${room}')" disabled>Done</button>
+                    <button id="dnd-${room}" class="dnd-btn" onclick="toggleDoNotDisturb('${room}')">🚫</button>
+                `;
+
+                floorDiv.appendChild(roomDiv);
+                highlightSelectedPriority(room, savedPriority);
+            });
         }
 
-        floorDiv.innerHTML = ""; // Clear previous content
-
-        floors[floor].forEach(room => {
-            const roomDiv = document.createElement("div");
-            roomDiv.classList.add("room");
-
-            // ✅ FIXED TEMPLATE STRING ERROR
-            roomDiv.innerHTML = `
-                <span>Room ${room}</span>
-                  <div class="priority-container">
-                    <button class="priority-toggle" id="selected-priority-${room}" onclick="togglePriorityDropdown('${room}')">⚪</button>
-                    <div class="priority-dropdown" id="priority-${room}">
-                        <div class="priority-option" onclick="updatePriority('${room}', 'default')"><span class="white">⚪</span></div>
-                        <div class="priority-option" onclick="updatePriority('${room}', 'sunrise')"><span class="red">🔴</span></div>
-                        <div class="priority-option" onclick="updatePriority('${room}', 'early-arrival')"><span class="yellow">🟡</span></div>
-                        <div class="priority-option" onclick="updatePriority('${room}', 'vacancy')"><span class="black">⚫</span></div>
-                    </div>
-                </div>
-                <button id="start-${room}" onclick="startCleaning('${room}')">Cleaning</button>
-                <button id="finish-${room}" onclick="finishCleaning('${room}')" disabled>Done</button>
-                <button id="dnd-${room}" class="dnd-btn" onclick="toggleDoNotDisturb('${room}')">🚫</button>
-            `;
-
-            floorDiv.appendChild(roomDiv);
-
-            // ✅ FIX: Ensure `priorities` is an array before calling `.find()`
-            if (Array.isArray(priorities)) {
-                const savedPriority = priorities.find(p => p.roomNumber === room)?.priority || "default";
-                highlightSelectedPriority(room, savedPriority);
-            } else {
-                console.warn(`⚠️ Priorities data is not in expected format.`);
-            }
-        });
-    });
+        console.log("✅ Rooms loaded successfully with priorities.");
+    }, 500); // ✅ Small delay to ensure priority data is fully available
 
     await restoreCleaningStatus();
-    console.log("✅ Rooms loaded successfully with priorities.");
 }
+
 
 async function showDashboard(username) {
     console.log("Inside showDashboard function. Username:", username);
@@ -579,7 +581,7 @@ function updatePriority(roomNumber, priority) {
     }
 
     // ✅ Emit WebSocket Event SAFELY
-    safeEmit("priorityUpdate", { roomNumber, priority });
+    safeEmit("priorityUpdate", { roomNumber, priority: localStorage.getItem(`priority-${roomNumber}`) });
 
     // ✅ Update UI immediately
     updateSelectedPriorityDisplay(roomNumber, priority);
@@ -1173,6 +1175,7 @@ async function startCleaning(roomNumber) {
 
         // ✅ Ensure fresh logs are loaded
         await loadLogs();
+        await fetchRoomStatuses();  // ✅ Ensure the priority is refreshed after status update
 
     } catch (error) {
         console.error("❌ Error starting cleaning:", error);
@@ -1302,6 +1305,8 @@ async function finishCleaning(roomNumber) {
 
         // ✅ Ensure fresh logs are loaded
         await loadLogs();
+        await fetchRoomStatuses();  // ✅ Ensure the priority is refreshed after status update
+}
 
     } catch (error) {
         console.error("❌ Error finishing cleaning:", error);
@@ -1319,6 +1324,7 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
     const startButton = document.getElementById(`start-${formattedRoom}`);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
     const dndButton = document.getElementById(`dnd-${formattedRoom}`);
+    const priorityButton = document.getElementById(`selected-priority-${formattedRoom}`);
 
     if (!startButton || !finishButton || !dndButton) {
         console.warn(`⚠️ Buttons for Room ${formattedRoom} not found in DOM`);
@@ -1326,6 +1332,12 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
     }
 
     console.log(`🎯 Updating Room ${formattedRoom} -> Status: ${status}, DND: ${dndStatus}`);
+
+    // Preserve priority status
+    let currentPriority = localStorage.getItem(`priority-${formattedRoom}`) || "default";
+    if (priorityButton) {
+        updateSelectedPriorityDisplay(formattedRoom, currentPriority);  // ✅ Restore saved priority
+    }
 
     // ✅ Update Start and Finish buttons based on cleaning status
     if (status === "finished") {
