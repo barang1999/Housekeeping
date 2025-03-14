@@ -24,7 +24,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             } else {
                 console.error("❌ WebSocket still not initialized. Check connection setup.");
             }
-        }, 1000);
+        }, 3000);
     }
 
     console.log("🎯 Cleaning status restored successfully.");
