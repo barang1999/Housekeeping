@@ -783,44 +783,56 @@ async function fetchRoomStatuses() {
     try {
         console.log("🔄 Fetching room statuses...");
         
+        let token = localStorage.getItem("token");
+        if (!token) {
+            console.error("❌ No valid token found. User must re-login.");
+            alert("Session expired. Please log in again.");
+            return;
+        }
+
         // Fetch cleaning statuses
-        const response = await fetch("https://housekeeping-production.up.railway.app/logs/status", {
+        const response = await fetch(`${apiUrl}/logs/status`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${localStorage.getItem("token")}`
+                "Authorization": `Bearer ${token}`
             }
         });
 
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}`);
         const statuses = await response.json();
 
         console.log("✅ Room Statuses Fetched:", statuses);
 
         // Fetch room priorities
-        const priorityResponse = await fetch("https://housekeeping-production.up.railway.app/logs/priority", {
+        const priorityResponse = await fetch(`${apiUrl}/logs/priority`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${localStorage.getItem("token")}`
+                "Authorization": `Bearer ${token}`
             }
         });
 
-        if (!priorityResponse.ok) throw new Error(`HTTP error! Status: ${priorityResponse.status}`);
+        if (!priorityResponse.ok) throw new Error(`HTTP error! Status: ${priorityResponse.status} - ${priorityResponse.statusText}`);
         const priorities = await priorityResponse.json();
         
         console.log("✅ Room Priorities Fetched:", priorities);
 
+        // ✅ Ensure the API returns an array
+        if (!Array.isArray(statuses) || !Array.isArray(priorities)) {
+            throw new Error("Unexpected API response format. Check the backend.");
+        }
+
         // Loop through each room and update buttons & priority dropdowns
-        Object.entries(statuses).forEach(([roomNumber, status]) => {
+        statuses.forEach(({ roomNumber, status }) => {
             updateButtonStatus(roomNumber, status);
-            
-            // ✅ Ensure `roomNumber` is treated as a string before matching
+
+            // ✅ Ensure `roomNumber` is a string before matching
             const roomPriority = priorities.find(p => String(p.roomNumber) === String(roomNumber))?.priority || "default";
 
             console.log(`🔄 Restoring priority for Room ${roomNumber}: ${roomPriority}`);
 
-            // Update the priority dropdown selection
+            // ✅ Update the priority dropdown selection
             updateSelectedPriorityDisplay(roomNumber, roomPriority);
         });
 
