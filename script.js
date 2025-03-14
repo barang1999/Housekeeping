@@ -1306,7 +1306,6 @@ async function finishCleaning(roomNumber) {
         // ✅ Ensure fresh logs are loaded
         await loadLogs();
         await fetchRoomStatuses();  // ✅ Ensure the priority is refreshed after status update
-}
 
     } catch (error) {
         console.error("❌ Error finishing cleaning:", error);
