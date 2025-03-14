@@ -28,7 +28,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     console.log("🎯 Cleaning status restored successfully.");
-    await showDashboard(localStorage.getItem("username"));
     checkAuth();
     loadRooms();
 
@@ -626,6 +625,15 @@ function updateSelectedPriorityDisplay(roomNumber, priority) {
         selectedOption.classList.add("selected"); // Mark as selected
     }
 }
+
+// ✅ Load Saved Priority on Page Load
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".priority-toggle").forEach(button => {
+        const roomNumber = button.id.replace("selected-priority-", "");
+        const savedPriority = localStorage.getItem(`priority-${roomNumber}`) || "default";
+        updateSelectedPriorityDisplay(roomNumber, savedPriority);
+    });
+});
 
 function highlightSelectedPriority(roomNumber, priority) {
     const priorityContainer = document.getElementById(`priority-${roomNumber}`);
