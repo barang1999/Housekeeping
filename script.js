@@ -472,7 +472,7 @@ async function loadRooms() {
             // ✅ FIX: Ensure `priorities` is an array before calling `.find()`
             if (Array.isArray(priorities)) {
                 const savedPriority = priorities.find(p => p.roomNumber === room)?.priority || "default";
-                updateSelectedPriorityDisplay(roomNumber, priority);
+                highlightSelectedPriority(roomNumber, priority)
             } else {
                 console.warn(`⚠️ Priorities data is not in expected format.`);
             }
