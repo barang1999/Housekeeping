@@ -11,7 +11,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadDNDStatus();  // ✅ Load DND status first
     await loadLogs(); // ✅ Fetch logs before restoring buttons
     await restoreCleaningStatus(); // ✅ Ensure buttons are updated after logs are loaded
-    await showDashboard(localStorage.getItem("username"));
     await connectWebSocket(); // ✅ Connect WebSocket first for real-time updates
      
     // ✅ Ensure socket is available before emitting
@@ -29,6 +28,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     console.log("🎯 Cleaning status restored successfully.");
+    await showDashboard(localStorage.getItem("username"));
     checkAuth();
     loadRooms();
 
