@@ -1164,9 +1164,15 @@ async function finishCleaning(roomNumber) {
     const formattedRoom = formatRoomNumber(roomNumber);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
     const username = localStorage.getItem("username"); 
+    
     if (!username) {
         console.error("❌ No username found in localStorage. Cannot finish cleaning.");
-        alert("You must be logged in to finish cleaning.");
+        Swal.fire({
+            icon: "error",
+            title: "Authentication Required",
+            text: "You must be logged in to finish cleaning.",
+            confirmButtonText: "OK"
+        });
         return;
     }
     
@@ -1174,18 +1180,35 @@ async function finishCleaning(roomNumber) {
         console.error(`❌ Finish button not found for Room ${formattedRoom}`);
         return;
     }
-    // ✅ Calculate Cleaning Duration using your logic
-        let duration = "-";
-        if (roomLog && roomLog.startTime) {
-            let startTime = new Date(roomLog.startTime);
-            let finishTime = new Date();
-            let durationMs = finishTime - startTime;
-            let minutes = Math.floor(durationMs / (1000 * 60));
-            duration = minutes > 0 ? `${minutes} min` : "< 1 min";
-        }
 
-    // ✅ Show custom confirmation popup
-    const confirmStart = await Swal.fire({
+    // ✅ Fetch logs to get room start time
+    let roomLog = null;
+    try {
+        const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
+        roomLog = logs.find(log => log.roomNumber.toString().padStart(3, '0') === formattedRoom);
+    } catch (error) {
+        console.error("❌ Error fetching logs:", error);
+        Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "Failed to retrieve cleaning logs.",
+            confirmButtonText: "OK"
+        });
+        return;
+    }
+
+    // ✅ Calculate Cleaning Duration
+    let duration = "-";
+    if (roomLog && roomLog.startTime) {
+        let startTime = new Date(roomLog.startTime);
+        let finishTime = new Date();
+        let durationMs = finishTime - startTime;
+        let minutes = Math.floor(durationMs / (1000 * 60));
+        duration = minutes > 0 ? `${minutes} min` : "< 1 min";
+    }
+
+    // ✅ Show Confirmation Popup with Cleaning Duration
+    const confirmFinish = await Swal.fire({
         title: `សម្អាតរួចរាល់ ${roomNumber}?`,
         text: `អ្នកបានសម្អាតបន្ទប់នេះ ក្នុងថេរវេលា: ${duration}`,
         icon: "question",
@@ -1196,16 +1219,21 @@ async function finishCleaning(roomNumber) {
         cancelButtonText: "No"
     });
 
-      if (!confirmStart.isConfirmed) {
-        console.log(`🚫 Cleaning not started for Room ${roomNumber}`);
-        return; // Exit function if user clicks "Cancel"
+    if (!confirmFinish.isConfirmed) {
+        console.log(`🚫 Cleaning not marked as finished for Room ${roomNumber}`);
+        return;
     }
 
-    // Ensure roomNumber is converted properly
+    // ✅ Ensure roomNumber is valid
     const numericRoomNumber = parseInt(roomNumber, 10);
     if (isNaN(numericRoomNumber)) {
         console.error("❌ Invalid room number:", roomNumber);
-        alert("❌ Room number is invalid.");
+        Swal.fire({
+            icon: "error",
+            title: "Invalid Room Number",
+            text: "Room number is not valid.",
+            confirmButtonText: "OK"
+        });
         return;
     }
 
@@ -1214,36 +1242,54 @@ async function finishCleaning(roomNumber) {
         const res = await fetch(`${apiUrl}/logs/finish`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({  roomNumber: formatRoomNumber(roomNumber),username, status: "finished" })
+            body: JSON.stringify({ roomNumber: formattedRoom, username, status: "finished" })
         });
 
         const data = await res.json();
         if (!res.ok) {
             console.error("❌ Failed to Finish Cleaning:", data);
-            alert(`❌ Failed: ${data.message}`);
+            Swal.fire({
+                icon: "error",
+                title: "Cleaning Completion Failed",
+                text: data.message || "An error occurred while finishing cleaning.",
+                confirmButtonText: "OK"
+            });
             return;
         }
 
-         // Disable Finish Button and Change Color to Green
+        // ✅ Success Notification with Cleaning Duration
+        Swal.fire({
+            icon: "success",
+            title: `Room ${formattedRoom} Cleaned!`,
+            text: `Cleaning duration: ${duration}`,
+            timer: 2500,
+            showConfirmButton: false
+        });
+
+        // ✅ Disable Finish Button and Change Color to Green
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "green";
 
         // ✅ Send notification to Telegram
-        sendTelegramMessage(`✅ Room ${formattedRoom} ត្រូវបានសម្អាតរួចរាល់ដោយ ${username}`);
+        sendTelegramMessage(`✅ Room ${formattedRoom} cleaned by ${username}. Duration: ${duration}`);
 
-       // ✅ Emit WebSocket Event for Real-Time Updates
+        // ✅ Emit WebSocket Event for Real-Time Updates
         safeEmit("roomUpdate", { roomNumber, status: "finished" });
 
         // ✅ Update UI Immediately
-        updateButtonStatus(formatRoomNumber(roomNumber), "finished");
+        updateButtonStatus(formattedRoom, "finished");
 
         // ✅ Ensure fresh logs are loaded
         await loadLogs();
 
     } catch (error) {
         console.error("❌ Error finishing cleaning:", error);
-        Swal.fire("Error", "An unexpected error occurred while finnish cleaning.", "error");
-
+        Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "An unexpected error occurred while finishing cleaning.",
+            confirmButtonText: "OK"
+        });
     }
 }
 
