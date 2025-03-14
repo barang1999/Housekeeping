@@ -140,23 +140,17 @@ io.on("connection", (socket) => {
 socket.on("requestPriorityStatus", async () => {
     try {
         const priorities = await RoomPriority.find({}, "roomNumber priority").lean();
-        
-        if (!priorities || priorities.length === 0) {
-            console.warn("⚠️ No priorities found in database. Sending empty list.");
-            socket.emit("priorityStatus", []);
-            return;
-        }
-
-        // ✅ Ensure roomNumber is always sent as a string
         const formattedPriorities = priorities.map(p => ({
-            roomNumber: String(p.roomNumber), // Force roomNumber to string
+            roomNumber: String(p.roomNumber), // Ensure it's always a string
             priority: p.priority
         }));
 
-        socket.emit("priorityStatus", formattedPriorities);
-        console.log("✅ Sent priority statuses to client:", formattedPriorities);
+        console.log("📡 Sending Priority Status:", formattedPriorities || []);
+        socket.emit("priorityStatus", formattedPriorities || []);
+
     } catch (error) {
-        console.error("❌ Error sending priority statuses:", error);
+        console.error("❌ Error fetching priority statuses:", error);
+        socket.emit("priorityStatus", []); // Always send a safe default
     }
 });
 
