@@ -507,6 +507,9 @@ async function showDashboard(username) {
     // Set username display
     usernameDisplay.textContent = username;
 
+    // Load rooms first, then ensure the ground floor is shown
+    loadRooms();
+
 
     // 🛠️ Create Stats Elements
     let statsContainer = document.getElementById("user-stats");
@@ -529,9 +532,6 @@ async function showDashboard(username) {
         <div>🕒 Avg Cleaning Duration: <strong>${avgDuration} min</strong></div>
         <div>⚡ Fastest Cleaner: <strong>${fastestCleaner}</strong></div>
     `;
-
-    // Load rooms first, then ensure the ground floor is shown
-    loadRooms();
 
     setTimeout(() => {
         console.log("✅ Activating ground floor...");
@@ -1175,7 +1175,6 @@ async function startCleaning(roomNumber) {
 
         // ✅ Ensure fresh logs are loaded
         await loadLogs();
-        await fetchRoomStatuses();  // ✅ Ensure the priority is refreshed after status update
 
     } catch (error) {
         console.error("❌ Error starting cleaning:", error);
@@ -1305,7 +1304,6 @@ async function finishCleaning(roomNumber) {
 
         // ✅ Ensure fresh logs are loaded
         await loadLogs();
-        await fetchRoomStatuses();  // ✅ Ensure the priority is refreshed after status update
 
     } catch (error) {
         console.error("❌ Error finishing cleaning:", error);
