@@ -484,7 +484,7 @@ async function loadRooms() {
     console.log("✅ Rooms loaded successfully with priorities.");
 }
 
-function showDashboard(username) {
+async function showDashboard(username) {
     console.log("Inside showDashboard function. Username:", username);
 
     const dashboard = document.getElementById("dashboard");
