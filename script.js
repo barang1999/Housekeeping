@@ -1259,9 +1259,9 @@ async function finishCleaning(roomNumber) {
 
         // ✅ Success Notification with Cleaning Duration
         Swal.fire({
-            icon: "success",
-            title: `Room ${formattedRoom} Cleaned!`,
-            text: `Cleaning duration: ${duration}`,
+            icon: "អរគុណ",
+            title: `បន្ទប់ ${formattedRoom} ត្រូវបានសម្អាត!`,
+            text: `ក្នុងថេរវលា: ${duration}`,
             timer: 2500,
             showConfirmButton: false
         });
