@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadDNDStatus();  // ✅ Load DND status first
     await loadLogs(); // ✅ Fetch logs before restoring buttons
     await restoreCleaningStatus(); // ✅ Ensure buttons are updated after logs are loaded
+    await showDashboard(localStorage.getItem("username"));
     await connectWebSocket(); // ✅ Connect WebSocket first for real-time updates
      
     // ✅ Ensure socket is available before emitting
@@ -504,6 +505,29 @@ function showDashboard(username) {
 
     // Set username display
     usernameDisplay.textContent = username;
+
+
+    // 🛠️ Create Stats Elements
+    let statsContainer = document.getElementById("user-stats");
+    if (!statsContainer) {
+        statsContainer = document.createElement("div");
+        statsContainer.id = "user-stats";
+        statsContainer.style.fontSize = "14px";
+        statsContainer.style.marginTop = "5px";
+        statsContainer.style.color = "#555";
+        usernameDisplay.parentNode.appendChild(statsContainer);
+    }
+
+    // 🏆 Fetch and Display Stats
+    const { userDurations, fastestUser, fastestDuration } = await calculateUserCleaningStats();
+    
+    const avgDuration = userDurations[username]?.average || "N/A";
+    const fastestCleaner = fastestUser ? `${fastestUser} (${fastestDuration} min)` : "N/A";
+
+    statsContainer.innerHTML = `
+        <div>🕒 Avg Cleaning Duration: <strong>${avgDuration} min</strong></div>
+        <div>⚡ Fastest Cleaner: <strong>${fastestCleaner}</strong></div>
+    `;
 
     // Load rooms first, then ensure the ground floor is shown
     loadRooms();
@@ -1415,6 +1439,8 @@ async function loadLogs() {
             `;
             logTable.appendChild(row);
         });
+         // Update dashboard stats after loading logs
+        await showDashboard(localStorage.getItem("username"));
 
         // ✅ If no logs are found, display a default message
         if (!logTable.innerHTML.trim()) { 
@@ -1425,6 +1451,54 @@ async function loadLogs() {
         console.error("❌ Error loading logs:", error);
     }
 }
+
+async function calculateUserCleaningStats() {
+    console.log("🔄 Calculating user cleaning statistics...");
+
+    const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
+    if (!logs || !Array.isArray(logs)) {
+        console.warn("⚠️ No valid logs found. Skipping stats update.");
+        return;
+    }
+
+    let userDurations = {}; // Store cleaning times per user
+    let fastestUser = null;
+    let fastestDuration = Infinity;
+
+    logs.forEach(log => {
+        if (log.startTime && log.finishTime) {
+            const startTime = new Date(log.startTime);
+            const finishTime = new Date(log.finishTime);
+            const duration = (finishTime - startTime) / 60000; // Convert to minutes
+
+            if (duration > 0) {
+                const user = log.finishedBy || "Unknown";
+
+                if (!userDurations[user]) {
+                    userDurations[user] = { totalDuration: 0, count: 0, fastest: Infinity };
+                }
+
+                userDurations[user].totalDuration += duration;
+                userDurations[user].count += 1;
+                userDurations[user].fastest = Math.min(userDurations[user].fastest, duration);
+
+                // Update global fastest user
+                if (duration < fastestDuration) {
+                    fastestDuration = duration;
+                    fastestUser = user;
+                }
+            }
+        }
+    });
+
+    // Compute averages
+    for (const user in userDurations) {
+        userDurations[user].average = (userDurations[user].totalDuration / userDurations[user].count).toFixed(1);
+    }
+
+    return { userDurations, fastestUser, fastestDuration: fastestDuration.toFixed(1) };
+}
+
 
 function updateDNDStatus(roomNumber, status) {
     const formattedRoom = formatRoomNumber(roomNumber);
