@@ -1294,7 +1294,7 @@ async function finishCleaning(roomNumber) {
         finishButton.style.backgroundColor = "green";
 
         // ✅ Send notification to Telegram
-        sendTelegramMessage(`✅ Room ${formattedRoom} cleaned by ${username}. Duration: ${duration}`);
+        sendTelegramMessage(`✅ Room ${formattedRoom} បានសម្អាត់រួចរាល់ដោយ ${username}. ថេរវេលា: ${duration}`);
 
         // ✅ Emit WebSocket Event for Real-Time Updates
         safeEmit("roomUpdate", { roomNumber, status: "finished" });
