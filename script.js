@@ -21,7 +21,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadLogs(); // ✅ Fetch logs before restoring buttons
     await loadRooms(); // ✅ Ensure rooms are fully loaded
     await restoreCleaningStatus(); // ✅ Ensure button states are updated
-    restorePriorities(); // ✅ Now restore priorities after button updates
     await connectWebSocket(); // ✅ Connect WebSocket for real-time updates
 
     // ✅ Ensure WebSocket is ready before emitting events
@@ -668,6 +667,25 @@ function highlightSelectedPriority(roomNumber, priority) {
     }
 }
 
+function restorePriorities() {
+    console.log("🔄 Restoring room priorities...");
+
+    document.querySelectorAll(".room").forEach(roomDiv => {
+        const roomNumber = roomDiv.querySelector("span").innerText.replace("Room ", "").trim();
+        let priority = localStorage.getItem(`priority-${roomNumber}`);
+
+        if (!priority) {
+            console.warn(`⚠️ Priority not found for Room ${roomNumber}, setting to default.`);
+            priority = "default"; // Ensure a fallback value
+        }
+
+        updateSelectedPriorityDisplay(roomNumber, priority);
+    });
+
+    console.log("✅ Room priorities restored successfully.");
+}
+
+
 async function refreshToken() {
     const refreshToken = localStorage.getItem("refreshToken");
 
@@ -913,15 +931,22 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 async function restoreCleaningStatus() {
     try {
-        console.log("🔄 Restoring cleaning and DND status...");
+        console.log("🔄 Restoring cleaning, priority, and DND status...");
 
         // 1️⃣ **Immediately restore from localStorage before API calls**
         document.querySelectorAll(".room").forEach(roomDiv => {
             const roomNumber = roomDiv.querySelector("span").innerText.replace("Room ", "").trim();
             let status = localStorage.getItem(`status-${roomNumber}`) || "available";
             let dndStatus = localStorage.getItem(`dnd-${roomNumber}`) || "available";
+            let priority = localStorage.getItem(`priority-${roomNumber}`);
+
+            if (typeof priority === "undefined" || priority === null) {
+                console.warn(`⚠️ Priority is undefined for Room ${roomNumber}. Defaulting to \"default\".`);
+                priority = "default"; // Assign a default value if missing
+            }
 
             updateButtonStatus(roomNumber, status, dndStatus);
+            updateSelectedPriorityDisplay(roomNumber, priority);
         });
 
         // 2️⃣ **Fetch latest logs from the server**
@@ -944,23 +969,27 @@ async function restoreCleaningStatus() {
             let roomNumber = formatRoomNumber(log.roomNumber);
             let status = log.finishTime ? "finished" : log.startTime ? "in_progress" : "available";
             let dndStatus = dndStatusMap.get(roomNumber) ? "dnd" : "available";
+            let priority = localStorage.getItem(`priority-${roomNumber}`) || "default";
 
-            console.log(`🎯 Restoring Room ${roomNumber} -> Status: ${status}, DND: ${dndStatus}`);
+            console.log(`🎯 Restoring Room ${roomNumber} -> Status: ${status}, DND: ${dndStatus}, Priority: ${priority}`);
             
-            // ✅ Update buttons properly
+            // ✅ Update buttons and priority display properly
             updateButtonStatus(roomNumber, status, dndStatus);
+            updateSelectedPriorityDisplay(roomNumber, priority);
 
             // ✅ Store status locally for faster restoration on next refresh
             localStorage.setItem(`status-${roomNumber}`, status);
             localStorage.setItem(`dnd-${roomNumber}`, dndStatus);
+            localStorage.setItem(`priority-${roomNumber}`, priority);
         });
 
-        console.log("✅ Cleaning and DND status restored successfully.");
+        console.log("✅ Cleaning, priority, and DND status restored successfully.");
 
     } catch (error) {
         console.error("❌ Error restoring cleaning status:", error);
     }
 }
+
 
 
 async function resetCleaningStatus(roomNumber) {
@@ -1348,7 +1377,6 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
     const dndButton = document.getElementById(`dnd-${formattedRoom}`);
     const priorityButton = document.getElementById(`selected-priority-${formattedRoom}`);
 
-    if (startButton.disabled && finishButton.disabled) return;
 
     if (!startButton || !finishButton || !dndButton) {
         console.warn(`⚠️ Buttons for Room ${formattedRoom} not found in DOM`);
