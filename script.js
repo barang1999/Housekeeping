@@ -1294,7 +1294,7 @@ async function finishCleaning(roomNumber) {
         finishButton.style.backgroundColor = "green";
 
         // ✅ Send notification to Telegram
-        sendTelegramMessage(`✅ Room ${formattedRoom} បានសម្អាត់រួចរាល់ដោយ ${username}. ថេរវេលា: ${duration}`);
+        sendTelegramMessage(`✅ Room ${formattedRoom} បានសម្អាតរួចរាល់ដោយ ${username}. ថេរវេលា: ${duration}`);
 
         // ✅ Emit WebSocket Event for Real-Time Updates
         safeEmit("roomUpdate", { roomNumber, status: "finished" });
@@ -1728,6 +1728,9 @@ function exportLogs() {
         body: logs,
     });
 
-    pdf.save("cleaning_logs_today.pdf");
+    // Get today's date in YYYY-MM-DD format for file name
+    const formattedDate = new Date().toISOString().split('T')[0];
+
+    pdf.save(`cleaning_logs_${formattedDate}.pdf`);
 
 }
