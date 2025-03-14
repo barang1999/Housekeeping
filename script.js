@@ -4,16 +4,27 @@ let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 3;
 window.socket = null;
 
+// ✅ Debounce function to prevent rapid execution
+function debounce(func, delay) {
+    let timer;
+    return function (...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => func(...args), delay);
+    };
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
     console.log("🔄 Initializing housekeeping system...");
 
     await ensureValidToken();
     await loadDNDStatus();  // ✅ Load DND status first
     await loadLogs(); // ✅ Fetch logs before restoring buttons
-    await restoreCleaningStatus(); // ✅ Ensure buttons are updated after logs are loaded
-    await connectWebSocket(); // ✅ Connect WebSocket first for real-time updates
-     
-    // ✅ Ensure socket is available before emitting
+    await loadRooms(); // ✅ Ensure rooms are fully loaded
+    await restoreCleaningStatus(); // ✅ Ensure button states are updated
+    restorePriorities(); // ✅ Now restore priorities after button updates
+    await connectWebSocket(); // ✅ Connect WebSocket for real-time updates
+
+    // ✅ Ensure WebSocket is ready before emitting events
     if (window.socket) {
         window.socket.emit("requestPriorityStatus");
     } else {
@@ -29,7 +40,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     console.log("🎯 Cleaning status restored successfully.");
     checkAuth();
-    loadRooms();
+ 
 
     const token = localStorage.getItem("token");
     const username = localStorage.getItem("username");
@@ -90,6 +101,10 @@ async function connectWebSocket() {
         });
     });
 
+    const debouncedPriorityUpdate = debounce(({ roomNumber, priority }) => {
+    updateSelectedPriorityDisplay(roomNumber, priority);
+    }, 300); // Delay updates by 300ms to avoid flickering
+
     // ✅ Handle real-time priority updates safely
     window.socket.on("priorityUpdate", ({ roomNumber, priority }) => {
         if (!roomNumber || !priority) {
@@ -103,15 +118,13 @@ async function connectWebSocket() {
 
 
     
-   window.socket.on("roomUpdate", async ({ roomNumber, status }) => {
-    try {
-        console.log(`🛎 Received Room Update: Room ${roomNumber} -> Status: ${status}`);
-        updateButtonStatus(roomNumber, status);
-        await loadLogs();
-    } catch (error) {
-        console.error("❌ Error processing room update:", error);
-    }
-});
+   const debouncedRoomUpdate = debounce(async ({ roomNumber, status }) => {
+    console.log(`🛎 Debounced Room Update: Room ${roomNumber} -> Status: ${status}`);
+    updateButtonStatus(roomNumber, status);
+    await loadLogs();
+    }, 500); // 500ms delay to prevent flickering
+
+    window.socket.on("roomUpdate", debouncedRoomUpdate);
     
       window.socket.on("dndUpdate", (data) => {
     if (!data || !data.roomNumber) {
@@ -474,7 +487,7 @@ async function loadRooms() {
                 `;
 
                 floorDiv.appendChild(roomDiv);
-                highlightSelectedPriority(room, savedPriority);
+                updateSelectedPriorityDisplay(room, priority);
             });
         }
 
@@ -890,13 +903,11 @@ async function restoreCleaningStatus() {
     try {
         console.log("🔄 Restoring cleaning and DND status...");
 
-        // 1️⃣ **Immediately restore from localStorage before API calls**
+        // 1️⃣ **Clear outdated local storage values first**
         document.querySelectorAll(".room").forEach(roomDiv => {
             const roomNumber = roomDiv.querySelector("span").innerText.replace("Room ", "").trim();
-            let status = localStorage.getItem(`status-${roomNumber}`) || "available";
-            let dndStatus = localStorage.getItem(`dnd-${roomNumber}`) || "available";
-
-            updateButtonStatus(roomNumber, status, dndStatus);
+            localStorage.removeItem(`status-${roomNumber}`); // Clear old cleaning status
+            localStorage.removeItem(`dnd-${roomNumber}`); // Clear outdated DND status
         });
 
         // 2️⃣ **Fetch latest logs from the server**
@@ -910,24 +921,27 @@ async function restoreCleaningStatus() {
             return;
         }
 
-        // Convert DND logs into a lookup map
+        // 3️⃣ **Convert DND logs into a lookup map**
         const dndStatusMap = new Map(
-            (Array.isArray(dndLogs) ? dndLogs : []).map(dnd => [formatRoomNumber(dnd.roomNumber), dnd.dndStatus])
+            (Array.isArray(dndLogs) ? dndLogs : []).map(dnd => [String(dnd.roomNumber), dnd.dndStatus])
         );
 
         logs.forEach(log => {
-            let roomNumber = formatRoomNumber(log.roomNumber);
+            let roomNumber = String(log.roomNumber); // Ensure roomNumber is a string
             let status = log.finishTime ? "finished" : log.startTime ? "in_progress" : "available";
-            let dndStatus = dndStatusMap.get(roomNumber) ? "dnd" : "available";
+            let dndStatus = dndStatusMap.get(roomNumber) || "available"; // Default to "available"
 
             console.log(`🎯 Restoring Room ${roomNumber} -> Status: ${status}, DND: ${dndStatus}`);
-            
+
             // ✅ Update buttons properly
             updateButtonStatus(roomNumber, status, dndStatus);
 
-            // ✅ Store status locally for faster restoration on next refresh
+            // ✅ Store fresh status locally
             localStorage.setItem(`status-${roomNumber}`, status);
             localStorage.setItem(`dnd-${roomNumber}`, dndStatus);
+
+            // ✅ Ensure DND status is reflected in UI
+            updateDNDStatus(roomNumber, dndStatus);
         });
 
         console.log("✅ Cleaning and DND status restored successfully.");
@@ -936,6 +950,7 @@ async function restoreCleaningStatus() {
         console.error("❌ Error restoring cleaning status:", error);
     }
 }
+
 
 
 async function resetCleaningStatus(roomNumber) {
@@ -1322,6 +1337,8 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
     const dndButton = document.getElementById(`dnd-${formattedRoom}`);
     const priorityButton = document.getElementById(`selected-priority-${formattedRoom}`);
+
+    if (startButton.disabled && finishButton.disabled) return;
 
     if (!startButton || !finishButton || !dndButton) {
         console.warn(`⚠️ Buttons for Room ${formattedRoom} not found in DOM`);
