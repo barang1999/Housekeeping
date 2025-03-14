@@ -427,7 +427,6 @@ async function loadRooms() {
         "third-floor": ["201", "202", "203", "204", "205", "208", "209", "210", "211", "212", "213", "214", "215", "216", "217"]
     };
 
-    // ✅ Fetch room priorities before rendering rooms
     let priorities = [];
     try {
         const response = await fetch(`${apiUrl}/logs/priority`);
@@ -450,7 +449,6 @@ async function loadRooms() {
             const roomDiv = document.createElement("div");
             roomDiv.classList.add("room");
 
-            // ✅ FIXED TEMPLATE STRING ERROR
             roomDiv.innerHTML = `
                 <span>Room ${room}</span>
                   <div class="priority-container">
@@ -468,20 +466,22 @@ async function loadRooms() {
             `;
 
             floorDiv.appendChild(roomDiv);
-
-            // ✅ FIX: Ensure `priorities` is an array before calling `.find()`
-            if (Array.isArray(priorities)) {
-                const savedPriority = priorities.find(p => p.roomNumber === room)?.priority || "default";
-                highlightSelectedPriority(roomNumber, priority)
-            } else {
-                console.warn(`⚠️ Priorities data is not in expected format.`);
-            }
         });
+    });
+
+    // ✅ Move priority update loop OUTSIDE the floor loop
+    priorities.forEach(({ roomNumber, priority }) => {
+        if (roomNumber !== undefined) {
+            updateSelectedPriorityDisplay(roomNumber, priority);
+        } else {
+            console.warn("Skipping undefined roomNumber:", priority);
+        }
     });
 
     await restoreCleaningStatus();
     console.log("✅ Rooms loaded successfully with priorities.");
 }
+
 
 async function showDashboard(username) {
     console.log("Inside showDashboard function. Username:", username);
