@@ -1363,9 +1363,8 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
     let formattedRoom = formatRoomNumber(roomNumber);
     const startButton = document.getElementById(`start-${formattedRoom}`);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
-    const checkedButton = document.getElementById(`checked-${roomNumber}`);
+    const checkedButton = document.getElementById(`checked-${formattedRoom}`);
     const dndButton = document.getElementById(`dnd-${formattedRoom}`);
-
 
     if (!startButton || !finishButton || !dndButton || !checkedButton) {
         console.warn(`⚠️ Buttons for Room ${formattedRoom} not found in DOM`);
@@ -1374,31 +1373,46 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
 
     console.log(`🎯 Updating Room ${formattedRoom} -> Status: ${status}, DND: ${dndStatus}`);
 
-    // ✅ Update Start and Finish buttons based on cleaning status
-      if (status === "finished") {
+    // ✅ Handle Cleaning Button States
+    if (status === "finished") {
         startButton.disabled = true;
         startButton.style.backgroundColor = "grey";
+
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "green";
-        checkedButton.disabled = false;
-        checkedButton.style.backgroundColor = "#008CFF";
+
+        checkedButton.disabled = false; // Enable checked button
+        checkedButton.style.backgroundColor = "blue";
     } else if (status === "checked") {
         startButton.disabled = true;
         startButton.style.backgroundColor = "grey";
+
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "green";
-        checkedButton.disabled = true;
-        checkedButton.style.backgroundColor = "green";
+
+        checkedButton.disabled = true; // Ensure checked button stays disabled
+        checkedButton.style.backgroundColor = "green"; // ✅ Checked turns Green
+    } else if (status === "in_progress") {
+        startButton.disabled = true;
+        startButton.style.backgroundColor = "grey";
+
+        finishButton.disabled = false;
+        finishButton.style.backgroundColor = "#008CFF";
+
+        checkedButton.disabled = true; // Still disabled
+        checkedButton.style.backgroundColor = "grey";
     } else {
         startButton.disabled = false;
         startButton.style.backgroundColor = "#008CFF";
+
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "grey";
+
         checkedButton.disabled = true;
         checkedButton.style.backgroundColor = "grey";
     }
 
-    // ✅ Ensure DND mode is handled separately
+    // ✅ Handle DND State
     if (dndStatus === "dnd") {
         console.log(`🚨 Room ${formattedRoom} is in DND mode - Disabling Start Cleaning`);
         startButton.disabled = true;
@@ -1410,7 +1424,6 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         dndButton.classList.remove("active-dnd");
         dndButton.style.backgroundColor = "#008CFF00";
 
-        // Only enable start button if cleaning is not in progress or finished
         if (status === "available") {
             startButton.disabled = false;
             startButton.style.backgroundColor = "#008CFF";
