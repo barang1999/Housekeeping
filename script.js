@@ -1121,6 +1121,7 @@ async function startCleaning(roomNumber) {
     let numericRoomNumber = Number(roomNumber);
     const startButton = document.getElementById(`start-${formattedRoom}`);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
+    const emoji = checkedButton.querySelector("span"); // Get emoji inside the button
     const dndButton = document.getElementById(`dnd-${formattedRoom}`);
 
     if (!startButton || !finishButton || !dndButton) {
@@ -1315,14 +1316,16 @@ async function finishCleaning(roomNumber) {
         });
 
         if (!checkedButton || !emoji) return;
+
         // ✅ Disable Finish Button and Change Color to Green
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "green";
 
-           // Make emoji visible with light blue background
+        // ✅ Make emoji visible with light blue background
         checkedButton.classList.add("finished");
         checkedButton.classList.remove("checked"); // Ensure reset
-        emoji.style.opacity = "1"; // Make emoji visible
+        checkedButton.style.backgroundColor = "#008CFF"; // ✅ Light blue after "Finish"
+        emoji.style.opacity = "1"; // ✅ Make emoji visible
         checkedButton.disabled = false; // Enable "Checked" button
 
         // ✅ Send notification to Telegram
@@ -1372,10 +1375,13 @@ async function checkRoom(roomNumber) {
         }
 
         if (!checkedButton || !emoji) return;
-        // Remove blue background, turn checkmark green
+
+        // ✅ Reset background and remove previous states
         checkedButton.classList.remove("finished");
         checkedButton.classList.add("checked");
-        emoji.style.color = "#28a745"; // Turn checkmark green
+        checkedButton.style.backgroundColor = "transparent"; // ✅ Reset to transparent
+        emoji.style.opacity = "1"; // ✅ Make emoji visible
+        emoji.style.color = "#28a745"; // ✅ Make checkmark green
         checkedButton.disabled = true; // Disable after clicking
 
         // ✅ Save checked status immediately to LocalStorage
@@ -1404,7 +1410,7 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
     console.log(`🎯 Updating Room ${formattedRoom} -> Status: ${status}, DND: ${dndStatus}`);
 
     // ✅ Prevent overwriting "Checked" button if it was already checked
-    let isAlreadyChecked = checkedButton.style.backgroundColor === "green";
+    let isAlreadyChecked = checkedButton.classList.contains("checked");
 
     // ✅ Handle Cleaning Button States
     if (status === "finished") {
@@ -1416,8 +1422,9 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
 
         checkedButton.disabled = false; // Enable checked button
         if (!isAlreadyChecked) {
-            checkedButton.classList.add("finished"); // Add "finished" class for blue
-            checkedButton.classList.remove("default"); // ✅ Keep blue if not checked
+            checkedButton.classList.add("finished"); // ✅ Add light blue
+            checkedButton.classList.remove("default"); 
+            checkedButton.style.backgroundColor = "#008CFF"; // ✅ Light blue after "Finish"
         }
     } else if (status === "checked") {
         startButton.disabled = true;
@@ -1426,8 +1433,10 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "green";
 
-        checkedButton.classList.add("checked"); // Add "checked" class for green
-        checkedButton.classList.remove("finished"); // Remove blue state
+        checkedButton.classList.add("checked"); // ✅ Make green after clicking
+        checkedButton.classList.remove("finished"); // ✅ Remove blue background
+        checkedButton.style.backgroundColor = "transparent"; // ✅ Reset background
+        checkedButton.querySelector("span").style.opacity = "1"; // ✅ Keep emoji visible
     } else if (status === "in_progress") {
         startButton.disabled = true;
         startButton.style.backgroundColor = "grey";
@@ -1458,7 +1467,7 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
     } else {
         console.log(`✅ Room ${formattedRoom} is available - Enabling Start Cleaning`);
         dndButton.classList.remove("active-dnd");
-        dndButton.style.backgroundColor = "#008CFF00";
+        dndButton.style.backgroundColor = "transparent";
 
         if (status === "available") {
             startButton.disabled = false;
@@ -1466,6 +1475,7 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         }
     }
 }
+
 
 
 
