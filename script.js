@@ -106,6 +106,14 @@ async function connectWebSocket() {
    window.socket.on("roomUpdate", async ({ roomNumber, status }) => {
     try {
         console.log(`🛎 Received Room Update: Room ${roomNumber} -> Status: ${status}`);
+
+        // ✅ Get the current status from the UI before updating
+        const checkedButton = document.getElementById(`checked-${roomNumber}`);
+        if (checkedButton && checkedButton.style.backgroundColor === "green") {
+            console.log(`✅ Room ${roomNumber} is already checked. Ignoring update.`);
+            return; // 🔥 Prevent overwriting checked status
+        }
+
         updateButtonStatus(roomNumber, status);
         await loadLogs();
     } catch (error) {
@@ -1346,18 +1354,16 @@ async function checkRoom(roomNumber) {
         checkedButton.disabled = true;
         checkedButton.style.backgroundColor = "green";
 
-        // Emit WebSocket Event
-        safeEmit("roomUpdate", { roomNumber, status: "checked" });
-
-        // Save to Local Storage
+        // ✅ Save checked status immediately to LocalStorage
         localStorage.setItem(`status-${roomNumber}`, "checked");
+
+        // ✅ Emit WebSocket Event
+        safeEmit("roomUpdate", { roomNumber, status: "checked" });
 
     } catch (error) {
         console.error("❌ Error checking room:", error);
     }
 }
-
-
 
 function updateButtonStatus(roomNumber, status, dndStatus = "available") {
     let formattedRoom = formatRoomNumber(roomNumber);
@@ -1382,7 +1388,7 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         finishButton.style.backgroundColor = "green";
 
         checkedButton.disabled = false; // Enable checked button
-        checkedButton.style.backgroundColor = "blue";
+        checkedButton.style.backgroundColor = "#008CFF";
     } else if (status === "checked") {
         startButton.disabled = true;
         startButton.style.backgroundColor = "grey";
