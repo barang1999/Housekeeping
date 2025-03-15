@@ -1121,6 +1121,7 @@ async function startCleaning(roomNumber) {
     let numericRoomNumber = Number(roomNumber);
     const startButton = document.getElementById(`start-${formattedRoom}`);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
+    const checkedButton = document.getElementById(`checked-${roomNumber}`);
     const emoji = checkedButton.querySelector("span"); // Get emoji inside the button
     const dndButton = document.getElementById(`dnd-${formattedRoom}`);
 
