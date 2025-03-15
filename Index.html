@@ -274,6 +274,25 @@
 .priority-toggle.early-arrival { background-color: yellow; }
 .priority-toggle.vacancy { background-color: black; }
 
+
+/* Default state: Grey ✅ */
+button.checked {
+    filter: brightness(0) saturate(100%);
+    opacity: 0.5; /* Light grey effect */
+}
+
+/* After clicking "Finish" button: Blue ✅ */
+button.checked.finished {
+    filter: invert(36%) sepia(95%) saturate(780%) hue-rotate(185deg) brightness(100%) contrast(96%);
+    opacity: 1;
+}
+
+/* After clicking "Checked" button: Green ✅ */
+button.checked.checked {
+    filter: invert(49%) sepia(97%) saturate(408%) hue-rotate(90deg) brightness(90%) contrast(91%);
+    opacity: 1;
+}
+
     
     </style>
 </head>

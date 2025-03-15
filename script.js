@@ -470,7 +470,7 @@ async function loadRooms() {
                 </div>
                 <button id="start-${room}" onclick="startCleaning('${room}')">Cleaning</button>
                 <button id="finish-${room}" onclick="finishCleaning('${room}')" disabled>Done</button>
-                 <button id="checked-${room}" onclick="checkRoom('${room}')" disabled style="background-color: grey;">✅</button>
+                 <button id="checked-${room}" onclick="checkRoom('${room}')" disabled class="checked">✅</button>
                 <button id="dnd-${room}" class="dnd-btn" onclick="toggleDoNotDisturb('${room}')">🚫</button>
             `;
 
@@ -1318,7 +1318,8 @@ async function finishCleaning(roomNumber) {
         finishButton.style.backgroundColor = "green";
 
         checkedButton.disabled = false;
-        checkedButton.style.backgroundColor = "blue";
+        checkedButton.classList.add("finished"); // Add "finished" class for blue
+        checkedButton.classList.remove("default");
 
         // ✅ Send notification to Telegram
         sendTelegramMessage(`✅ Room ${formattedRoom} បានសម្អាតរួចរាល់ដោយ ${username}. ថេរវេលា: ${duration}`);
@@ -1366,7 +1367,8 @@ async function checkRoom(roomNumber) {
         }
 
         checkedButton.disabled = true;
-        checkedButton.style.backgroundColor = "green";
+        checkedButton.classList.add("checked"); // Add "checked" class for green
+        checkedButton.classList.remove("finished"); // Remove blue state
 
         // ✅ Save checked status immediately to LocalStorage
         localStorage.setItem(`status-${roomNumber}`, "checked");
@@ -1406,7 +1408,8 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
 
         checkedButton.disabled = false; // Enable checked button
         if (!isAlreadyChecked) {
-            checkedButton.style.backgroundColor = "#008CFF"; // ✅ Keep blue if not checked
+            checkedButton.classList.add("finished"); // Add "finished" class for blue
+            checkedButton.classList.remove("default"); // ✅ Keep blue if not checked
         }
     } else if (status === "checked") {
         startButton.disabled = true;
@@ -1415,8 +1418,8 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "green";
 
-        checkedButton.disabled = true; // Ensure checked button stays disabled
-        checkedButton.style.backgroundColor = "green"; // ✅ Checked stays Green
+        checkedButton.classList.add("checked"); // Add "checked" class for green
+        checkedButton.classList.remove("finished"); // Remove blue state
     } else if (status === "in_progress") {
         startButton.disabled = true;
         startButton.style.backgroundColor = "grey";
@@ -1424,8 +1427,8 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         finishButton.disabled = false;
         finishButton.style.backgroundColor = "#008CFF";
 
-        checkedButton.disabled = true; // Still disabled
-        checkedButton.style.backgroundColor = "grey";
+        checkedButton.classList.remove("finished", "checked"); // Remove any previous state
+        checkedButton.classList.add("default"); // Ensure grey state
     } else {
         startButton.disabled = false;
         startButton.style.backgroundColor = "#008CFF";
@@ -1433,8 +1436,8 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "grey";
 
-        checkedButton.disabled = true;
-        checkedButton.style.backgroundColor = "grey";
+        checkedButton.classList.remove("finished", "checked"); // Remove any previous state
+        checkedButton.classList.add("default"); // Ensure grey state
     }
 
     // ✅ Handle DND State
