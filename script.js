@@ -908,6 +908,14 @@ async function restoreCleaningStatus() {
             updateButtonStatus(roomNumber, status, dndStatus);
         });
 
+        // ✅ Ensure "Checked" button stays green if status is "checked"
+            const checkedButton = document.getElementById(`checked-${roomNumber}`);
+            if (status === "checked" && checkedButton) {
+                checkedButton.disabled = true;
+                checkedButton.style.backgroundColor = "green"; // ✅ Force Green
+            }
+        });
+
         // 2️⃣ **Fetch latest logs from the server**
         const [logs, dndLogs] = await Promise.all([
             fetchWithErrorHandling(`${apiUrl}/logs`),
@@ -1388,7 +1396,7 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         finishButton.style.backgroundColor = "green";
 
         checkedButton.disabled = false; // Enable checked button
-        checkedButton.style.backgroundColor = "#008CFF";
+        checkedButton.style.backgroundColor = "#008CFF"; // ✅ Keep checked button blue initially
     } else if (status === "checked") {
         startButton.disabled = true;
         startButton.style.backgroundColor = "grey";
@@ -1397,7 +1405,7 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         finishButton.style.backgroundColor = "green";
 
         checkedButton.disabled = true; // Ensure checked button stays disabled
-        checkedButton.style.backgroundColor = "green"; // ✅ Checked turns Green
+        checkedButton.style.backgroundColor = "green"; // ✅ Checked stays Green
     } else if (status === "in_progress") {
         startButton.disabled = true;
         startButton.style.backgroundColor = "grey";
@@ -1436,6 +1444,7 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         }
     }
 }
+
 
 
 // Ensure updateButtonStatus is being called after fetching logs
