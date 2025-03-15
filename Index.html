@@ -279,19 +279,36 @@
 button.checked {
     filter: brightness(0) saturate(100%);
     opacity: 0.5; /* Light grey effect */
+    background-color: transparent;
+    color: #888; /* Ensure the emoji stays grey */
+    border: none;
 }
 
 /* After clicking "Finish" button: Blue ✅ */
 button.checked.finished {
-    filter: invert(36%) sepia(95%) saturate(780%) hue-rotate(185deg) brightness(100%) contrast(96%);
+    filter: none;
     opacity: 1;
+    color: #007bff; /* Blue for finished state */
+    font-size: 18px;
+    background-color: transparent;
+    border: none;
 }
 
 /* After clicking "Checked" button: Green ✅ */
 button.checked.checked {
-    filter: invert(49%) sepia(97%) saturate(408%) hue-rotate(90deg) brightness(90%) contrast(91%);
+    filter: none;
     opacity: 1;
+    color: #28a745; /* Green for checked state */
+    font-size: 18px;
+    background-color: transparent;
+    border: none;
 }
+
+/* Ensure transition effect when changing color */
+button.checked {
+    transition: color 0.3s ease, opacity 0.3s ease;
+}
+
 
     
     </style>

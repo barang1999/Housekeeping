@@ -1367,8 +1367,9 @@ async function checkRoom(roomNumber) {
         }
 
         checkedButton.disabled = true;
-        checkedButton.classList.add("checked"); // Add "checked" class for green
-        checkedButton.classList.remove("finished"); // Remove blue state
+         // Ensure the correct class is applied
+        checkedButton.classList.remove("finished");
+        checkedButton.classList.add("checked");
 
         // ✅ Save checked status immediately to LocalStorage
         localStorage.setItem(`status-${roomNumber}`, "checked");
