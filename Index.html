@@ -288,6 +288,11 @@ button.checked {
     transition: background 0.3s ease, color 0.3s ease;
 }
 
+button.checked span {
+    opacity: 0;  /* ✅ Hide emoji by default */
+    transition: opacity 0.3s ease; /* Smooth fade-in effect */
+}
+
 /* ✅ Light blue when 'Finished' is clicked */
 button.finished {
     background: #008CFF !important; 
@@ -300,14 +305,9 @@ button.checked.finished {
     color: #28a745 !important; /* ✅ Green text */
 }
 
-/* ✅ Ensure checkmark (emoji) visibility */
-button.checked span {
-    opacity: 1 !important;
-    color: #28a745 !important; /* Green checkmark */
+button.checked.finished span {
+    opacity: 1; /* ✅ Show emoji when the button has 'finished' class */
 }
-
-
-
 
     </style>
 </head>

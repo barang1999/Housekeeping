@@ -468,8 +468,8 @@ async function loadRooms() {
                         <div class="priority-option" onclick="updatePriority('${room}', 'vacancy')"><span class="black">⚫</span></div>
                     </div>
                 </div>
-                <button id="start-${room}" onclick="startCleaning('${room}')">Cleaning</button>
-                <button id="finish-${room}" onclick="finishCleaning('${room}')" disabled>Done</button>
+                <button id="start-${room}" onclick="startCleaning('${room}')">សម្អាត</button>
+                <button id="finish-${room}" onclick="finishCleaning('${room}')" disabled>ហើយ</button>
                  <button id="checked-${room}" onclick="checkRoom('${room}')" disabled class="checked">✅</button>
                 <button id="dnd-${room}" class="dnd-btn" onclick="toggleDoNotDisturb('${room}')">🚫</button>
             `;
