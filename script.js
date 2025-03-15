@@ -1393,6 +1393,9 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
 
     console.log(`🎯 Updating Room ${formattedRoom} -> Status: ${status}, DND: ${dndStatus}`);
 
+    // ✅ Prevent overwriting "Checked" button if it was already checked
+    let isAlreadyChecked = checkedButton.style.backgroundColor === "green";
+
     // ✅ Handle Cleaning Button States
     if (status === "finished") {
         startButton.disabled = true;
@@ -1402,7 +1405,9 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         finishButton.style.backgroundColor = "green";
 
         checkedButton.disabled = false; // Enable checked button
-        checkedButton.style.backgroundColor = "#008CFF"; // ✅ Keep checked button blue initially
+        if (!isAlreadyChecked) {
+            checkedButton.style.backgroundColor = "#008CFF"; // ✅ Keep blue if not checked
+        }
     } else if (status === "checked") {
         startButton.disabled = true;
         startButton.style.backgroundColor = "grey";
@@ -1450,6 +1455,7 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         }
     }
 }
+
 
 
 
