@@ -463,6 +463,7 @@ async function loadRooms() {
                 <button id="start-${room}" onclick="startCleaning('${room}')">Cleaning</button>
                 <button id="finish-${room}" onclick="finishCleaning('${room}')" disabled>Done</button>
                 <button id="dnd-${room}" class="dnd-btn" onclick="toggleDoNotDisturb('${room}')">🚫</button>
+                <button id="checked-${room}" onclick="checkRoom('${room}')" disabled style="background-color: grey;">✅</button>
             `;
 
             floorDiv.appendChild(roomDiv);
@@ -1293,6 +1294,9 @@ async function finishCleaning(roomNumber) {
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "green";
 
+        checkedButton.disabled = false;
+        checkedButton.style.backgroundColor = "blue";
+
         // ✅ Send notification to Telegram
         sendTelegramMessage(`✅ Room ${formattedRoom} បានសម្អាតរួចរាល់ដោយ ${username}. ថេរវេលា: ${duration}`);
 
@@ -1316,6 +1320,44 @@ async function finishCleaning(roomNumber) {
     }
 }
 
+async function checkRoom(roomNumber) {
+    const checkedButton = document.getElementById(`checked-${roomNumber}`);
+    const username = localStorage.getItem("username"); 
+
+    if (!username) {
+        console.error("❌ No username found. Cannot check room.");
+        return;
+    }
+
+    try {
+        const res = await fetch(`${apiUrl}/logs/check`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ roomNumber, username, status: "checked" })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            console.error("❌ Failed to Check Room:", data);
+            return;
+        }
+
+        checkedButton.disabled = true;
+        checkedButton.style.backgroundColor = "green";
+
+        // Emit WebSocket Event
+        safeEmit("roomUpdate", { roomNumber, status: "checked" });
+
+        // Save to Local Storage
+        localStorage.setItem(`status-${roomNumber}`, "checked");
+
+    } catch (error) {
+        console.error("❌ Error checking room:", error);
+    }
+}
+
+
+
 function updateButtonStatus(roomNumber, status, dndStatus = "available") {
     let formattedRoom = formatRoomNumber(roomNumber);
     const startButton = document.getElementById(`start-${formattedRoom}`);
@@ -1330,21 +1372,27 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
     console.log(`🎯 Updating Room ${formattedRoom} -> Status: ${status}, DND: ${dndStatus}`);
 
     // ✅ Update Start and Finish buttons based on cleaning status
-    if (status === "finished") {
+      if (status === "finished") {
         startButton.disabled = true;
         startButton.style.backgroundColor = "grey";
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "green";
-    } else if (status === "in_progress") {
+        checkedButton.disabled = false;
+        checkedButton.style.backgroundColor = "#008CFF";
+    } else if (status === "checked") {
         startButton.disabled = true;
         startButton.style.backgroundColor = "grey";
-        finishButton.disabled = false;
-        finishButton.style.backgroundColor = "#008CFF";
+        finishButton.disabled = true;
+        finishButton.style.backgroundColor = "green";
+        checkedButton.disabled = true;
+        checkedButton.style.backgroundColor = "green";
     } else {
         startButton.disabled = false;
         startButton.style.backgroundColor = "#008CFF";
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "grey";
+        checkedButton.disabled = true;
+        checkedButton.style.backgroundColor = "grey";
     }
 
     // ✅ Ensure DND mode is handled separately

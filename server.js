@@ -190,6 +190,21 @@ socket.on("updatePriorityStatus", (data) => {
         button.innerHTML = "⚪"; // Reset to default state
     });
 });
+
+// ✅ Handle Room Checked WebSocket Event
+socket.on("roomChecked", async ({ roomNumber, username }) => {
+    try {
+        await CleaningLog.findOneAndUpdate(
+            { roomNumber, finishTime: { $ne: null } }, 
+            { $set: { checkedTime: new Date().toLocaleString(), checkedBy: username, status: "checked" } },
+            { new: true }
+        );
+
+        io.emit("roomChecked", { roomNumber, status: "checked", checkedBy: username });
+    } catch (error) {
+        console.error("❌ WebSocket Error: Room Checked", error);
+    }
+});
     
 socket.on("dndUpdate", async ({ roomNumber, status }) => {
     try {
@@ -365,7 +380,9 @@ app.get("/logs/status", async (req, res) => {
         let status = {};
 
         logs.forEach(log => {
-            if (log.finishTime) {
+            if (log.checkedTime) {
+                status[log.roomNumber] = "checked";  // ✅ NEW: Mark as Checked if already clicked
+            } else if (log.finishTime) {
                 status[log.roomNumber] = "finished";
             } else if (log.startTime) {
                 status[log.roomNumber] = "in_progress";
@@ -673,6 +690,8 @@ const logSchema = new mongoose.Schema({
     startedBy: { type: String, default: null },
     finishTime: { type: String, default: null },
     finishedBy: { type: String, default: null },
+    checkedTime: { type: String, default: null },  // ✅ NEW: Store when Checked button is clicked
+    checkedBy: { type: String, default: null },    // ✅ NEW: Store who clicked Checked
     dndStatus: { type: Boolean, default: false }, // ✅ DND Mode
     status: { type: String, default: "available" }
 });
@@ -713,6 +732,37 @@ mongoose.connection.once("open", async () => {
     console.log("✅ Database connected. Running room number fix...");
     await fixRoomNumbers();
 });
+
+// ✅ Mark Room as Checked
+app.post("/logs/check", async (req, res) => {
+    let { roomNumber, username } = req.body;
+    if (!roomNumber || !username) {
+        return res.status(400).json({ message: "Room number and username are required" });
+    }
+
+    roomNumber = parseInt(roomNumber, 10); // Convert to number
+    const checkedTime = new Date().toLocaleString("en-US", { timeZone: "Asia/Phnom_Penh" });
+
+    try {
+        const updatedLog = await CleaningLog.findOneAndUpdate(
+            { roomNumber, finishTime: { $ne: null }, checkedTime: null },
+            { $set: { checkedTime, checkedBy: username, status: "checked" } },
+            { new: true }
+        );
+
+        if (!updatedLog) {
+            return res.status(400).json({ message: "Room not found or already checked." });
+        }
+
+        io.emit("roomChecked", { roomNumber, status: "checked", checkedBy: username });
+
+        res.status(200).json({ message: `Room ${roomNumber} checked by ${username}` });
+
+    } catch (error) {
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+});
+
 
 app.get("/logs", async (req, res) => {
     try {
