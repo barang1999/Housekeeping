@@ -277,38 +277,40 @@
 
 /* Default state: Grey ✅ */
 button.checked {
+    background: none !important; /* Remove background */
+    border: none;
     filter: brightness(0) saturate(100%);
     opacity: 0.5; /* Light grey effect */
-    background-color: transparent;
-    color: #888; /* Ensure the emoji stays grey */
-    border: none;
+    color: #888; /* Grey color */
 }
 
 /* After clicking "Finish" button: Blue ✅ */
 button.checked.finished {
+    background: none !important; /* Ensure no background */
     filter: none;
     opacity: 1;
-    color: #007bff; /* Blue for finished state */
-    font-size: 18px;
-    background-color: transparent;
-    border: none;
+    color: #007bff; /* Blue color */
 }
 
 /* After clicking "Checked" button: Green ✅ */
 button.checked.checked {
+    background: none !important; /* Ensure no background */
     filter: none;
     opacity: 1;
-    color: #28a745; /* Green for checked state */
-    font-size: 18px;
-    background-color: transparent;
-    border: none;
+    color: #28a745; /* Green color */
 }
 
-/* Ensure transition effect when changing color */
+/* Ensure no grey background when disabled */
+button:disabled {
+    background: none !important;
+    color: inherit;
+    opacity: 0.5;
+}
+
+/* Optional: Add a smooth transition */
 button.checked {
-    transition: color 0.3s ease, opacity 0.3s ease;
+    transition: color 0.3s ease, opacity 0.3s ease, background 0.3s ease;
 }
-
 
     
     </style>
