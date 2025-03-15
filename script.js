@@ -1322,12 +1322,13 @@ async function finishCleaning(roomNumber) {
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "green";
 
-        // ✅ Make emoji visible with light blue background
-        checkedButton.classList.add("finished");
-        checkedButton.classList.remove("checked"); // Ensure reset
-        checkedButton.style.backgroundColor = "#008CFF"; // ✅ Light blue after "Finish"
-        emoji.style.opacity = "1"; // ✅ Make emoji visible
+        // Ensure the finish button is clicked before making the emoji visible
+    if (!finishButton.disabled) {
+        checkedButton.classList.add("finished"); // ✅ Apply finished class
+        emoji.style.opacity = "1"; // ✅ Show emoji
+        emoji.style.visibility = "visible"; // ✅ Ensure it's visible
         checkedButton.disabled = false; // Enable "Checked" button
+    }
 
         // ✅ Send notification to Telegram
         sendTelegramMessage(`✅ Room ${formattedRoom} បានសម្អាតរួចរាល់ដោយ ${username}. ថេរវេលា: ${duration}`);
@@ -1382,6 +1383,7 @@ async function checkRoom(roomNumber) {
         checkedButton.classList.add("checked");
         checkedButton.style.backgroundColor = "transparent"; // ✅ Reset to transparent
         emoji.style.opacity = "1"; // ✅ Make emoji visible
+        emoji.style.visibility = "visible"; // ✅ Ensure it's visible
         emoji.style.color = "#28a745"; // ✅ Make checkmark green
         checkedButton.disabled = true; // Disable after clicking
 
@@ -1402,8 +1404,9 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
     const checkedButton = document.getElementById(`checked-${formattedRoom}`);
     const dndButton = document.getElementById(`dnd-${formattedRoom}`);
+    const emoji = checkedButton?.querySelector("span"); // Get emoji inside button
 
-    if (!startButton || !finishButton || !dndButton || !checkedButton) {
+    if (!startButton || !finishButton || !dndButton || !checkedButton || !emoji) {
         console.warn(`⚠️ Buttons for Room ${formattedRoom} not found in DOM`);
         return;
     }
@@ -1422,8 +1425,10 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         finishButton.style.backgroundColor = "green";
 
         checkedButton.disabled = false; // Enable checked button
+        emoji.style.opacity = "1";  // ✅ Show emoji when finished
+        emoji.style.visibility = "visible"; // ✅ Ensure it's visible
         if (!isAlreadyChecked) {
-            checkedButton.classList.add("finished"); // ✅ Add light blue
+            checkedButton.classList.add("finished"); 
             checkedButton.classList.remove("default"); 
             checkedButton.style.backgroundColor = "#008CFF"; // ✅ Light blue after "Finish"
         }
@@ -1434,10 +1439,11 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "green";
 
-        checkedButton.classList.add("checked"); // ✅ Make green after clicking
-        checkedButton.classList.remove("finished"); // ✅ Remove blue background
-        checkedButton.style.backgroundColor = "transparent"; // ✅ Reset background
-        checkedButton.querySelector("span").style.opacity = "1"; // ✅ Keep emoji visible
+        checkedButton.classList.add("checked"); 
+        checkedButton.classList.remove("finished"); 
+        checkedButton.style.backgroundColor = "transparent"; 
+        emoji.style.opacity = "1";  // ✅ Keep emoji visible after "Checked"
+        emoji.style.visibility = "visible";
     } else if (status === "in_progress") {
         startButton.disabled = true;
         startButton.style.backgroundColor = "grey";
@@ -1445,8 +1451,10 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         finishButton.disabled = false;
         finishButton.style.backgroundColor = "#008CFF";
 
-        checkedButton.classList.remove("finished", "checked"); // Remove any previous state
-        checkedButton.classList.add("default"); // Ensure grey state
+        checkedButton.classList.remove("finished", "checked"); 
+        checkedButton.classList.add("default"); 
+        emoji.style.opacity = "0"; // ❌ Hide emoji until finish is clicked
+        emoji.style.visibility = "hidden";
     } else {
         startButton.disabled = false;
         startButton.style.backgroundColor = "#008CFF";
@@ -1454,8 +1462,10 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "grey";
 
-        checkedButton.classList.remove("finished", "checked"); // Remove any previous state
-        checkedButton.classList.add("default"); // Ensure grey state
+        checkedButton.classList.remove("finished", "checked"); 
+        checkedButton.classList.add("default"); 
+        emoji.style.opacity = "0"; // ❌ Hide emoji until finish is clicked
+        emoji.style.visibility = "hidden";
     }
 
     // ✅ Handle DND State
@@ -1476,10 +1486,6 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         }
     }
 }
-
-
-
-
 
 // Ensure updateButtonStatus is being called after fetching logs
 async function loadLogs() {
