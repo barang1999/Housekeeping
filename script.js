@@ -462,8 +462,8 @@ async function loadRooms() {
                 </div>
                 <button id="start-${room}" onclick="startCleaning('${room}')">Cleaning</button>
                 <button id="finish-${room}" onclick="finishCleaning('${room}')" disabled>Done</button>
+                 <button id="checked-${room}" onclick="checkRoom('${room}')" disabled style="background-color: grey;">✅</button>
                 <button id="dnd-${room}" class="dnd-btn" onclick="toggleDoNotDisturb('${room}')">🚫</button>
-                <button id="checked-${room}" onclick="checkRoom('${room}')" disabled style="background-color: grey;">✅</button>
             `;
 
             floorDiv.appendChild(roomDiv);
@@ -1187,6 +1187,7 @@ async function startCleaning(roomNumber) {
 async function finishCleaning(roomNumber) {
     const formattedRoom = formatRoomNumber(roomNumber);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
+    const checkedButton = document.getElementById(`checked-${roomNumber}`);
     const username = localStorage.getItem("username"); 
     
     if (!username) {
@@ -1362,9 +1363,11 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
     let formattedRoom = formatRoomNumber(roomNumber);
     const startButton = document.getElementById(`start-${formattedRoom}`);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
+    const checkedButton = document.getElementById(`checked-${roomNumber}`);
     const dndButton = document.getElementById(`dnd-${formattedRoom}`);
 
-    if (!startButton || !finishButton || !dndButton) {
+
+    if (!startButton || !finishButton || !dndButton || !checkedButton) {
         console.warn(`⚠️ Buttons for Room ${formattedRoom} not found in DOM`);
         return;
     }
