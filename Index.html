@@ -275,36 +275,30 @@
 .priority-toggle.vacancy { background-color: black; }
 
 
-/* Default state: Grey ✅ */
+/* Default state: Faded ✅ */
 button.checked {
-    background: none !important; /* Ensure no background */
+    background: none !important; /* No background */
     border: none;
-    opacity: 0.5; /* Light grey effect */
-    color: #a0a0a0; /* Soft grey */
+    opacity: 0.3; /* Light grey effect */
+    color: #a0a0a0; /* Grey emoji */
     font-size: 18px;
-    transition: color 0.3s ease, opacity 0.3s ease;
+    transition: background 0.3s ease, color 0.3s ease, opacity 0.3s ease;
 }
 
-/* After clicking "Finish" button: Blue ✅ */
+/* When "Finish" is clicked, add blue background */
 button.checked.finished {
-    background: none !important;
+    background: #007bff !important; /* Blue background */
+    color: white !important; /* Make checkmark white */
     opacity: 1;
-    color: #007bff !important; /* Ensure blue color */
 }
 
-/* After clicking "Checked" button: Green ✅ */
+/* When "Checked" is clicked, remove blue background, keep green ✅ */
 button.checked.checked {
-    background: none !important;
+    background: none !important; /* Remove background */
+    color: #28a745 !important; /* Green checkmark */
     opacity: 1;
-    color: #28a745 !important; /* Ensure green color */
 }
 
-/* Prevent disabled buttons from being too faded */
-button.checked:disabled {
-    background: none !important;
-    color: inherit !important;
-    opacity: 0.8; /* Slight fade but still visible */
-}
 
     </style>
 </head>
