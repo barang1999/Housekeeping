@@ -109,9 +109,12 @@
         }
         
         button:disabled {
-            background: gray;
+            background: transparent !important; /* Removes background */
+            color: #999 !important; /* Light gray text for disabled look */
+            border: 1px solid #ccc !important; /* Optional: Add subtle border */
             cursor: not-allowed;
         }
+
 
         .log-table {
             width: 100%;
