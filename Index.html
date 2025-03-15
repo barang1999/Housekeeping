@@ -277,42 +277,35 @@
 
 /* Default state: Grey ✅ */
 button.checked {
-    background: none !important; /* Remove background */
+    background: none !important; /* Ensure no background */
     border: none;
-    filter: brightness(0) saturate(100%);
     opacity: 0.5; /* Light grey effect */
-    color: #888; /* Grey color */
+    color: #a0a0a0; /* Soft grey */
+    font-size: 18px;
+    transition: color 0.3s ease, opacity 0.3s ease;
 }
 
 /* After clicking "Finish" button: Blue ✅ */
 button.checked.finished {
-    background: none !important; /* Ensure no background */
-    filter: none;
+    background: none !important;
     opacity: 1;
-    color: #007bff; /* Blue color */
+    color: #007bff !important; /* Ensure blue color */
 }
 
 /* After clicking "Checked" button: Green ✅ */
 button.checked.checked {
-    background: none !important; /* Ensure no background */
-    filter: none;
-    opacity: 1;
-    color: #28a745; /* Green color */
-}
-
-/* Ensure no grey background when disabled */
-button:disabled {
     background: none !important;
-    color: inherit;
-    opacity: 0.5;
+    opacity: 1;
+    color: #28a745 !important; /* Ensure green color */
 }
 
-/* Optional: Add a smooth transition */
-button.checked {
-    transition: color 0.3s ease, opacity 0.3s ease, background 0.3s ease;
+/* Prevent disabled buttons from being too faded */
+button.checked:disabled {
+    background: none !important;
+    color: inherit !important;
+    opacity: 0.8; /* Slight fade but still visible */
 }
 
-    
     </style>
 </head>
 <body>
