@@ -906,9 +906,8 @@ async function restoreCleaningStatus() {
             let dndStatus = localStorage.getItem(`dnd-${roomNumber}`) || "available";
 
             updateButtonStatus(roomNumber, status, dndStatus);
-        });
 
-        // ✅ Ensure "Checked" button stays green if status is "checked"
+            // ✅ Ensure "Checked" button stays green if status is "checked"
             const checkedButton = document.getElementById(`checked-${roomNumber}`);
             if (status === "checked" && checkedButton) {
                 checkedButton.disabled = true;
@@ -945,6 +944,13 @@ async function restoreCleaningStatus() {
             // ✅ Store status locally for faster restoration on next refresh
             localStorage.setItem(`status-${roomNumber}`, status);
             localStorage.setItem(`dnd-${roomNumber}`, dndStatus);
+
+            // ✅ Ensure "Checked" button stays green if status is "checked"
+            const checkedButton = document.getElementById(`checked-${roomNumber}`);
+            if (status === "checked" && checkedButton) {
+                checkedButton.disabled = true;
+                checkedButton.style.backgroundColor = "green"; // ✅ Keep Checked Button Green
+            }
         });
 
         console.log("✅ Cleaning and DND status restored successfully.");
