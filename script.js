@@ -1210,6 +1210,7 @@ async function finishCleaning(roomNumber) {
     const formattedRoom = formatRoomNumber(roomNumber);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
     const checkedButton = document.getElementById(`checked-${roomNumber}`);
+    const emoji = checkedButton.querySelector("span"); // Get emoji inside the button
     const username = localStorage.getItem("username"); 
     
     if (!username) {
@@ -1313,13 +1314,16 @@ async function finishCleaning(roomNumber) {
             showConfirmButton: false
         });
 
+        if (!checkedButton || !emoji) return;
         // ✅ Disable Finish Button and Change Color to Green
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "green";
 
-        checkedButton.disabled = false;
-        checkedButton.classList.add("finished"); // Add "finished" class for blue
-        checkedButton.classList.remove("default");
+           // Make emoji visible with light blue background
+        checkedButton.classList.add("finished");
+        checkedButton.classList.remove("checked"); // Ensure reset
+        emoji.style.opacity = "1"; // Make emoji visible
+        checkedButton.disabled = false; // Enable "Checked" button
 
         // ✅ Send notification to Telegram
         sendTelegramMessage(`✅ Room ${formattedRoom} បានសម្អាតរួចរាល់ដោយ ${username}. ថេរវេលា: ${duration}`);
@@ -1346,6 +1350,7 @@ async function finishCleaning(roomNumber) {
 
 async function checkRoom(roomNumber) {
     const checkedButton = document.getElementById(`checked-${roomNumber}`);
+    const emoji = checkedButton.querySelector("span"); // Get emoji inside the button
     const username = localStorage.getItem("username"); 
 
     if (!username) {
@@ -1366,10 +1371,12 @@ async function checkRoom(roomNumber) {
             return;
         }
 
-        checkedButton.disabled = true;
-         // Ensure the correct class is applied
+        if (!checkedButton || !emoji) return;
+        // Remove blue background, turn checkmark green
         checkedButton.classList.remove("finished");
         checkedButton.classList.add("checked");
+        emoji.style.color = "#28a745"; // Turn checkmark green
+        checkedButton.disabled = true; // Disable after clicking
 
         // ✅ Save checked status immediately to LocalStorage
         localStorage.setItem(`status-${roomNumber}`, "checked");

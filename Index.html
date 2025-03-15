@@ -275,26 +275,28 @@
 .priority-toggle.vacancy { background-color: black; }
 
 
-/* Default state: Faded ✅ */
-button.checked {
-    background: none !important; /* No background */
-    border: none;
-    opacity: 0.3; /* Light grey effect */
-    color: #a0a0a0; /* Grey emoji */
-    font-size: 18px;
-    transition: background 0.3s ease, color 0.3s ease, opacity 0.3s ease;
+/* Default state: Emoji is invisible */
+button.checked span {
+    opacity: 0; /* Completely hide the emoji */
+    transition: opacity 0.3s ease, background 0.3s ease, color 0.3s ease;
 }
 
-/* When "Finish" is clicked, add blue background */
+/* After clicking "Finish" → Light blue background, white emoji */
 button.checked.finished {
-    background: #007bff !important; /* Blue background */
-    color: white !important; /* Make checkmark white */
-    opacity: 1;
+    background: #008CFF !important; /* Light blue background */
 }
 
-/* When "Checked" is clicked, remove blue background, keep green ✅ */
+button.checked.finished span {
+    opacity: 1; /* Show emoji */
+    color: white !important; /* White checkmark */
+}
+
+/* After clicking "Checked" → Remove background, show green ✅ */
 button.checked.checked {
     background: none !important; /* Remove background */
+}
+
+button.checked.checked span {
     color: #28a745 !important; /* Green checkmark */
     opacity: 1;
 }
