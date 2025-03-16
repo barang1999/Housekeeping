@@ -1912,7 +1912,8 @@ async function clearLogs() {
         }
 
         // ✅ Reload Logs (Empty)
-        await loadLogs();
+            await restoreCleaningStatus();
+            await loadLogs();
 
         // ✅ Success Notification
         Swal.fire({
@@ -1933,10 +1934,6 @@ async function clearLogs() {
         });
     }
 }
-
-// Reload
-await restoreCleaningStatus();
-await loadLogs();
 
     
 function exportLogs() {
