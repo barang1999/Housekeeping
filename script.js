@@ -1385,6 +1385,23 @@ async function checkRoom(roomNumber) {
         return;
     }
 
+    // ✅ Show confirmation popup BEFORE sending request
+    const confirmCheck = await Swal.fire({
+        title: `ត្រួតពិនិត្យបន្ទប់ ${roomNumber}`,
+        text: "តើអ្នកប្រាកដថាបន្ទប់ស្អាតរួចហើយទេ?",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonColor: "#4CAF50",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "បាទ/ចាស ត្រួតពិនិត្យ!",
+        cancelButtonText: "ទេ"
+    });
+
+    if (!confirmCheck.isConfirmed) {
+        console.log(`🚫 Room ${roomNumber} check canceled.`);
+        return;
+    }
+
     try {
         const res = await fetch(`${apiUrl}/logs/check`, {
             method: "POST",
@@ -1403,7 +1420,7 @@ async function checkRoom(roomNumber) {
         checkedButton.style.backgroundColor = "transparent";
         checkedButton.disabled = true;
 
-        // ✅ Save checked status in both localStorage & a dedicated array
+        // ✅ Save checked status
         localStorage.setItem(`status-${roomNumber}`, "checked");
 
         let checkedRooms = JSON.parse(localStorage.getItem("checkedRooms")) || [];
@@ -1415,10 +1432,20 @@ async function checkRoom(roomNumber) {
         // ✅ Emit real-time event
         safeEmit("roomUpdate", { roomNumber, status: "checked" });
 
-        console.log(`✅ Room ${roomNumber} marked as checked.`);
+        // ✅ Send Telegram Notification
+        const message = `🫧បន្ទប់ ${roomNumber} ត្រូវបានត្រួតពិនិត្យ ដោយ ${username}`;
+        await sendTelegramMessage(message);
+
+        console.log(`✅ Room ${roomNumber} marked as checked & Telegram sent.`);
 
     } catch (error) {
         console.error("❌ Error checking room:", error);
+        Swal.fire({
+            icon: "error",
+            title: "មានបញ្ហា",
+            text: "បរាជ័យក្នុងការត្រួតពិនិត្យបន្ទប់",
+            confirmButtonText: "OK"
+        });
     }
 }
 
