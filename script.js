@@ -1393,8 +1393,8 @@ async function checkRoom(roomNumber) {
         showCancelButton: true,
         confirmButtonColor: "#4CAF50",
         cancelButtonColor: "#d33",
-        confirmButtonText: "បាទ/ចាស ត្រួតពិនិត្យ!",
-        cancelButtonText: "ទេ"
+        confirmButtonText: "Yes!",
+        cancelButtonText: "No"
     });
 
     if (!confirmCheck.isConfirmed) {
@@ -1433,7 +1433,7 @@ async function checkRoom(roomNumber) {
         safeEmit("roomUpdate", { roomNumber, status: "checked" });
 
         // ✅ Send Telegram Notification
-        const message = `🫧បន្ទប់ ${roomNumber} ត្រូវបានត្រួតពិនិត្យ ដោយ ${username}`;
+        const message = `💦Room ${roomNumber} ត្រូវបានត្រួតពិនិត្យ ដោយ ${username}`;
         await sendTelegramMessage(message);
 
         console.log(`✅ Room ${roomNumber} marked as checked & Telegram sent.`);
