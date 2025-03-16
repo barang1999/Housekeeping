@@ -79,6 +79,8 @@ async function connectWebSocket() {
         safeEmit("requestDNDStatus"); // Ensure DND data loads
         safeEmit("requestButtonStatus"); // Ensure button statuses load
         safeEmit("requestPriorityStatus"); // ✅ Request priority data
+        // 🚀 Emit checked rooms after socket connected!
+         emitCheckedRoomsToAllDevices();
     });
 
    // ✅ Handle incoming priority status updates
@@ -119,6 +121,7 @@ async function connectWebSocket() {
         console.error("❌ Error processing room update:", error);
     }
 });
+
     
       window.socket.on("dndUpdate", (data) => {
     if (!data || !data.roomNumber) {
@@ -1450,6 +1453,14 @@ async function checkRoom(roomNumber) {
             confirmButtonText: "OK"
         });
     }
+}
+
+function emitCheckedRoomsToAllDevices() {
+    const checkedRooms = JSON.parse(localStorage.getItem("checkedRooms")) || [];
+    checkedRooms.forEach(roomNumber => {
+        console.log(`📢 Broadcasting checked room ${roomNumber} to all devices...`);
+        safeEmit("roomUpdate", { roomNumber, status: "checked" });
+    });
 }
 
 
