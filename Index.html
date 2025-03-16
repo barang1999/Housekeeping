@@ -92,28 +92,38 @@
                 background-color: red;
             }
 
-
-                button {
+        button {
             padding: 10px 16px;
             border-radius: 6px;
             font-size: 14px;
             cursor: pointer;
             transition: all 0.3s ease;
-            background-color: #007bff;
             color: white;
             border: none;
         }
-        
+
         button:hover {
             background-color: #0056b3;
         }
-        
+
+        /* ✅ Buttons' default background for enabled state */
+        button:not(:disabled) {
+            background-color: #008CFF;
+        }
+
+        /* ✅ Disabled buttons: transparent */
         button:disabled {
-            background: transparent !important; /* Removes background */
-            color: #999 !important; /* Light gray text for disabled look */
-            border: 1px solid #ccc !important; /* Optional: Add subtle border */
+            background-color: transparent !important;
+            color: #999 !important;
+            border: 1px solid #ccc !important;
             cursor: not-allowed;
         }
+
+        button.checked canvas {
+            display: block;
+            margin: auto;
+        }
+
 
 
         .log-table {
@@ -277,41 +287,6 @@
 .priority-toggle.early-arrival { background-color: yellow; }
 .priority-toggle.vacancy { background-color: black; }
 
-
-/* ✅ Default state: invisible emoji & transparent button */
-button.checked {
-    background: transparent !important; 
-    border: none;
-    padding: 10px 16px; 
-    font-size: 14px;
-    cursor: pointer;
-    transition: background 0.3s ease, color 0.3s ease;
-}
-
-/* ✅ Hide emoji inside the checked button initially */
-button.checked span {
-    opacity: 0;  /* Completely hide emoji */
-    visibility: hidden; /* Make sure it does not take up space */
-    transition: opacity 0.3s ease, visibility 0s linear 0.3s; /* Smooth fade-in */
-}
-/* ✅ Light blue when 'Finished' is clicked */
-button.finished {
-    background: #008CFF !important; 
-    color: white;
-}
-
-/* ✅ After clicking 'Checked': Remove blue, keep checkmark */
-button.checked.finished {
-    background: transparent !important; /* ✅ Ensure transparency */
-    color: #28a745 !important; /* ✅ Green text */
-}
-
-/* ✅ Show emoji when the button is marked as 'finished' */
-button.checked.finished span {
-    opacity: 1;  /* Make emoji visible */
-    visibility: visible; /* Show emoji */
-    transition: opacity 0.3s ease;
-}
     </style>
 </head>
 <body>

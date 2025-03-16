@@ -29,7 +29,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     console.log("🎯 Cleaning status restored successfully.");
     checkAuth();
-    loadRooms();
 
     const token = localStorage.getItem("token");
     const username = localStorage.getItem("username");
@@ -426,6 +425,36 @@ document.querySelectorAll(".priority-dropdown").forEach(dropdown => {
     dropdown.classList.add("minimal-dropdown"); // Instead of applying styles inline
 });
 
+// ✅ Helper Function for drawing checked button canvas
+function drawCheckButton(roomNumber, color = "grey", opacity = 1.0, enabled = false) {
+    const checkedButton = document.getElementById(`checked-${roomNumber}`);
+    if (!checkedButton) return;
+    const canvas = checkedButton.querySelector("canvas");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.globalAlpha = opacity;
+    ctx.beginPath();
+    ctx.arc(12, 12, 10, 0, 2 * Math.PI);
+    ctx.fillStyle = color;
+    ctx.fill();
+
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(8, 12);
+    ctx.lineTo(11, 15);
+    ctx.lineTo(16, 9);
+    ctx.stroke();
+    ctx.globalAlpha = 1.0;
+
+    // Disable/Enable Button & Remove Background
+    checkedButton.disabled = !enabled;
+    checkedButton.style.backgroundColor = "transparent";
+}
+
 async function loadRooms() {
     console.log("🔄 Loading rooms...");
 
@@ -459,7 +488,7 @@ async function loadRooms() {
 
             roomDiv.innerHTML = `
                 <span>Room ${room}</span>
-                  <div class="priority-container">
+                <div class="priority-container">
                     <button class="priority-toggle" id="selected-priority-${room}" onclick="togglePriorityDropdown('${room}')">⚪</button>
                     <div class="priority-dropdown" id="priority-${room}">
                         <div class="priority-option" onclick="updatePriority('${room}', 'default')"><span class="white">⚪</span></div>
@@ -470,7 +499,9 @@ async function loadRooms() {
                 </div>
                 <button id="start-${room}" onclick="startCleaning('${room}')">សម្អាត</button>
                 <button id="finish-${room}" onclick="finishCleaning('${room}')" disabled>ហើយ</button>
-                 <button id="checked-${room}" onclick="checkRoom('${room}')" disabled class="checked">✅</button>
+                <button id="checked-${room}" onclick="checkRoom('${room}')" disabled class="checked">
+                    <canvas id="canvas-${room}" width="24" height="24"></canvas>
+                </button>
                 <button id="dnd-${room}" class="dnd-btn" onclick="toggleDoNotDisturb('${room}')">🚫</button>
             `;
 
@@ -478,7 +509,7 @@ async function loadRooms() {
         });
     });
 
-    // ✅ Move priority update loop OUTSIDE the floor loop
+    // ✅ Update priority displays
     priorities.forEach(({ roomNumber, priority }) => {
         if (roomNumber !== undefined) {
             updateSelectedPriorityDisplay(roomNumber, priority);
@@ -487,6 +518,14 @@ async function loadRooms() {
         }
     });
 
+    // ✅ Draw checked buttons in default GREY disabled state
+    Object.keys(floors).forEach(floor => {
+        floors[floor].forEach(room => {
+            drawCheckButton(room, "grey", 1.0, false); // Grey, Disabled
+        });
+    });
+
+    // ✅ Restore cleaning status (keeps previous cleaning data)
     await restoreCleaningStatus();
     console.log("✅ Rooms loaded successfully with priorities.");
 }
@@ -890,11 +929,6 @@ async function loadDNDStatus() {
     console.log("✅ DND status restored from server.");
 }
 
-// ✅ Call this function on page load **before** WebSocket connections
-document.addEventListener("DOMContentLoaded", async () => {
-    await loadDNDStatus(); 
-});
-
 async function restoreCleaningStatus() {
     try {
         console.log("🔄 Restoring cleaning and DND status...");
@@ -1118,21 +1152,19 @@ async function sendTelegramMessage(message) {
 
 async function startCleaning(roomNumber) {
     let formattedRoom = formatRoomNumber(roomNumber);
-    let numericRoomNumber = Number(roomNumber);
     const startButton = document.getElementById(`start-${formattedRoom}`);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
-    const checkedButton = document.getElementById(`checked-${roomNumber}`);
-    const emoji = checkedButton.querySelector("span"); // Get emoji inside the button
+    const checkedButton = document.getElementById(`checked-${formattedRoom}`);
     const dndButton = document.getElementById(`dnd-${formattedRoom}`);
 
-    if (!startButton || !finishButton || !dndButton) {
+    if (!startButton || !finishButton || !dndButton || !checkedButton) {
         console.error(`❌ Buttons not found for Room ${formattedRoom}`);
         return;
     }
 
     if (startButton.disabled) return; // Prevent multiple clicks
 
-    // ✅ Show custom confirmation popup
+    // ✅ Confirmation popup
     const confirmStart = await Swal.fire({
         title: `ចាប់ផ្ដើមសម្អាតបន្ទប់ ${roomNumber}?`,
         text: "អ្នកនឹងសម្អាតបន្ទប់នេះ?",
@@ -1144,38 +1176,34 @@ async function startCleaning(roomNumber) {
         cancelButtonText: "No"
     });
 
-      if (!confirmStart.isConfirmed) {
+    if (!confirmStart.isConfirmed) {
         console.log(`🚫 Cleaning not started for Room ${roomNumber}`);
-        return; // Exit function if user clicks "Cancel"
+        return;
     }
 
-    const username = localStorage.getItem("username"); // ✅ Ensure username is retrieved
+    const username = localStorage.getItem("username");
     if (!username) {
         console.error("❌ No username found in localStorage. Cannot start cleaning.");
         alert("You must be logged in to start cleaning.");
         return;
     }
 
-    // ✅ Fetch latest logs before sending request
+    // ✅ Check logs to prevent double cleaning
     const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
     const roomLog = logs.find(log => log.roomNumber.toString().padStart(3, '0') === formattedRoom);
-    if (!roomLog) {
-    console.warn(`⚠️ No log entry found for Room ${formattedRoom}`);
-    }
     if (roomLog && roomLog.startTime && !roomLog.finishTime) {
-    alert(`⚠ Room ${formattedRoom} is already being cleaned.`);
-    return;
+        alert(`⚠ Room ${formattedRoom} is already being cleaned.`);
+        return;
     }
 
-    // ✅ Send API request to update backend
+    // ✅ Send API request
     try {
         const res = await fetch(`${apiUrl}/logs/start`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roomNumber: formatRoomNumber(roomNumber), username })
+            body: JSON.stringify({ roomNumber: formattedRoom, username })
         });
-        
-        // ✅ Update UI ONLY after successful API response
+
         const data = await res.json();
         if (!res.ok) {
             console.error("❌ Failed to Start Cleaning:", data);
@@ -1183,36 +1211,47 @@ async function startCleaning(roomNumber) {
             return;
         }
 
-        // Disable Start Cleaning and Enable Finish Cleaning
+        // ✅ Update buttons
         startButton.disabled = true;
-        startButton.style.backgroundColor = "grey";
+        startButton.style.backgroundColor = "transparent";
+
         finishButton.disabled = false;
         finishButton.style.backgroundColor = "#008CFF";
+
+        checkedButton.disabled = true; // Remain disabled until finished
+        checkedButton.style.backgroundColor = "transparent";
+
+        dndButton.disabled = true;
+        dndButton.style.backgroundColor = "transparent";
+
         console.log(`✅ Room ${formattedRoom} cleaning started.`);
 
-        // ✅ Send notification to Telegram
+        // ✅ Update checked button canvas (dimmed grey)
+        drawCheckButton(roomNumber, "grey", 0.6, false);
+
+        // ✅ Notify
         sendTelegramMessage(`🧹 Room ${formattedRoom} ចាប់ផ្ដើមសម្អាតដោយ ${username}`);
-        
         safeEmit("roomUpdate", { roomNumber, status: "in_progress" });
 
-         // ✅ Update UI Immediately
-        updateButtonStatus(formatRoomNumber(roomNumber), "in_progress");
+        updateButtonStatus(formattedRoom, "in_progress");
 
-        // ✅ Ensure fresh logs are loaded
+        // ✅ Reload logs
         await loadLogs();
 
     } catch (error) {
         console.error("❌ Error starting cleaning:", error);
-        startButton.disabled = false; // Re-enable button on failure
+        startButton.disabled = false;
+        startButton.style.backgroundColor = "#008CFF"; // Re-enable in error
         Swal.fire("Error", "An unexpected error occurred while starting cleaning.", "error");
     }
 }
 
+
 async function finishCleaning(roomNumber) {
     const formattedRoom = formatRoomNumber(roomNumber);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
-    const checkedButton = document.getElementById(`checked-${roomNumber}`);
-    const emoji = checkedButton.querySelector("span"); // Get emoji inside the button
+    const checkedButton = document.getElementById(`checked-${formattedRoom}`);
+    const startButton = document.getElementById(`start-${formattedRoom}`);
     const username = localStorage.getItem("username"); 
     
     if (!username) {
@@ -1226,12 +1265,12 @@ async function finishCleaning(roomNumber) {
         return;
     }
     
-    if (!finishButton) {
-        console.error(`❌ Finish button not found for Room ${formattedRoom}`);
+    if (!finishButton || !checkedButton || !startButton) {
+        console.error(`❌ Buttons not found for Room ${formattedRoom}`);
         return;
     }
 
-    // ✅ Fetch logs to get room start time
+    // ✅ Fetch logs
     let roomLog = null;
     try {
         const logs = await fetchWithErrorHandling(`${apiUrl}/logs`);
@@ -1257,7 +1296,7 @@ async function finishCleaning(roomNumber) {
         duration = minutes > 0 ? `${minutes} min` : "< 1 min";
     }
 
-    // ✅ Show Confirmation Popup with Cleaning Duration
+    // ✅ Confirmation popup
     const confirmFinish = await Swal.fire({
         title: `សម្អាតរួចរាល់ ${roomNumber}?`,
         text: `អ្នកបានសម្អាតបន្ទប់នេះ ក្នុងថេរវេលា: ${duration}`,
@@ -1274,20 +1313,7 @@ async function finishCleaning(roomNumber) {
         return;
     }
 
-    // ✅ Ensure roomNumber is valid
-    const numericRoomNumber = parseInt(roomNumber, 10);
-    if (isNaN(numericRoomNumber)) {
-        console.error("❌ Invalid room number:", roomNumber);
-        Swal.fire({
-            icon: "error",
-            title: "Invalid Room Number",
-            text: "Room number is not valid.",
-            confirmButtonText: "OK"
-        });
-        return;
-    }
-
-    // ✅ Send API request to update backend
+    // ✅ API Request
     try {
         const res = await fetch(`${apiUrl}/logs/finish`, {
             method: "POST",
@@ -1307,39 +1333,32 @@ async function finishCleaning(roomNumber) {
             return;
         }
 
-        // ✅ Success Notification with Cleaning Duration
+        // ✅ Success Notification
         Swal.fire({
-            icon: "អរគុណ",
+            icon: "success",
             title: `បន្ទប់ ${formattedRoom} ត្រូវបានសម្អាត!`,
-            text: `ក្នុងថេរវលា: ${duration}`,
+            text: `ក្នុងថេរវេលា: ${duration}`,
             timer: 2500,
             showConfirmButton: false
         });
 
-        if (!checkedButton || !emoji) return;
-
-        // ✅ Disable Finish Button and Change Color to Green
+        // ✅ Disable Finish Button
         finishButton.disabled = true;
-        finishButton.style.backgroundColor = "green";
+        finishButton.style.backgroundColor = "transparent";
 
-        // Ensure the finish button is clicked before making the emoji visible
-    if (!finishButton.disabled) {
-        checkedButton.classList.add("finished"); // ✅ Apply finished class
-        emoji.style.opacity = "1"; // ✅ Show emoji
-        emoji.style.visibility = "visible"; // ✅ Ensure it's visible
-        checkedButton.disabled = false; // Enable "Checked" button
-    }
+        // ✅ Disable Start Button
+        startButton.disabled = true;
+        startButton.style.backgroundColor = "transparent";
 
-        // ✅ Send notification to Telegram
+        // ✅ Enable Checked Button BLUE
+        drawCheckButton(roomNumber, "#008CFF", 1.0, true);
+
+        // ✅ Notify
         sendTelegramMessage(`✅ Room ${formattedRoom} បានសម្អាតរួចរាល់ដោយ ${username}. ថេរវេលា: ${duration}`);
-
-        // ✅ Emit WebSocket Event for Real-Time Updates
         safeEmit("roomUpdate", { roomNumber, status: "finished" });
 
-        // ✅ Update UI Immediately
         updateButtonStatus(formattedRoom, "finished");
 
-        // ✅ Ensure fresh logs are loaded
         await loadLogs();
 
     } catch (error) {
@@ -1353,11 +1372,12 @@ async function finishCleaning(roomNumber) {
     }
 }
 
+
 async function checkRoom(roomNumber) {
     const checkedButton = document.getElementById(`checked-${roomNumber}`);
-    const emoji = checkedButton.querySelector("span"); // Get emoji inside the button
-    const username = localStorage.getItem("username"); 
+    if (!checkedButton) return;
 
+    const username = localStorage.getItem("username"); 
     if (!username) {
         console.error("❌ No username found. Cannot check room.");
         return;
@@ -1376,22 +1396,17 @@ async function checkRoom(roomNumber) {
             return;
         }
 
-        if (!checkedButton || !emoji) return;
+        // ✅ Update the checked button: Turn GREEN and disable
+        drawCheckButton(roomNumber, "#4CAF50", 1.0, false); // Green, disabled
+        checkedButton.style.backgroundColor = "transparent";
 
-        // ✅ Reset background and remove previous states
-        checkedButton.classList.remove("finished");
-        checkedButton.classList.add("checked");
-        checkedButton.style.backgroundColor = "transparent"; // ✅ Reset to transparent
-        emoji.style.opacity = "1"; // ✅ Make emoji visible
-        emoji.style.visibility = "visible"; // ✅ Ensure it's visible
-        emoji.style.color = "#28a745"; // ✅ Make checkmark green
-        checkedButton.disabled = true; // Disable after clicking
-
-        // ✅ Save checked status immediately to LocalStorage
+        // ✅ Save checked status (optional)
         localStorage.setItem(`status-${roomNumber}`, "checked");
 
         // ✅ Emit WebSocket Event
         safeEmit("roomUpdate", { roomNumber, status: "checked" });
+
+        console.log(`✅ Room ${roomNumber} marked as checked.`);
 
     } catch (error) {
         console.error("❌ Error checking room:", error);
@@ -1404,75 +1419,73 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
     const checkedButton = document.getElementById(`checked-${formattedRoom}`);
     const dndButton = document.getElementById(`dnd-${formattedRoom}`);
-    const emoji = checkedButton?.querySelector("span"); // Get emoji inside button
 
-    if (!startButton || !finishButton || !dndButton || !checkedButton || !emoji) {
+    if (!startButton || !finishButton || !dndButton || !checkedButton) {
         console.warn(`⚠️ Buttons for Room ${formattedRoom} not found in DOM`);
         return;
     }
 
     console.log(`🎯 Updating Room ${formattedRoom} -> Status: ${status}, DND: ${dndStatus}`);
 
-    // ✅ Prevent overwriting "Checked" button if it was already checked
-    let isAlreadyChecked = checkedButton.classList.contains("checked");
-
+    // =========================
     // ✅ Handle Cleaning Button States
+    // =========================
+
     if (status === "finished") {
+        // Disable start
         startButton.disabled = true;
-        startButton.style.backgroundColor = "grey";
+        startButton.style.backgroundColor = "transparent";
 
+        // Disable finish
         finishButton.disabled = true;
-        finishButton.style.backgroundColor = "green";
+        finishButton.style.backgroundColor = "transparent";
 
-        checkedButton.disabled = false; // Enable checked button
-        emoji.style.opacity = "1";  // ✅ Show emoji when finished
-        emoji.style.visibility = "visible"; // ✅ Ensure it's visible
-        if (!isAlreadyChecked) {
-            checkedButton.classList.add("finished"); 
-            checkedButton.classList.remove("default"); 
-            checkedButton.style.backgroundColor = "#008CFF"; // ✅ Light blue after "Finish"
-        }
+        // Enable checked, BLUE color
+        drawCheckButton(roomNumber, "#008CFF", 1.0, true);
+
     } else if (status === "checked") {
+        // Disable start & finish
         startButton.disabled = true;
-        startButton.style.backgroundColor = "grey";
+        startButton.style.backgroundColor = "transparent";
 
         finishButton.disabled = true;
-        finishButton.style.backgroundColor = "green";
+        finishButton.style.backgroundColor = "transparent";
 
-        checkedButton.classList.add("checked"); 
-        checkedButton.classList.remove("finished"); 
-        checkedButton.style.backgroundColor = "transparent"; 
-        emoji.style.opacity = "1";  // ✅ Keep emoji visible after "Checked"
-        emoji.style.visibility = "visible";
+        // Checked button GREEN & disabled
+        drawCheckButton(roomNumber, "#4CAF50", 1.0, false);
+
     } else if (status === "in_progress") {
+        // Disable start
         startButton.disabled = true;
-        startButton.style.backgroundColor = "grey";
+        startButton.style.backgroundColor = "transparent";
 
+        // Enable finish
         finishButton.disabled = false;
         finishButton.style.backgroundColor = "#008CFF";
 
-        checkedButton.classList.remove("finished", "checked"); 
-        checkedButton.classList.add("default"); 
-        emoji.style.opacity = "0"; // ❌ Hide emoji until finish is clicked
-        emoji.style.visibility = "hidden";
+        // Checked stays grey & disabled
+        drawCheckButton(roomNumber, "grey", 0.6, false);
+
     } else {
+        // Available/reset state
         startButton.disabled = false;
         startButton.style.backgroundColor = "#008CFF";
 
         finishButton.disabled = true;
-        finishButton.style.backgroundColor = "grey";
+        finishButton.style.backgroundColor = "transparent";
 
-        checkedButton.classList.remove("finished", "checked"); 
-        checkedButton.classList.add("default"); 
-        emoji.style.opacity = "0"; // ❌ Hide emoji until finish is clicked
-        emoji.style.visibility = "hidden";
+        // Checked grey & disabled
+        drawCheckButton(roomNumber, "grey", 1.0, false);
     }
 
+    // =========================
     // ✅ Handle DND State
+    // =========================
+
     if (dndStatus === "dnd") {
         console.log(`🚨 Room ${formattedRoom} is in DND mode - Disabling Start Cleaning`);
         startButton.disabled = true;
-        startButton.style.backgroundColor = "grey";
+        startButton.style.backgroundColor = "transparent";
         dndButton.classList.add("active-dnd");
         dndButton.style.backgroundColor = "red";
     } else {
@@ -1486,6 +1499,7 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         }
     }
 }
+
 
 // Ensure updateButtonStatus is being called after fetching logs
 async function loadLogs() {
