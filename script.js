@@ -1,6 +1,7 @@
 const apiUrl = "https://housekeeping-production.up.railway.app";
 
 let reconnectAttempts = 0;
+let logsCleared = false;
 const MAX_RECONNECT_ATTEMPTS = 3;
 window.socket = null;
 
@@ -130,6 +131,20 @@ async function connectWebSocket() {
 
         console.log("✅ All checked buttons reset to grey.");
     });
+
+         window.socket.on("forceClearCheckedRooms", () => {
+            console.log("🔄 Force clearing checkedRooms received...");
+            localStorage.removeItem("checkedRooms");
+
+            document.querySelectorAll(".room button").forEach(button => {
+                if (button.id.startsWith("checked-")) {
+                    let roomNum = button.id.replace("checked-", "");
+                    drawCheckButton(roomNum, "grey", 1.0, false);
+                }
+            });
+            console.log("✅ All checked buttons reset to grey (force clear).");
+        });
+
     
    window.socket.on("roomUpdate", async ({ roomNumber, status }) => {
     try {
@@ -1506,11 +1521,15 @@ async function checkRoom(roomNumber) {
 }
 
 function emitCheckedRoomsToAllDevices() {
+    if (logsCleared) {
+        console.log("🧹 Logs just cleared, skipping broadcasting old checkedRooms...");
+        return;  // ✅ Skip re-sending old data after clearing
+    }
+
     const checkedRooms = JSON.parse(localStorage.getItem("checkedRooms")) || [];
     checkedRooms.forEach(roomNumber => {
         console.log(`📢 Broadcasting checked room ${roomNumber} to all devices...`);
         safeEmit("roomChecked", { roomNumber, username: localStorage.getItem("username") });
-
     });
 }
 
@@ -1878,6 +1897,8 @@ async function clearLogs() {
             dropdown.classList.remove("show");
         });
 
+        logsCleared = true;  // ✅ Set flag BEFORE clearing storage
+
         // ✅ Clear relevant LocalStorage
         Object.keys(localStorage).forEach(key => {
             if (key.startsWith("priority-") || key.startsWith("status-") || key.startsWith("dnd-")) {
@@ -1907,6 +1928,7 @@ async function clearLogs() {
              // 🚀 NEW: Emit checked reset to all devices
             window.socket.emit("resetCheckedRooms");
             window.socket.emit("requestButtonStatus"); // Force reload
+            window.socket.emit("forceClearCheckedRooms");
         } else {
             console.warn("⚠️ WebSocket disconnected. Attempt reconnect...");
             reconnectWebSocket();
@@ -1915,6 +1937,8 @@ async function clearLogs() {
         // ✅ Reload Logs (Empty)
             await restoreCleaningStatus();
             await loadLogs();
+
+            logsCleared = false;  // ✅ Reset flag AFTER everything
 
         // ✅ Success Notification
         Swal.fire({
