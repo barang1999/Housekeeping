@@ -108,15 +108,25 @@ async function connectWebSocket() {
     try {
         console.log(`🛎 Received Room Update: Room ${roomNumber} -> Status: ${status}`);
 
-        // ✅ Get the current status from the UI before updating
-        const checkedButton = document.getElementById(`checked-${roomNumber}`);
-        if (checkedButton && checkedButton.style.backgroundColor === "green") {
-            console.log(`✅ Room ${roomNumber} is already checked. Ignoring update.`);
-            return; // 🔥 Prevent overwriting checked status
+        // ✅ Always update UI based on the status
+        updateButtonStatus(roomNumber, status);
+
+        // ✅ Sync localStorage and UI if status is checked
+        if (status === "checked") {
+            // 1️⃣ Update checkedRooms list in localStorage
+            let checkedRooms = JSON.parse(localStorage.getItem("checkedRooms")) || [];
+            if (!checkedRooms.includes(roomNumber)) {
+                checkedRooms.push(roomNumber);
+                localStorage.setItem("checkedRooms", JSON.stringify(checkedRooms));
+            }
+
+            // 2️⃣ Draw the checked button GREEN
+            drawCheckButton(roomNumber, "#4CAF50", 1.0, false); // Green + disabled
         }
 
-        updateButtonStatus(roomNumber, status);
+        // ✅ Reload logs to stay consistent
         await loadLogs();
+
     } catch (error) {
         console.error("❌ Error processing room update:", error);
     }
