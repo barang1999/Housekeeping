@@ -108,29 +108,34 @@ async function connectWebSocket() {
     try {
         console.log(`🛎 Received Room Update: Room ${roomNumber} -> Status: ${status}`);
 
-        // ✅ Always update UI based on the status
+        // Update cleaning buttons
         updateButtonStatus(roomNumber, status);
 
-        // ✅ Sync localStorage and UI if status is checked
+        // Handle checked status
+        let checkedRooms = JSON.parse(localStorage.getItem("checkedRooms")) || [];
         if (status === "checked") {
-            // 1️⃣ Update checkedRooms list in localStorage
-            let checkedRooms = JSON.parse(localStorage.getItem("checkedRooms")) || [];
             if (!checkedRooms.includes(roomNumber)) {
                 checkedRooms.push(roomNumber);
                 localStorage.setItem("checkedRooms", JSON.stringify(checkedRooms));
+                console.log(`✅ Added Room ${roomNumber} to checkedRooms.`);
             }
-
-            // 2️⃣ Draw the checked button GREEN
-            drawCheckButton(roomNumber, "#4CAF50", 1.0, false); // Green + disabled
+            drawCheckButton(roomNumber, "#4CAF50", 1.0, false);
+        } else {
+            // Room is no longer checked → remove it
+            if (checkedRooms.includes(roomNumber)) {
+                checkedRooms = checkedRooms.filter(r => r !== roomNumber);
+                localStorage.setItem("checkedRooms", JSON.stringify(checkedRooms));
+                console.log(`❌ Removed Room ${roomNumber} from checkedRooms.`);
+            }
         }
 
-        // ✅ Reload logs to stay consistent
-        await loadLogs();
+        await loadLogs(); // Keep log display consistent
 
     } catch (error) {
         console.error("❌ Error processing room update:", error);
     }
 });
+
 
     
       window.socket.on("dndUpdate", (data) => {
@@ -1002,6 +1007,11 @@ async function restoreCleaningStatus() {
             // ✅ Restore checked GREEN from checkedRooms if needed
             if (checkedRooms.includes(roomNumber)) {
                 drawCheckButton(roomNumber, "#4CAF50", 1.0, false); // Green & disabled
+
+                 console.log(`✅ Restored Checked Room ${roomNumber}`);
+
+                // ✅ EMIT status to other devices
+                safeEmit("roomUpdate", { roomNumber, status: "checked" });
             }
         });
 
