@@ -836,6 +836,13 @@ app.post("/logs/clear", async (req, res) => {
         io.emit("priorityUpdate", { roomNumber: "all", priority: "default" });
         io.emit("resetCheckedRooms"); // ✅ Ensure checked status resets on clients
 
+        // 🟢 NEW: Emit resetCleaning for EACH room to ensure start button resets
+            const allRooms = await CleaningLog.find({}, "roomNumber").lean();
+            allRooms.forEach(room => {
+                io.emit("resetCleaning", { roomNumber: room.roomNumber, status: "available" });
+                console.log(`🔄 Reset Cleaning Button for Room ${room.roomNumber}`);
+            });
+
         return res.json({
             message: "All cleaning logs, DND statuses, priorities, and checked statuses reset successfully.",
             dndLogs
