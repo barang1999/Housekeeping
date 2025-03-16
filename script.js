@@ -1905,6 +1905,7 @@ async function clearLogs() {
             window.socket.emit("updatePriorityStatus", { status: "reset" });
              // 🚀 NEW: Emit checked reset to all devices
             window.socket.emit("resetCheckedRooms");
+            window.socket.emit("requestButtonStatus"); // Force reload
         } else {
             console.warn("⚠️ WebSocket disconnected. Attempt reconnect...");
             reconnectWebSocket();
@@ -1932,6 +1933,10 @@ async function clearLogs() {
         });
     }
 }
+
+// Reload
+await restoreCleaningStatus();
+await loadLogs();
 
     
 function exportLogs() {
