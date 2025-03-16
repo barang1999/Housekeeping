@@ -1002,15 +1002,16 @@ async function restoreCleaningStatus() {
         let checkedRooms = JSON.parse(localStorage.getItem("checkedRooms")) || [];
         checkedRooms.forEach(roomNumber => {
             const checkedButton = document.getElementById(`checked-${roomNumber}`);
-            if (checkedButton) {
-                drawCheckButton(roomNumber, "#4CAF50", 1.0, false); // Green & disabled
-                console.log(`✅ Restored Checked Room ${roomNumber}`);
-
-                // ✅ EMIT status to other devices
-                 safeEmit("roomChecked", { roomNumber, username: localStorage.getItem("username") });
-
+            if (logsCleared) {
+                console.log("🚫 Logs cleared, skipping checkedRooms restore.");
+                checkedRooms = [];
+            } else {
+                checkedRooms.forEach(roomNumber => {
+                    drawCheckButton(roomNumber, "#4CAF50", 1.0, false);
+                    console.log(`✅ Restored Checked Room ${roomNumber}`);
+                    safeEmit("roomChecked", { roomNumber, username: localStorage.getItem("username") });
+                });
             }
-        });
 
         // 1️⃣ Restore from localStorage other statuses
         document.querySelectorAll(".room").forEach(roomDiv => {
@@ -1523,7 +1524,7 @@ async function checkRoom(roomNumber) {
 function emitCheckedRoomsToAllDevices() {
     if (logsCleared) {
         console.log("🧹 Logs just cleared, skipping broadcasting old checkedRooms...");
-        return;  // ✅ Skip re-sending old data after clearing
+        return;  // ✅ Don't send anything if logs were cleared
     }
 
     const checkedRooms = JSON.parse(localStorage.getItem("checkedRooms")) || [];
@@ -1532,6 +1533,7 @@ function emitCheckedRoomsToAllDevices() {
         safeEmit("roomChecked", { roomNumber, username: localStorage.getItem("username") });
     });
 }
+
 
 
 function updateButtonStatus(roomNumber, status, dndStatus = "available") {
@@ -1842,6 +1844,8 @@ async function clearLogs() {
     }
 
     try {
+
+        logsCleared = true;  // ✅ Set flag BEFORE clearing storage
         // ✅ API Clear Request
         const res = await fetch(`${apiUrl}/logs/clear`, { method: "POST" });
         if (!res.ok) {
@@ -1897,7 +1901,7 @@ async function clearLogs() {
             dropdown.classList.remove("show");
         });
 
-        logsCleared = true;  // ✅ Set flag BEFORE clearing storage
+     
 
         // ✅ Clear relevant LocalStorage
         Object.keys(localStorage).forEach(key => {
