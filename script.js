@@ -1,7 +1,6 @@
 const apiUrl = "https://housekeeping-production.up.railway.app";
 
 let reconnectAttempts = 0;
-let logsCleared = false;
 const MAX_RECONNECT_ATTEMPTS = 3;
 window.socket = null;
 
@@ -1844,8 +1843,6 @@ async function clearLogs() {
     }
 
     try {
-
-        logsCleared = true;  // ✅ Set flag BEFORE clearing storage
         // ✅ API Clear Request
         const res = await fetch(`${apiUrl}/logs/clear`, { method: "POST" });
         if (!res.ok) {
@@ -1941,8 +1938,6 @@ async function clearLogs() {
         // ✅ Reload Logs (Empty)
             await restoreCleaningStatus();
             await loadLogs();
-
-            logsCleared = false;  // ✅ Reset flag AFTER everything
 
         // ✅ Success Notification
         Swal.fire({

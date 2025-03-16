@@ -787,19 +787,28 @@ app.get("/logs", async (req, res) => {
         res.status(500).json({ message: "Server error", error });
     }
 });
-
 app.post("/logs/clear", async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
-        console.log("🧹 Clearing all cleaning logs, DND statuses, and priorities...");
+        console.log("🧹 Resetting all cleaning logs, DND statuses, and priorities...");
 
-        // ✅ Delete Cleaning Logs Safely
+        // ✅ Update Cleaning Logs Safely: RESET instead of deleting
         const logCount = await CleaningLog.countDocuments().session(session);
         if (logCount > 0) {
-            await CleaningLog.deleteMany({}).session(session);
-            console.log(`✅ ${logCount} cleaning logs cleared.`);
+            const updateResult = await CleaningLog.updateMany({}, {
+                $set: {
+                    startTime: null,
+                    startedBy: null,
+                    finishTime: null,
+                    finishedBy: null,
+                    checkedTime: null,
+                    checkedBy: null,
+                    status: "available" // Reset to available
+                }
+            }).session(session);
+            console.log(`✅ Reset ${updateResult.modifiedCount} cleaning logs.`);
         } else {
             console.log("ℹ️ No cleaning logs found.");
         }
@@ -808,7 +817,7 @@ app.post("/logs/clear", async (req, res) => {
         const dndResetResult = await RoomDND.updateMany({}, { $set: { dndStatus: false } }).session(session);
         console.log(`✅ Reset DND status for ${dndResetResult.modifiedCount} rooms.`);
 
-        // ✅ Reset Priorities (if needed)
+        // ✅ Reset Priorities
         const priorityResetResult = await RoomPriority.updateMany({}, { $set: { priority: "default" } }).session(session);
         console.log(`✅ Reset priorities for ${priorityResetResult.modifiedCount} rooms.`);
 
@@ -825,14 +834,15 @@ app.post("/logs/clear", async (req, res) => {
         io.emit("clearLogs");
         io.emit("dndUpdate", { roomNumber: "all", status: "available", dndLogs });
         io.emit("priorityUpdate", { roomNumber: "all", priority: "default" });
+        io.emit("resetCheckedRooms"); // ✅ Ensure checked status resets on clients
 
-        return res.json({ 
-            message: "All cleaning logs, DND statuses, and priority selections cleared successfully.",
+        return res.json({
+            message: "All cleaning logs, DND statuses, priorities, and checked statuses reset successfully.",
             dndLogs
         });
 
     } catch (error) {
-        console.error("❌ Error clearing logs:", error);
+        console.error("❌ Error resetting logs:", error);
 
         // ❌ Rollback transaction if an error occurs
         await session.abortTransaction();
