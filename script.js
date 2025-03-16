@@ -1229,7 +1229,7 @@ async function startCleaning(roomNumber) {
         console.log(`✅ Room ${formattedRoom} cleaning started.`);
 
         // ✅ Update checked button canvas (dimmed grey)
-        drawCheckButton(roomNumber, "grey", 0.6, false);
+        drawCheckButton(roomNumber, "grey", 1.0, false);
 
         // ✅ Notify
         sendTelegramMessage(`🧹 Room ${formattedRoom} ចាប់ផ្ដើមសម្អាតដោយ ${username}`);
@@ -1492,7 +1492,7 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         finishButton.disabled = false;
         finishButton.style.backgroundColor = "#008CFF";
 
-        drawCheckButton(roomNumber, "grey", 0.6, false);
+        drawCheckButton(roomNumber, "grey", 1.0, false);
 
     } else {
         // Default - Available
