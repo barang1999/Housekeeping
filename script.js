@@ -1889,6 +1889,7 @@ async function clearLogs() {
         localStorage.removeItem("checkedRooms");
         console.log("✅ Cleared checkedRooms from localStorage.");
 
+
         // ✅ Reset Checked Buttons UI to GREY
         document.querySelectorAll(".room button").forEach(button => {
             if (button.id.startsWith("checked-")) {
@@ -1910,6 +1911,9 @@ async function clearLogs() {
             console.warn("⚠️ WebSocket disconnected. Attempt reconnect...");
             reconnectWebSocket();
         }
+
+            // ✅ Clear UI elements → buttons, dropdowns
+            resetUIButtonsAndDropdowns();
 
         // ✅ Reload Logs (Empty)
             await restoreCleaningStatus();
