@@ -934,27 +934,26 @@ async function loadDNDStatus() {
     console.log("✅ DND status restored from server.");
 }
 
+// Function to restore cleaning and DND statuses
 async function restoreCleaningStatus() {
     try {
         console.log("🔄 Restoring cleaning and DND status...");
 
-        // 1️⃣ **Immediately restore from localStorage before API calls**
+        // 1️⃣ Restore from localStorage before API calls
         document.querySelectorAll(".room").forEach(roomDiv => {
             const roomNumber = roomDiv.querySelector("span").innerText.replace("Room ", "").trim();
-            let status = localStorage.getItem(`status-${roomNumber}`) || "available";
-            let dndStatus = localStorage.getItem(`dnd-${roomNumber}`) || "available";
+            const status = localStorage.getItem(`status-${roomNumber}`) || "available";
+            const dndStatus = localStorage.getItem(`dnd-${roomNumber}`) || "available";
 
             updateButtonStatus(roomNumber, status, dndStatus);
 
-            // ✅ Ensure "Checked" button stays green if status is "checked"
-            const checkedButton = document.getElementById(`checked-${roomNumber}`);
-            if (status === "checked" && checkedButton) {
-                checkedButton.disabled = true;
-                checkedButton.style.backgroundColor = "green"; // ✅ Force Green
+            // Ensure "Checked" button stays green if status is "checked"
+            if (status === "checked") {
+                drawCheckButton(roomNumber, "#4CAF50", 1.0, false); // Green & disabled
             }
         });
 
-        // 2️⃣ **Fetch latest logs from the server**
+        // 2️⃣ Fetch latest logs from the server
         const [logs, dndLogs] = await Promise.all([
             fetchWithErrorHandling(`${apiUrl}/logs`),
             fetchWithErrorHandling(`${apiUrl}/logs/dnd`)
@@ -971,34 +970,30 @@ async function restoreCleaningStatus() {
         );
 
         logs.forEach(log => {
-            let roomNumber = formatRoomNumber(log.roomNumber);
-            let status = log.finishTime ? "finished" : log.startTime ? "in_progress" : "available";
-            let dndStatus = dndStatusMap.get(roomNumber) ? "dnd" : "available";
+            const roomNumber = formatRoomNumber(log.roomNumber);
+            const status = log.finishTime ? "finished" : log.startTime ? "in_progress" : "available";
+            const dndStatus = dndStatusMap.get(roomNumber) ? "dnd" : "available";
 
             console.log(`🎯 Restoring Room ${roomNumber} -> Status: ${status}, DND: ${dndStatus}`);
-            
-            // ✅ Update buttons properly
+
+            // Update buttons properly
             updateButtonStatus(roomNumber, status, dndStatus);
 
-            // ✅ Store status locally for faster restoration on next refresh
+            // Store status locally for faster restoration on next refresh
             localStorage.setItem(`status-${roomNumber}`, status);
             localStorage.setItem(`dnd-${roomNumber}`, dndStatus);
 
-            // ✅ Ensure "Checked" button stays green if status is "checked"
-            const checkedButton = document.getElementById(`checked-${roomNumber}`);
-            if (status === "checked" && checkedButton) {
-                checkedButton.disabled = true;
-                checkedButton.style.backgroundColor = "green"; // ✅ Keep Checked Button Green
+            // Ensure "Checked" button stays green if status is "checked"
+            if (status === "checked") {
+                drawCheckButton(roomNumber, "#4CAF50", 1.0, false); // Green & disabled
             }
         });
 
         console.log("✅ Cleaning and DND status restored successfully.");
-
     } catch (error) {
         console.error("❌ Error restoring cleaning status:", error);
     }
 }
-
 
 async function resetCleaningStatus(roomNumber) {
     const numericRoomNumber = parseInt(roomNumber, 10); // ✅ Ensure it's a Number
@@ -1430,78 +1425,56 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         return;
     }
 
-    // ✅ IMPORTANT: Prevent overwriting checked button if green!
-    if (localStorage.getItem(`status-${roomNumber}`) === "checked") {
-        console.log(`✅ Room ${formattedRoom} is already checked, keeping green.`);
-        drawCheckButton(roomNumber, "#4CAF50", 1.0, false); // Always green checked
-        return; // 🚫 Stop further status override
-    }
-
     console.log(`🎯 Updating Room ${formattedRoom} -> Status: ${status}, DND: ${dndStatus}`);
 
-    // =========================
-    // ✅ Handle Cleaning Button States
-    // =========================
-
+    // === CLEANING STATUS ===
     if (status === "finished") {
-        // Disable start
         startButton.disabled = true;
         startButton.style.backgroundColor = "transparent";
 
-        // Disable finish
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "transparent";
 
-        // Enable checked, BLUE color
+        // Enable checked button (Blue)
         drawCheckButton(roomNumber, "#008CFF", 1.0, true);
 
     } else if (status === "checked") {
-        // Disable start & finish
         startButton.disabled = true;
         startButton.style.backgroundColor = "transparent";
 
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "transparent";
 
-        // Checked button GREEN & disabled
+        // ✅ Force checked button GREEN and disabled
         drawCheckButton(roomNumber, "#4CAF50", 1.0, false);
 
     } else if (status === "in_progress") {
-        // Disable start
         startButton.disabled = true;
         startButton.style.backgroundColor = "transparent";
 
-        // Enable finish
         finishButton.disabled = false;
         finishButton.style.backgroundColor = "#008CFF";
 
-        // Checked stays grey & disabled
         drawCheckButton(roomNumber, "grey", 0.6, false);
 
     } else {
-        // Available/reset state
+        // Default - Available
         startButton.disabled = false;
         startButton.style.backgroundColor = "#008CFF";
 
         finishButton.disabled = true;
         finishButton.style.backgroundColor = "transparent";
 
-        // Checked grey & disabled
         drawCheckButton(roomNumber, "grey", 1.0, false);
     }
 
-    // =========================
-    // ✅ Handle DND State
-    // =========================
-
+    // === DND STATUS ===
     if (dndStatus === "dnd") {
-        console.log(`🚨 Room ${formattedRoom} is in DND mode - Disabling Start Cleaning`);
         startButton.disabled = true;
         startButton.style.backgroundColor = "transparent";
         dndButton.classList.add("active-dnd");
         dndButton.style.backgroundColor = "red";
     } else {
-        console.log(`✅ Room ${formattedRoom} is available - Enabling Start Cleaning`);
         dndButton.classList.remove("active-dnd");
         dndButton.style.backgroundColor = "transparent";
 
@@ -1511,6 +1484,7 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         }
     }
 }
+
 
 
 // Ensure updateButtonStatus is being called after fetching logs
