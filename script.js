@@ -934,26 +934,30 @@ async function loadDNDStatus() {
     console.log("✅ DND status restored from server.");
 }
 
-// Function to restore cleaning and DND statuses
 async function restoreCleaningStatus() {
     try {
         console.log("🔄 Restoring cleaning and DND status...");
 
-        // 1️⃣ Restore from localStorage before API calls
+        // ✅ FIRST: Restore Checked Buttons from LocalStorage
+        let checkedRooms = JSON.parse(localStorage.getItem("checkedRooms")) || [];
+        checkedRooms.forEach(roomNumber => {
+            const checkedButton = document.getElementById(`checked-${roomNumber}`);
+            if (checkedButton) {
+                drawCheckButton(roomNumber, "#4CAF50", 1.0, false); // Green & disabled
+                console.log(`✅ Restored Checked Room ${roomNumber}`);
+            }
+        });
+
+        // 1️⃣ Restore from localStorage other statuses
         document.querySelectorAll(".room").forEach(roomDiv => {
             const roomNumber = roomDiv.querySelector("span").innerText.replace("Room ", "").trim();
             const status = localStorage.getItem(`status-${roomNumber}`) || "available";
             const dndStatus = localStorage.getItem(`dnd-${roomNumber}`) || "available";
 
             updateButtonStatus(roomNumber, status, dndStatus);
-
-            // Ensure "Checked" button stays green if status is "checked"
-            if (status === "checked") {
-                drawCheckButton(roomNumber, "#4CAF50", 1.0, false); // Green & disabled
-            }
         });
 
-        // 2️⃣ Fetch latest logs from the server
+        // 2️⃣ Fetch latest logs from server
         const [logs, dndLogs] = await Promise.all([
             fetchWithErrorHandling(`${apiUrl}/logs`),
             fetchWithErrorHandling(`${apiUrl}/logs/dnd`)
@@ -964,7 +968,6 @@ async function restoreCleaningStatus() {
             return;
         }
 
-        // Convert DND logs into a lookup map
         const dndStatusMap = new Map(
             (Array.isArray(dndLogs) ? dndLogs : []).map(dnd => [formatRoomNumber(dnd.roomNumber), dnd.dndStatus])
         );
@@ -975,25 +978,24 @@ async function restoreCleaningStatus() {
             const dndStatus = dndStatusMap.get(roomNumber) ? "dnd" : "available";
 
             console.log(`🎯 Restoring Room ${roomNumber} -> Status: ${status}, DND: ${dndStatus}`);
-
-            // Update buttons properly
             updateButtonStatus(roomNumber, status, dndStatus);
 
-            // Store status locally for faster restoration on next refresh
             localStorage.setItem(`status-${roomNumber}`, status);
             localStorage.setItem(`dnd-${roomNumber}`, dndStatus);
 
-            // Ensure "Checked" button stays green if status is "checked"
-            if (status === "checked") {
+            // ✅ Restore checked GREEN from checkedRooms if needed
+            if (checkedRooms.includes(roomNumber)) {
                 drawCheckButton(roomNumber, "#4CAF50", 1.0, false); // Green & disabled
             }
         });
 
-        console.log("✅ Cleaning and DND status restored successfully.");
+        console.log("✅ Cleaning & Checked buttons restored.");
+
     } catch (error) {
         console.error("❌ Error restoring cleaning status:", error);
     }
 }
+
 
 async function resetCleaningStatus(roomNumber) {
     const numericRoomNumber = parseInt(roomNumber, 10); // ✅ Ensure it's a Number
@@ -1396,14 +1398,21 @@ async function checkRoom(roomNumber) {
             return;
         }
 
-        // ✅ Update the checked button: Turn GREEN and disable
-        drawCheckButton(roomNumber, "#4CAF50", 1.0, false); // Green, disabled
+        // ✅ Update Checked Button: GREEN
+        drawCheckButton(roomNumber, "#4CAF50", 1.0, false);
         checkedButton.style.backgroundColor = "transparent";
+        checkedButton.disabled = true;
 
-        // ✅ Save checked status (optional)
+        // ✅ Save checked status in both localStorage & a dedicated array
         localStorage.setItem(`status-${roomNumber}`, "checked");
 
-        // ✅ Emit WebSocket Event
+        let checkedRooms = JSON.parse(localStorage.getItem("checkedRooms")) || [];
+        if (!checkedRooms.includes(roomNumber)) {
+            checkedRooms.push(roomNumber);
+            localStorage.setItem("checkedRooms", JSON.stringify(checkedRooms));
+        }
+
+        // ✅ Emit real-time event
         safeEmit("roomUpdate", { roomNumber, status: "checked" });
 
         console.log(`✅ Room ${roomNumber} marked as checked.`);
@@ -1412,6 +1421,7 @@ async function checkRoom(roomNumber) {
         console.error("❌ Error checking room:", error);
     }
 }
+
 
 function updateButtonStatus(roomNumber, status, dndStatus = "available") {
     let formattedRoom = formatRoomNumber(roomNumber);
@@ -1698,7 +1708,7 @@ function logout() {
 async function clearLogs() {
     console.log("🧹 Clearing all logs and resetting room statuses...");
 
-    // ✅ Show confirmation popup before proceeding
+    // ✅ Confirmation
     const confirmClear = await Swal.fire({
         title: "អ្នកប្រាកដទេ?",
         text: "វានឹងលុចចោលទិន្នន័យការសម្អាតនៅថ្ងៃនេះ!",
@@ -1716,9 +1726,8 @@ async function clearLogs() {
     }
 
     try {
-        // ✅ Send request to clear logs on the server first
+        // ✅ API Clear Request
         const res = await fetch(`${apiUrl}/logs/clear`, { method: "POST" });
-
         if (!res.ok) {
             const errorData = await res.json();
             console.error("❌ Error clearing logs on server:", errorData);
@@ -1726,12 +1735,12 @@ async function clearLogs() {
             return;
         }
 
-        console.log("✅ Logs cleared successfully on the server.");
+        console.log("✅ Logs cleared successfully on server.");
 
-        // ✅ Reset UI after confirmation
+        // ✅ Reset Logs Table
         document.querySelector("#logTable tbody").innerHTML = "";
 
-        // ✅ Reset all buttons & checked
+        // ✅ Reset All Room Buttons
         document.querySelectorAll(".room").forEach(roomDiv => {
             const roomNumber = roomDiv.querySelector("span").innerText.replace("Room ", "").trim();
 
@@ -1752,53 +1761,60 @@ async function clearLogs() {
                 finishButton.style.backgroundColor = "transparent";
             }
 
-            // DND → Transparent, remove active
+            // DND → Transparent & inactive
             if (dndButton) {
                 dndButton.classList.remove("active-dnd");
                 dndButton.style.backgroundColor = "transparent";
             }
 
-            // Checked → Grey circle, disabled
+            // Checked → Grey, disabled
             if (checkedButton) {
                 drawCheckButton(roomNumber, "grey", 1.0, false);
             }
         });
 
-        // ✅ Reset all priority dropdown buttons
+        // ✅ Reset Priority Dropdowns
         document.querySelectorAll(".priority-toggle").forEach(button => {
-            button.innerHTML = "⚪"; // Default white circle
+            button.innerHTML = "⚪"; // Default
         });
-
-        // ✅ Clear dropdown states
         document.querySelectorAll(".priority-dropdown").forEach(dropdown => {
             dropdown.classList.remove("show");
         });
 
-        // ✅ Clear localStorage relevant keys
+        // ✅ Clear relevant LocalStorage
         Object.keys(localStorage).forEach(key => {
             if (key.startsWith("priority-") || key.startsWith("status-") || key.startsWith("dnd-")) {
                 localStorage.removeItem(key);
             }
         });
 
-        console.log("✅ Local storage logs and statuses cleared.");
+        // ✅ CLEAR CHECKED ROOMS LIST
+        localStorage.removeItem("checkedRooms");
+        console.log("✅ Cleared checkedRooms from localStorage.");
 
-        // ✅ WebSocket events
+        // ✅ Reset Checked Buttons UI to GREY
+        document.querySelectorAll(".room button").forEach(button => {
+            if (button.id.startsWith("checked-")) {
+                let roomNum = button.id.replace("checked-", "");
+                drawCheckButton(roomNum, "grey", 1.0, false);
+            }
+        });
+
+        console.log("✅ All local logs, priorities, DND & checked cleared.");
+
+        // ✅ Emit WebSocket Events
         if (window.socket && window.socket.connected) {
-            console.log("📡 Emitting WebSocket event: clearLogs");
             window.socket.emit("clearLogs");
-
-            console.log("📡 Emitting WebSocket event: updatePriorityStatus");
             window.socket.emit("updatePriorityStatus", { status: "reset" });
         } else {
-            console.warn("⚠️ WebSocket not connected. Attempt reconnect...");
+            console.warn("⚠️ WebSocket disconnected. Attempt reconnect...");
             reconnectWebSocket();
         }
 
-        // ✅ Reload logs
+        // ✅ Reload Logs (Empty)
         await loadLogs();
 
-        // ✅ Notification
+        // ✅ Success Notification
         Swal.fire({
             icon: "success",
             title: "របាយការណ៍ត្រូវបានលុច",
@@ -1817,7 +1833,6 @@ async function clearLogs() {
         });
     }
 }
-
 
     
 function exportLogs() {
