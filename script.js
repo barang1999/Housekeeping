@@ -945,6 +945,9 @@ async function restoreCleaningStatus() {
             if (checkedButton) {
                 drawCheckButton(roomNumber, "#4CAF50", 1.0, false); // Green & disabled
                 console.log(`✅ Restored Checked Room ${roomNumber}`);
+
+                // ✅ EMIT status to other devices
+                 safeEmit("roomUpdate", { roomNumber, status: "checked" });
             }
         });
 
