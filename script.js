@@ -819,7 +819,7 @@ async function fetchRoomStatuses() {
         console.log("🔄 Fetching room statuses...");
         
         // Fetch cleaning statuses
-        const response = await fetch("https://housekeeping-production.up.railway.app/logs/status", {
+        const response = await fetch(`${apiUrl}/logs/status`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
@@ -833,7 +833,7 @@ async function fetchRoomStatuses() {
         console.log("✅ Room Statuses Fetched:", statuses);
 
         // Fetch room priorities
-        const priorityResponse = await fetch("https://housekeeping-production.up.railway.app/logs/priority", {
+        const priorityResponse = await fetch(`${apiUrl}/logs/priority`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
@@ -850,6 +850,11 @@ async function fetchRoomStatuses() {
         Object.entries(statuses).forEach(([roomNumber, status]) => {
             updateButtonStatus(roomNumber, status);
             
+            // ✅ Set Checked Button to GREEN if status is checked
+            if (status === "checked") {
+                drawCheckButton(roomNumber, "#4CAF50", 1.0, false); // Green circle, disabled
+            }
+
             // ✅ Ensure `roomNumber` is treated as a string before matching
             const roomPriority = priorities.find(p => String(p.roomNumber) === String(roomNumber))?.priority || "default";
 
@@ -1471,7 +1476,7 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         finishButton.style.backgroundColor = "#008CFF";
 
         // Checked stays grey & disabled
-        drawCheckButton(roomNumber, "grey", 0.6, false);
+        drawCheckButton(roomNumber, "#4CAF50", 0.6, false);
 
     } else {
         // Available/reset state
@@ -1482,7 +1487,7 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         finishButton.style.backgroundColor = "transparent";
 
         // Checked grey & disabled
-        drawCheckButton(roomNumber, "grey", 1.0, false);
+        drawCheckButton(roomNumber, "#4CAF50", 1.0, false);
     }
 
     // =========================
@@ -1716,7 +1721,6 @@ function logout() {
 }
 
 
-
 async function clearLogs() {
     console.log("🧹 Clearing all logs and resetting room statuses...");
 
@@ -1750,20 +1754,39 @@ async function clearLogs() {
 
         console.log("✅ Logs cleared successfully on the server.");
 
-        // ✅ Reset UI only after API confirmation
+        // ✅ Reset UI after confirmation
         document.querySelector("#logTable tbody").innerHTML = "";
 
-        // ✅ Reset all button states including DND
-        document.querySelectorAll(".room button").forEach(button => {
-            if (button.id.startsWith("start-")) {
-                button.style.backgroundColor = "#008CFF";
-                button.disabled = false;
-            } else if (button.id.startsWith("finish-")) {
-                button.style.backgroundColor = "grey";
-                button.disabled = true;
-            } else if (button.id.startsWith("dnd-")) {
-                button.style.backgroundColor = "#008CFF00";
-                button.classList.remove("active-dnd");
+        // ✅ Reset all buttons & checked
+        document.querySelectorAll(".room").forEach(roomDiv => {
+            const roomNumber = roomDiv.querySelector("span").innerText.replace("Room ", "").trim();
+
+            const startButton = document.getElementById(`start-${roomNumber}`);
+            const finishButton = document.getElementById(`finish-${roomNumber}`);
+            const checkedButton = document.getElementById(`checked-${roomNumber}`);
+            const dndButton = document.getElementById(`dnd-${roomNumber}`);
+
+            // Start → Blue & enabled
+            if (startButton) {
+                startButton.disabled = false;
+                startButton.style.backgroundColor = "#008CFF";
+            }
+
+            // Finish → Transparent & disabled
+            if (finishButton) {
+                finishButton.disabled = true;
+                finishButton.style.backgroundColor = "transparent";
+            }
+
+            // DND → Transparent, remove active
+            if (dndButton) {
+                dndButton.classList.remove("active-dnd");
+                dndButton.style.backgroundColor = "transparent";
+            }
+
+            // Checked → Grey circle, disabled
+            if (checkedButton) {
+                drawCheckButton(roomNumber, "grey", 1.0, false);
             }
         });
 
@@ -1772,12 +1795,12 @@ async function clearLogs() {
             button.innerHTML = "⚪"; // Default white circle
         });
 
-        // ✅ Reset all priority dropdowns in LocalStorage
+        // ✅ Clear dropdown states
         document.querySelectorAll(".priority-dropdown").forEach(dropdown => {
-            dropdown.classList.remove("show"); // Close dropdowns
+            dropdown.classList.remove("show");
         });
 
-        // ✅ Clear relevant keys from LocalStorage
+        // ✅ Clear localStorage relevant keys
         Object.keys(localStorage).forEach(key => {
             if (key.startsWith("priority-") || key.startsWith("status-") || key.startsWith("dnd-")) {
                 localStorage.removeItem(key);
@@ -1786,7 +1809,7 @@ async function clearLogs() {
 
         console.log("✅ Local storage logs and statuses cleared.");
 
-        // ✅ Ensure WebSocket is connected before emitting
+        // ✅ WebSocket events
         if (window.socket && window.socket.connected) {
             console.log("📡 Emitting WebSocket event: clearLogs");
             window.socket.emit("clearLogs");
@@ -1794,17 +1817,18 @@ async function clearLogs() {
             console.log("📡 Emitting WebSocket event: updatePriorityStatus");
             window.socket.emit("updatePriorityStatus", { status: "reset" });
         } else {
-            console.warn("⚠️ WebSocket is not connected. Attempting to reconnect...");
+            console.warn("⚠️ WebSocket not connected. Attempt reconnect...");
             reconnectWebSocket();
         }
 
-        // ✅ Reload logs after clearing to ensure UI consistency
+        // ✅ Reload logs
         await loadLogs();
-        // ✅ Show Success Notification
+
+        // ✅ Notification
         Swal.fire({
-            icon: "ជោគជ័យ",
+            icon: "success",
             title: "របាយការណ៍ត្រូវបានលុច",
-            text: "របាយការណ៍ចាស់នៅថ្ងៃនេះត្រូបានលុចចេញ.",
+            text: "របាយការណ៍ចាស់នៅថ្ងៃនេះត្រូវបានលុចចេញ.",
             timer: 2000,
             showConfirmButton: false
         });
@@ -1814,11 +1838,12 @@ async function clearLogs() {
         Swal.fire({
             icon: "error",
             title: "មានបញ្ហា",
-            text: "សូមអភ័យទោស មានបញ្ចាបច្ចេកទេសតិចតួច ក្នុងពេលលុបទិន្នន័យ",
+            text: "សូមអភ័យទោស មានបញ្ចាបច្ចេកទេសក្នុងពេលលុបទិន្នន័យ",
             confirmButtonText: "OK"
         });
     }
 }
+
 
     
 function exportLogs() {
