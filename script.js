@@ -1912,9 +1912,6 @@ async function clearLogs() {
             reconnectWebSocket();
         }
 
-            // ✅ Clear UI elements → buttons, dropdowns
-            resetUIButtonsAndDropdowns();
-
         // ✅ Reload Logs (Empty)
             await restoreCleaningStatus();
             await loadLogs();
