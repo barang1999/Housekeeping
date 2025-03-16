@@ -997,31 +997,23 @@ async function restoreCleaningStatus() {
     try {
         console.log("🔄 Restoring cleaning and DND status...");
 
-        // ✅ FIRST: Restore Checked Buttons from LocalStorage
+        // ✅ Restore Checked Buttons from LocalStorage
         let checkedRooms = JSON.parse(localStorage.getItem("checkedRooms")) || [];
         checkedRooms.forEach(roomNumber => {
-            const checkedButton = document.getElementById(`checked-${roomNumber}`);
-            if (logsCleared) {
-                console.log("🚫 Logs cleared, skipping checkedRooms restore.");
-                checkedRooms = [];
-            } else {
-                checkedRooms.forEach(roomNumber => {
-                    drawCheckButton(roomNumber, "#4CAF50", 1.0, false);
-                    console.log(`✅ Restored Checked Room ${roomNumber}`);
-                    safeEmit("roomChecked", { roomNumber, username: localStorage.getItem("username") });
-                });
-            }
+            drawCheckButton(roomNumber, "#4CAF50", 1.0, false);
+            console.log(`✅ Restored Checked Room ${roomNumber}`);
+            safeEmit("roomChecked", { roomNumber, username: localStorage.getItem("username") });
+        });
 
-        // 1️⃣ Restore from localStorage other statuses
+        // ✅ Restore from localStorage other statuses
         document.querySelectorAll(".room").forEach(roomDiv => {
             const roomNumber = roomDiv.querySelector("span").innerText.replace("Room ", "").trim();
             const status = localStorage.getItem(`status-${roomNumber}`) || "available";
             const dndStatus = localStorage.getItem(`dnd-${roomNumber}`) || "available";
-
             updateButtonStatus(roomNumber, status, dndStatus);
         });
 
-        // 2️⃣ Fetch latest logs from server
+        // ✅ Fetch latest logs and dnd logs from server
         const [logs, dndLogs] = await Promise.all([
             fetchWithErrorHandling(`${apiUrl}/logs`),
             fetchWithErrorHandling(`${apiUrl}/logs/dnd`)
@@ -1047,20 +1039,15 @@ async function restoreCleaningStatus() {
             localStorage.setItem(`status-${roomNumber}`, status);
             localStorage.setItem(`dnd-${roomNumber}`, dndStatus);
 
-            // ✅ Restore checked GREEN from checkedRooms if needed
+            // ✅ Restore checked GREEN if still in checkedRooms
             if (checkedRooms.includes(roomNumber)) {
-                drawCheckButton(roomNumber, "#4CAF50", 1.0, false); // Green & disabled
-
-                 console.log(`✅ Restored Checked Room ${roomNumber}`);
-
-                // ✅ EMIT status to other devices
+                drawCheckButton(roomNumber, "#4CAF50", 1.0, false);
+                console.log(`✅ Restored Checked Room ${roomNumber}`);
                 safeEmit("roomChecked", { roomNumber, username: localStorage.getItem("username") });
-
             }
         });
 
         console.log("✅ Cleaning & Checked buttons restored.");
-
     } catch (error) {
         console.error("❌ Error restoring cleaning status:", error);
     }
