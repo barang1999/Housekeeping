@@ -1476,7 +1476,7 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         finishButton.style.backgroundColor = "#008CFF";
 
         // Checked stays grey & disabled
-        drawCheckButton(roomNumber, "#4CAF50", 0.6, false);
+        drawCheckButton(roomNumber, "grey", 0.6, false);
 
     } else {
         // Available/reset state
@@ -1487,7 +1487,7 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         finishButton.style.backgroundColor = "transparent";
 
         // Checked grey & disabled
-        drawCheckButton(roomNumber, "#4CAF50", 1.0, false);
+        drawCheckButton(roomNumber, "grey", 1.0, false);
     }
 
     // =========================
