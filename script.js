@@ -178,6 +178,30 @@ async function connectWebSocket() {
 });
 
 
+    window.socket.on("resetCleaning", ({ roomNumber, status }) => {
+        console.log(`🔄 Reset Cleaning Received: Room ${roomNumber} -> ${status}`);
+
+        const startButton = document.getElementById(`start-${roomNumber}`);
+        const finishButton = document.getElementById(`finish-${roomNumber}`);
+        const checkedButton = document.getElementById(`checked-${roomNumber}`);
+
+        if (startButton) {
+            startButton.disabled = false;
+            startButton.style.backgroundColor = "#008CFF"; // Blue
+        }
+        if (finishButton) {
+            finishButton.disabled = true;
+            finishButton.style.backgroundColor = "transparent";
+        }
+        if (checkedButton) {
+            drawCheckButton(roomNumber, "grey", 1.0, false); // Reset checked button
+        }
+
+        // Reset localStorage for room
+        localStorage.setItem(`status-${roomNumber}`, "available");
+    });
+
+
     
       window.socket.on("dndUpdate", (data) => {
     if (!data || !data.roomNumber) {
