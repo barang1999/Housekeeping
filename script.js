@@ -102,6 +102,17 @@ async function connectWebSocket() {
         updateSelectedPriorityDisplay(String(roomNumber), priority);
     });
 
+    window.socket.on("roomChecked", ({ roomNumber, status }) => {
+    if (status === "checked") {
+        drawCheckButton(roomNumber, "#4CAF50", 1.0, false);
+        let checkedRooms = JSON.parse(localStorage.getItem("checkedRooms")) || [];
+        if (!checkedRooms.includes(roomNumber)) {
+            checkedRooms.push(roomNumber);
+            localStorage.setItem("checkedRooms", JSON.stringify(checkedRooms));
+        }
+        console.log(`✅ Real-time checked restored: Room ${roomNumber}`);
+    }
+});
 
     
    window.socket.on("roomUpdate", async ({ roomNumber, status }) => {
@@ -965,7 +976,8 @@ async function restoreCleaningStatus() {
                 console.log(`✅ Restored Checked Room ${roomNumber}`);
 
                 // ✅ EMIT status to other devices
-                 safeEmit("roomUpdate", { roomNumber, status: "checked" });
+                 safeEmit("roomChecked", { roomNumber, username: localStorage.getItem("username") });
+
             }
         });
 
@@ -1011,7 +1023,8 @@ async function restoreCleaningStatus() {
                  console.log(`✅ Restored Checked Room ${roomNumber}`);
 
                 // ✅ EMIT status to other devices
-                safeEmit("roomUpdate", { roomNumber, status: "checked" });
+                safeEmit("roomChecked", { roomNumber, username: localStorage.getItem("username") });
+
             }
         });
 
@@ -1456,7 +1469,8 @@ async function checkRoom(roomNumber) {
         }
 
         // ✅ Emit real-time event
-        safeEmit("roomUpdate", { roomNumber, status: "checked" });
+        safeEmit("roomChecked", { roomNumber, username: localStorage.getItem("username") });
+
 
         // ✅ Send Telegram Notification
         const message = `💦Room ${roomNumber} ត្រូវបានត្រួតពិនិត្យ ដោយ ${username}`;
@@ -1479,7 +1493,8 @@ function emitCheckedRoomsToAllDevices() {
     const checkedRooms = JSON.parse(localStorage.getItem("checkedRooms")) || [];
     checkedRooms.forEach(roomNumber => {
         console.log(`📢 Broadcasting checked room ${roomNumber} to all devices...`);
-        safeEmit("roomUpdate", { roomNumber, status: "checked" });
+        safeEmit("roomChecked", { roomNumber, username: localStorage.getItem("username") });
+
     });
 }
 
