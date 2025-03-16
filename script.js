@@ -1425,6 +1425,13 @@ function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         return;
     }
 
+    // ✅ IMPORTANT: Prevent overwriting checked button if green!
+    if (localStorage.getItem(`status-${roomNumber}`) === "checked") {
+        console.log(`✅ Room ${formattedRoom} is already checked, keeping green.`);
+        drawCheckButton(roomNumber, "#4CAF50", 1.0, false); // Always green checked
+        return; // 🚫 Stop further status override
+    }
+
     console.log(`🎯 Updating Room ${formattedRoom} -> Status: ${status}, DND: ${dndStatus}`);
 
     // =========================
