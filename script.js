@@ -114,6 +114,22 @@ async function connectWebSocket() {
     }
 });
 
+    window.socket.on("resetCheckedRooms", () => {
+        console.log("🧹 Received checked rooms reset broadcast.");
+
+        // Clear localStorage checkedRooms
+        localStorage.removeItem("checkedRooms");
+
+        // Reset all checked buttons to grey
+        document.querySelectorAll(".room button").forEach(button => {
+            if (button.id.startsWith("checked-")) {
+                let roomNum = button.id.replace("checked-", "");
+                drawCheckButton(roomNum, "grey", 1.0, false);
+            }
+        });
+
+        console.log("✅ All checked buttons reset to grey.");
+    });
     
    window.socket.on("roomUpdate", async ({ roomNumber, status }) => {
     try {
@@ -1887,6 +1903,8 @@ async function clearLogs() {
         if (window.socket && window.socket.connected) {
             window.socket.emit("clearLogs");
             window.socket.emit("updatePriorityStatus", { status: "reset" });
+             // 🚀 NEW: Emit checked reset to all devices
+            window.socket.emit("resetCheckedRooms");
         } else {
             console.warn("⚠️ WebSocket disconnected. Attempt reconnect...");
             reconnectWebSocket();

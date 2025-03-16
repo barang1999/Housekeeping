@@ -192,19 +192,24 @@ socket.on("updatePriorityStatus", (data) => {
 });
 
 // ✅ Handle Room Checked WebSocket Event
-socket.on("roomChecked", async ({ roomNumber, username }) => {
-    try {
-        await CleaningLog.findOneAndUpdate(
-            { roomNumber, finishTime: { $ne: null } }, 
-            { $set: { checkedTime: new Date().toLocaleString(), checkedBy: username, status: "checked" } },
-            { new: true }
-        );
+    socket.on("roomChecked", async ({ roomNumber, username }) => {
+        try {
+            await CleaningLog.findOneAndUpdate(
+                { roomNumber, finishTime: { $ne: null } }, 
+                { $set: { checkedTime: new Date().toLocaleString(), checkedBy: username, status: "checked" } },
+                { new: true }
+            );
 
-        io.emit("roomChecked", { roomNumber, status: "checked", checkedBy: username });
-    } catch (error) {
-        console.error("❌ WebSocket Error: Room Checked", error);
-    }
-});
+            io.emit("roomChecked", { roomNumber, status: "checked", checkedBy: username });
+        } catch (error) {
+            console.error("❌ WebSocket Error: Room Checked", error);
+        }
+    });
+
+    socket.on("resetCheckedRooms", () => {
+        console.log("🧹 Resetting checked rooms on all clients...");
+        io.emit("resetCheckedRooms"); // Broadcast to ALL clients
+    });
     
 socket.on("dndUpdate", async ({ roomNumber, status }) => {
     try {
