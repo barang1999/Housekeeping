@@ -794,21 +794,11 @@ app.post("/logs/clear", async (req, res) => {
     try {
         console.log("🧹 Resetting all cleaning logs, DND statuses, and priorities...");
 
-        // ✅ Update Cleaning Logs Safely: RESET instead of deleting
+        // ✅ Delete Cleaning Logs Safely
         const logCount = await CleaningLog.countDocuments().session(session);
         if (logCount > 0) {
-            const updateResult = await CleaningLog.updateMany({}, {
-                $set: {
-                    startTime: null,
-                    startedBy: null,
-                    finishTime: null,
-                    finishedBy: null,
-                    checkedTime: null,
-                    checkedBy: null,
-                    status: "available" // Reset to available
-                }
-            }).session(session);
-            console.log(`✅ Reset ${updateResult.modifiedCount} cleaning logs.`);
+            await CleaningLog.deleteMany({}).session(session);
+            console.log(`✅ ${logCount} cleaning logs cleared.`);
         } else {
             console.log("ℹ️ No cleaning logs found.");
         }
