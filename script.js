@@ -1511,7 +1511,6 @@ async function loadLogs() {
             return;
         }
 
-         // ✅ Ensure `dndLogs` is properly initialized as an array
         const dndStatusMap = new Map(
             (Array.isArray(dndLogs) ? dndLogs : []).map(dnd => [dnd.roomNumber, dnd.dndStatus])
         );
@@ -1529,16 +1528,16 @@ async function loadLogs() {
         });
 
         logs.forEach(log => {
-            console.log("📌 Log Entry:", log); // Debug individual log entries
+            console.log("📌 Log Entry:", log);
 
-            let roomNumber = String(log.roomNumber).padStart(3, "0"); // ✅ Ensure consistent 3-digit format
+            let roomNumber = String(log.roomNumber).padStart(3, "0");
             let startTime = log.startTime ? new Date(log.startTime).toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' }) : "N/A";
             let startedBy = log.startedBy || "-";
             let finishTime = log.finishTime ? new Date(log.finishTime).toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' }) : "កំពុងសម្អាត....";
             let finishedBy = log.finishedBy || "-";
             let status = log.finishTime ? "finished" : "in_progress";
             let dndStatus = dndStatusMap.get(log.roomNumber) ? "dnd" : "available";
-            // ✅ Calculate Duration
+
             let duration = "-";
             if (log.startTime && log.finishTime) {
                 let durationMs = new Date(log.finishTime) - new Date(log.startTime);
@@ -1546,11 +1545,8 @@ async function loadLogs() {
                 duration = minutes > 0 ? `${minutes} min` : "< 1 min";
             }
 
-            // ✅ Update button status but do NOT override DND mode
             updateButtonStatus(roomNumber, status, dndStatus);
-         
 
-            // ✅ Store cleaning status
             cleaningStatus[roomNumber] = {
                 started: status === "in_progress",
                 finished: status === "finished",
@@ -1564,15 +1560,24 @@ async function loadLogs() {
                 <td>${startedBy}</td>
                 <td>${finishTime}</td>
                 <td>${finishedBy}</td>
-                <td>${duration}</td>  <!-- ✅ Add Duration Column -->
+                <td>${duration}</td>
             `;
             logTable.appendChild(row);
         });
 
-        // ✅ If no logs are found, display a default message
-        if (!logTable.innerHTML.trim()) { 
-            logTable.innerHTML = "<tr><td colspan='5'>No logs found.</td></tr>"; 
-        } 
+        if (!logTable.innerHTML.trim()) {
+            logTable.innerHTML = "<tr><td colspan='5'>No logs found.</td></tr>";
+        }
+
+        // ✅ Restore Checked Rooms
+        let checkedRooms = JSON.parse(localStorage.getItem("checkedRooms")) || [];
+        checkedRooms.forEach(roomNumber => {
+            const checkedButton = document.getElementById(`checked-${roomNumber}`);
+            if (checkedButton) {
+                drawCheckButton(roomNumber, "#4CAF50", 1.0, false);
+                console.log(`✅ Checked Button GREEN Restored (Logs): Room ${roomNumber}`);
+            }
+        });
 
     } catch (error) {
         console.error("❌ Error loading logs:", error);
