@@ -952,23 +952,24 @@ async function fetchRoomStatuses() {
         
         console.log("✅ Room Priorities Fetched:", priorities);
 
-        // Loop through each room and update buttons & priority dropdowns
-        Object.entries(statuses).forEach(([roomNumber, status]) => {
-            updateButtonStatus(roomNumber, status);
-            
-            // ✅ Set Checked Button to GREEN if status is checked
-            if (status === "checked") {
-                drawCheckButton(roomNumber, "#4CAF50", 1.0, false); // Green circle, disabled
-            }
+       Object.entries(statuses).forEach(([roomNumber, status]) => {
+                const formattedRoom = formatRoomNumber(roomNumber);
 
-            // ✅ Ensure `roomNumber` is treated as a string before matching
-            const roomPriority = priorities.find(p => String(p.roomNumber) === String(roomNumber))?.priority || "default";
+                updateButtonStatus(formattedRoom, status);
 
-            console.log(`🔄 Restoring priority for Room ${roomNumber}: ${roomPriority}`);
+                if (status === "checked") {
+                    drawCheckButton(formattedRoom, "#4CAF50", 1.0, false);
+                }
 
-            // Update the priority dropdown selection
-            updateSelectedPriorityDisplay(roomNumber, roomPriority);
-        });
+                // Always format both room numbers before comparison
+                const roomPriority = priorities.find(p => 
+                    formatRoomNumber(p.roomNumber) === formattedRoom
+                )?.priority || "default";
+
+                console.log(`🔄 Restoring priority for Room ${formattedRoom}: ${roomPriority}`);
+
+                updateSelectedPriorityDisplay(formattedRoom, roomPriority);
+            });
 
     } catch (error) {
         console.error("❌ Error fetching room statuses or priorities:", error);

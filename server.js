@@ -394,14 +394,15 @@ app.get("/logs/status", async (req, res) => {
         let status = {};
 
         logs.forEach(log => {
+            const roomStr = String(log.roomNumber).padStart(3, "0"); // ✅ Convert to string, pad to 3 digits
             if (log.checkedTime) {
-                status[log.roomNumber] = "checked";  // ✅ NEW: Mark as Checked if already clicked
+                status[roomStr] = "checked";
             } else if (log.finishTime) {
-                status[log.roomNumber] = "finished";
+                status[roomStr] = "finished";
             } else if (log.startTime) {
-                status[log.roomNumber] = "in_progress";
+                status[roomStr] = "in_progress";
             } else {
-                status[log.roomNumber] = "not_started";
+                status[roomStr] = "not_started";
             }
         });
 
@@ -413,6 +414,7 @@ app.get("/logs/status", async (req, res) => {
     }
 });
 
+
 app.get("/logs/priority", async (req, res) => {
     try {
         const priorities = await RoomPriority.find({}, "roomNumber priority").lean();
@@ -422,10 +424,10 @@ app.get("/logs/priority", async (req, res) => {
             return res.json([]);
         }
 
-        // ✅ Ensure all roomNumbers are strings
+        // ✅ Ensure all room numbers are returned as padded 3-digit strings
         const formattedPriorities = priorities.map(p => ({
-            roomNumber: String(p.roomNumber), 
-            priority: p.priority
+            roomNumber: String(p.roomNumber).padStart(3, "0"), // Pad to 3 digits
+            priority: p.priority || "default"
         }));
 
         res.json(formattedPriorities);
@@ -436,23 +438,33 @@ app.get("/logs/priority", async (req, res) => {
     }
 });
 
+
 app.post("/logs/priority", async (req, res) => {
     try {
-        const { roomNumber, priority } = req.body;
+        let { roomNumber, priority } = req.body;
         if (!roomNumber || !priority) {
             return res.status(400).json({ message: "Room number and priority are required." });
         }
+
+        // ✅ Pad room number to ensure consistency
+        roomNumber = String(roomNumber).padStart(3, "0");
+
         await RoomPriority.findOneAndUpdate(
             { roomNumber },
             { priority },
             { upsert: true, new: true }
         );
+
+        // ✅ Emit with padded room number
         io.emit("priorityUpdate", { roomNumber, priority });
+
         res.json({ message: "Priority updated successfully" });
     } catch (error) {
+        console.error("❌ Error updating priority:", error);
         res.status(500).json({ message: "Server error", error });
     }
 });
+
 
 app.post("/logs/dnd", async (req, res) => {
     try {
@@ -790,20 +802,19 @@ app.get("/logs", async (req, res) => {
     try {
         const logs = await CleaningLog.find();
 
-        // ✅ Print logs to check stored room number format
-        console.log("🔍 Logs from Database:", logs.map(log => ({ roomNumber: log.roomNumber, status: log.status })));
-
-        // ✅ Ensure all room numbers are returned as numbers
         const fixedLogs = logs.map(log => ({
             ...log.toObject(),
-            roomNumber: Number(log.roomNumber) // ✅ Force Number
+            roomNumber: String(log.roomNumber).padStart(3, "0") // Convert to padded string
         }));
+
+        console.log("✅ Sending logs with padded room numbers:", fixedLogs);
 
         res.json(fixedLogs);
     } catch (error) {
         res.status(500).json({ message: "Server error", error });
     }
 });
+
 app.post("/logs/clear", async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
