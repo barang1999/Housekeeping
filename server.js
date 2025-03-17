@@ -746,7 +746,7 @@ app.post("/logs/check", async (req, res) => {
     }
 
     roomNumber = parseInt(roomNumber, 10); // Convert to number
-    const checkedTime = new Date().toLocaleString("en-US", { timeZone: "Asia/Phnom_Penh" });
+    const checkedTime = new Date().toISOString(); // Use ISO format here (better consistency!)
 
     try {
         const updatedLog = await CleaningLog.findOneAndUpdate(
@@ -759,14 +759,22 @@ app.post("/logs/check", async (req, res) => {
             return res.status(400).json({ message: "Room not found or already checked." });
         }
 
-        io.emit("roomChecked", { roomNumber, status: "checked", checkedBy: username });
+        // ✅ Emit WebSocket event with timestamp included
+        io.emit("roomChecked", { 
+            roomNumber, 
+            status: "checked", 
+            checkedBy: username, 
+            checkedTime 
+        });
 
         res.status(200).json({ message: `Room ${roomNumber} checked by ${username}` });
 
     } catch (error) {
+        console.error("❌ Error in /logs/check:", error);
         res.status(500).json({ message: "Server error", error: error.message });
     }
 });
+
 
 
 app.get("/logs", async (req, res) => {

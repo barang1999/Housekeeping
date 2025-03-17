@@ -80,8 +80,22 @@ async function connectWebSocket() {
         safeEmit("requestButtonStatus"); // Ensure button statuses load
         safeEmit("requestPriorityStatus"); // ✅ Request priority data
         // 🚀 Emit checked rooms after socket connected!
-         emitCheckedRoomsToAllDevices();
+        setTimeout(() => {
+            emitCheckedRoomsToAllDevices();
+        }, 300); // Add delay
     });
+
+    window.socket.on("roomChecked", ({ roomNumber, status }) => {
+    if (status === "checked") {
+        drawCheckButton(roomNumber, "#4CAF50", 1.0, false);
+        let checkedRooms = JSON.parse(localStorage.getItem("checkedRooms")) || [];
+        if (!checkedRooms.includes(roomNumber)) {
+            checkedRooms.push(roomNumber);
+            localStorage.setItem("checkedRooms", JSON.stringify(checkedRooms));
+        }
+        console.log(`✅ Real-time checked restored: Room ${roomNumber}`);
+    }
+});
 
    // ✅ Handle incoming priority status updates
     window.socket.on("priorityStatus", (priorities) => {
@@ -102,18 +116,6 @@ async function connectWebSocket() {
         updateSelectedPriorityDisplay(String(roomNumber), priority);
     });
 
-    window.socket.on("roomChecked", ({ roomNumber, status }) => {
-    if (status === "checked") {
-        drawCheckButton(roomNumber, "#4CAF50", 1.0, false);
-        let checkedRooms = JSON.parse(localStorage.getItem("checkedRooms")) || [];
-        if (!checkedRooms.includes(roomNumber)) {
-            checkedRooms.push(roomNumber);
-            localStorage.setItem("checkedRooms", JSON.stringify(checkedRooms));
-        }
-        console.log(`✅ Real-time checked restored: Room ${roomNumber}`);
-    }
-});
-
     window.socket.on("resetCheckedRooms", () => {
         console.log("🧹 Received checked rooms reset broadcast.");
 
@@ -131,7 +133,7 @@ async function connectWebSocket() {
         console.log("✅ All checked buttons reset to grey.");
     });
 
-         window.socket.on("forceClearCheckedRooms", () => {
+     window.socket.on("forceClearCheckedRooms", () => {
             console.log("🔄 Force clearing checkedRooms received...");
             localStorage.removeItem("checkedRooms");
 
