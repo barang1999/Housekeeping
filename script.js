@@ -571,7 +571,7 @@ async function loadRooms() {
             roomDiv.classList.add("room");
 
             roomDiv.innerHTML = `
-                <span>Room ${room}</span>
+                <span> ${room}</span>
                 <div class="priority-container">
                     <button class="priority-toggle" id="selected-priority-${room}" onclick="togglePriorityDropdown('${room}')">⚪</button>
                     <div class="priority-dropdown" id="priority-${room}">
