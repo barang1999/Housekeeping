@@ -815,6 +815,14 @@ app.get("/logs", async (req, res) => {
     }
 });
 
+const allRoomNumbers = [
+    "001", "002", "003", "004", "005", "006", "007",
+    "011", "012", "013", "014", "015", "016", "017",
+    "101", "102", "103", "104", "105", "106", "107", "108", "109", "110",
+    "111", "112", "113", "114", "115", "116", "117",
+    "201", "202", "203", "204", "205", "208", "209", "210", "211", "212", "213", "214", "215", "216", "217"
+];
+
 app.post("/logs/clear", async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -822,7 +830,6 @@ app.post("/logs/clear", async (req, res) => {
     try {
         console.log("🧹 Resetting all cleaning logs, DND statuses, and priorities...");
 
-        // ✅ Delete Cleaning Logs Safely
         const logCount = await CleaningLog.countDocuments().session(session);
         if (logCount > 0) {
             await CleaningLog.deleteMany({}).session(session);
@@ -831,35 +838,28 @@ app.post("/logs/clear", async (req, res) => {
             console.log("ℹ️ No cleaning logs found.");
         }
 
-        // ✅ Reset DND Status for All Rooms
         const dndResetResult = await RoomDND.updateMany({}, { $set: { dndStatus: false } }).session(session);
         console.log(`✅ Reset DND status for ${dndResetResult.modifiedCount} rooms.`);
 
-        // ✅ Reset Priorities
         const priorityResetResult = await RoomPriority.updateMany({}, { $set: { priority: "default" } }).session(session);
         console.log(`✅ Reset priorities for ${priorityResetResult.modifiedCount} rooms.`);
 
-        // ✅ Fetch latest DND statuses (after reset)
         const dndLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
 
-        // ✅ Commit transaction to make changes permanent
         await session.commitTransaction();
         session.endSession();
 
         console.log("✅ All logs, DND statuses, and priorities reset successfully.");
 
-        // ✅ Emit WebSocket Events **AFTER** transaction is successful
         io.emit("clearLogs");
         io.emit("dndUpdate", { roomNumber: "all", status: "available", dndLogs });
         io.emit("priorityUpdate", { roomNumber: "all", priority: "default" });
-        io.emit("resetCheckedRooms"); // ✅ Ensure checked status resets on clients
+        io.emit("resetCheckedRooms");
 
-        // 🟢 NEW: Emit resetCleaning for EACH room to ensure start button resets
-            const allRooms = await CleaningLog.find({}, "roomNumber").lean();
-            allRooms.forEach(room => {
-                io.emit("resetCleaning", { roomNumber: room.roomNumber, status: "available" });
-                console.log(`🔄 Reset Cleaning Button for Room ${room.roomNumber}`);
-            });
+        allRoomNumbers.forEach(roomNumber => {
+            io.emit("resetCleaning", { roomNumber, status: "available" });
+            console.log(`🔄 Reset Cleaning Button for Room ${roomNumber}`);
+        });
 
         return res.json({
             message: "All cleaning logs, DND statuses, priorities, and checked statuses reset successfully.",
@@ -869,13 +869,13 @@ app.post("/logs/clear", async (req, res) => {
     } catch (error) {
         console.error("❌ Error resetting logs:", error);
 
-        // ❌ Rollback transaction if an error occurs
         await session.abortTransaction();
         session.endSession();
 
         return res.status(500).json({ message: "Internal server error. Logs were not cleared." });
     }
 });
+
 
 
 // 🏠 Home Route
