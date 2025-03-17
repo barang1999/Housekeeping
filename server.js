@@ -209,7 +209,7 @@ socket.on("updatePriorityStatus", (data) => {
                 { new: true }
             );
 
-            io.emit("roomChecked", { roomNumber, status: "checked", checkedBy: username });
+            io.emit("roomChecked", { roomNumber: String(roomNumber).padStart(3, "0"), status: "checked", checkedBy: username });
         } catch (error) {
             console.error("❌ WebSocket Error: Room Checked", error);
         }
