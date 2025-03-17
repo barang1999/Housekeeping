@@ -191,6 +191,15 @@ socket.on("updatePriorityStatus", (data) => {
     });
 });
 
+    // Backend: After successful connection
+    socket.on("requestCheckedRooms", async () => {
+        const checkedLogs = await CleaningLog.find({ status: "checked" }, "roomNumber").lean();
+        const checkedRooms = checkedLogs.map(log => log.roomNumber);
+
+        socket.emit("checkedRoomsStatus", checkedRooms); // Custom event
+    });
+
+
 // ✅ Handle Room Checked WebSocket Event
     socket.on("roomChecked", async ({ roomNumber, username }) => {
         try {

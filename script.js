@@ -85,17 +85,37 @@ async function connectWebSocket() {
         }, 300); // Add delay
     });
 
+    // 🟢 ADD THIS LINE:
+     window.socket.emit("requestCheckedRooms");
+
+       window.socket.on("checkedRoomsStatus", (checkedRooms) => {
+            checkedRooms.forEach(roomNumber => {
+                drawCheckButton(roomNumber, "#4CAF50", 1.0, false);
+
+                // Update localStorage
+                let stored = JSON.parse(localStorage.getItem("checkedRooms")) || [];
+                if (!stored.includes(roomNumber)) {
+                    stored.push(roomNumber);
+                    localStorage.setItem("checkedRooms", JSON.stringify(stored));
+                }
+            });
+        });
+
     window.socket.on("roomChecked", ({ roomNumber, status }) => {
     if (status === "checked") {
         drawCheckButton(roomNumber, "#4CAF50", 1.0, false);
+
+        // ✅ Update checkedRooms localStorage
         let checkedRooms = JSON.parse(localStorage.getItem("checkedRooms")) || [];
         if (!checkedRooms.includes(roomNumber)) {
             checkedRooms.push(roomNumber);
             localStorage.setItem("checkedRooms", JSON.stringify(checkedRooms));
         }
+
         console.log(`✅ Real-time checked restored: Room ${roomNumber}`);
     }
 });
+
 
    // ✅ Handle incoming priority status updates
     window.socket.on("priorityStatus", (priorities) => {
