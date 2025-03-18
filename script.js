@@ -679,7 +679,7 @@ async function showDashboard(username) {
 
     statsContainer.innerHTML = `
         <div>🕒 ល្បឿនសម្អាតរបស់អ្នកជាមធ្យម: <strong>${avgDuration} min</strong></div>
-        <div>⚡ អ: <strong>${fastestCleaner}</strong></div>
+        <div>⚡ អ្នកសម្អាតបានលឿនជាងគេ: <strong>${fastestCleaner}</strong></div>
     `;
 
     // Load rooms first, then ensure the ground floor is shown
