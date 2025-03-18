@@ -672,11 +672,10 @@ async function showDashboard(username) {
     }
 
     // 🏆 Fetch and Display Stats
-    const { userDurations, fastestUser, fastestDufastestAverageDurationration } = await calculateUserCleaningStats();
+    const { userDurations, fastestUser, fastestAverageDuration } = await calculateUserCleaningStats();
     
     const avgDuration = userDurations[username]?.average || "N/A";
     const fastestCleaner = fastestUser ? `${fastestUser} (${fastestAverageDuration} min)` : "N/A";
-
 
     statsContainer.innerHTML = `
         <div>🕒 ល្បឿនសម្អាតរបស់អ្នកជាមធ្យម: <strong>${avgDuration} min</strong></div>
