@@ -678,8 +678,8 @@ async function showDashboard(username) {
     const fastestCleaner = fastestUser ? `${fastestUser} (${fastestDuration} min)` : "N/A";
 
     statsContainer.innerHTML = `
-        <div>🕒 Avg Cleaning Duration: <strong>${avgDuration} min</strong></div>
-        <div>⚡ Fastest Cleaner: <strong>${fastestCleaner}</strong></div>
+        <div>🕒 ល្បឿនសម្អាតរបស់អ្នកជាមធ្យម: <strong>${avgDuration} min</strong></div>
+        <div>⚡ អ្នកសម្អាតលឿនជាងគេ: <strong>${fastestCleaner}</strong></div>
     `;
 
     // Load rooms first, then ensure the ground floor is shown
@@ -1741,8 +1741,6 @@ async function calculateUserCleaningStats() {
     }
 
     let userDurations = {}; // Store cleaning times per user
-    let fastestUser = null;
-    let fastestDuration = Infinity;
 
     logs.forEach(log => {
         if (log.startTime && log.finishTime) {
@@ -1754,29 +1752,36 @@ async function calculateUserCleaningStats() {
                 const user = log.finishedBy || "Unknown";
 
                 if (!userDurations[user]) {
-                    userDurations[user] = { totalDuration: 0, count: 0, fastest: Infinity };
+                    userDurations[user] = { totalDuration: 0, count: 0 };
                 }
 
                 userDurations[user].totalDuration += duration;
                 userDurations[user].count += 1;
-                userDurations[user].fastest = Math.min(userDurations[user].fastest, duration);
-
-                // Update global fastest user
-                if (duration < fastestDuration) {
-                    fastestDuration = duration;
-                    fastestUser = user;
-                }
             }
         }
     });
 
-    // Compute averages
+    // Compute averages and find the fastest average
+    let fastestUser = null;
+    let fastestAverageDuration = Infinity;
+
     for (const user in userDurations) {
-        userDurations[user].average = (userDurations[user].totalDuration / userDurations[user].count).toFixed(1);
+        const average = userDurations[user].totalDuration / userDurations[user].count;
+        userDurations[user].average = average.toFixed(1);
+
+        if (average < fastestAverageDuration) {
+            fastestAverageDuration = average;
+            fastestUser = user;
+        }
     }
 
-    return { userDurations, fastestUser, fastestDuration: fastestDuration.toFixed(1) };
+    return { 
+        userDurations, 
+        fastestUser, 
+        fastestAverageDuration: fastestAverageDuration === Infinity ? null : fastestAverageDuration.toFixed(1)
+    };
 }
+
 
 
 function updateDNDStatus(roomNumber, status) {
