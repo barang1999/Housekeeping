@@ -672,14 +672,15 @@ async function showDashboard(username) {
     }
 
     // 🏆 Fetch and Display Stats
-    const { userDurations, fastestUser, fastestDuration } = await calculateUserCleaningStats();
+    const { userDurations, fastestUser, fastestDufastestAverageDurationration } = await calculateUserCleaningStats();
     
     const avgDuration = userDurations[username]?.average || "N/A";
-    const fastestCleaner = fastestUser ? `${fastestUser} (${fastestDuration} min)` : "N/A";
+    const fastestCleaner = fastestUser ? `${fastestUser} (${fastestAverageDuration} min)` : "N/A";
+
 
     statsContainer.innerHTML = `
         <div>🕒 ល្បឿនសម្អាតរបស់អ្នកជាមធ្យម: <strong>${avgDuration} min</strong></div>
-        <div>⚡ អ្នកសម្អាតលឿនជាងគេ: <strong>${fastestCleaner}</strong></div>
+        <div>⚡ អ: <strong>${fastestCleaner}</strong></div>
     `;
 
     // Load rooms first, then ensure the ground floor is shown
