@@ -13,17 +13,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadLogs(); // ✅ Fetch logs before restoring buttons
     await restoreCleaningStatus(); // ✅ Ensure buttons are updated after logs are loaded
     await connectWebSocket(); // ✅ Connect WebSocket first for real-time updates
+
+    await loadRooms(); // ✅ Make sure buttons exist
+    restoreAllInspectionButtons(); // ✅ Restore inspection button UI
+    emitInspectionRequest();  // ✅ Emit inspection logs request safely AFTER buttons exist
      
     // ✅ Ensure socket is available before emitting
     if (window.socket) {
         window.socket.emit("requestPriorityStatus");
-        window.socket.emit("requestInspectionLogs");
     } else {
         console.warn("⚠️ WebSocket is not initialized. Retrying...");
         setTimeout(() => {
             if (window.socket) {
                 window.socket.emit("requestPriorityStatus");
-                window.socket.emit("requestInspectionLogs");
             } else {
                 console.error("❌ WebSocket still not initialized. Check connection setup.");
             }
