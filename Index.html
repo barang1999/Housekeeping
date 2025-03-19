@@ -146,22 +146,43 @@
             background-color: #007bff;
             color: white;
         }
-        .dashboard-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-}
 
-.dnd-btn {
-    color: white;  /* Makes the 🚫 emoji appear white */
-    background: transparent; /* Optional: Remove button background */
-    border: none;
-    font-size: 18px; /* Adjust size if needed */
-}
+        button.inspect-btn {
+            background-color: transparent !important;
+            border: none;
+            border-radius: 50%;
+            padding: 6px;
+            margin-left: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        /* Active States */
+        button.inspect-btn.clean.active {
+            background-color: #90EE90 !important; /* Light Green */
+        }
+
+        button.inspect-btn.not-clean.active {
+            background-color: #FF6B6B !important; /* Light Red */
+        }
+
+
+                .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .dnd-btn {
+            color: white;  /* Makes the 🚫 emoji appear white */
+            background: transparent; /* Optional: Remove button background */
+            border: none;
+            font-size: 18px; /* Adjust size if needed */
+        }
 
 .dnd-btn:disabled {
     border: none !important;
@@ -310,27 +331,6 @@
 .priority-toggle.sunrise { background-color: red; }
 .priority-toggle.early-arrival { background-color: yellow; }
 .priority-toggle.vacancy { background-color: black; }
-
-
-/* Fix inspect button's background */
-.inspect-btn {
-    background-color: transparent !important;  /* FORCE remove blue background */
-    border: none;
-    border-radius: 50%;
-    padding: 6px;
-    margin-left: 4px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-/* Active States */
-.inspect-btn.clean.active {
-    background-color: #90EE90 !important; /* Light Green */
-}
-
-.inspect-btn.not-clean.active {
-    background-color: #FF6B6B !important; /* Light Red */
-}
 
 
     </style>
