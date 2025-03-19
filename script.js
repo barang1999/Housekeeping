@@ -91,6 +91,7 @@ async function connectWebSocket() {
 
     // 🟢 ADD THIS LINE:
      window.socket.emit("requestCheckedRooms");
+     window.socket.emit("requestInspectionLogs"); // To refill inspectionLogs
 
        window.socket.on("checkedRoomsStatus", (checkedRooms) => {
             checkedRooms.forEach(roomNumber => {
@@ -120,10 +121,21 @@ async function connectWebSocket() {
     }
 });
 
-    window.socket.on("inspectionUpdate", ({ roomNumber, item, status, updatedBy }) => {
-        console.log(`📡 Inspection update: Room ${roomNumber} - ${item}: ${status} by ${updatedBy}`);
-        // Optionally reflect this on the UI (e.g., small badge, status list, etc.)
+    window.socket.on("inspectionUpdate", ({ roomNumber, item, status }) => {
+        // Update global inspectionLogs
+        const logIndex = inspectionLogs.findIndex(log => log.roomNumber === roomNumber);
+        if (logIndex !== -1) {
+            // Update existing log
+            inspectionLogs[logIndex].items[item] = status;
+        } else {
+            // If log doesn't exist, create new
+            inspectionLogs.push({
+                roomNumber,
+                items: { [item]: status }
+            });
+        }
     });
+
 
         // Call when WebSocket connects
     window.socket.on("connect", () => {
@@ -1615,15 +1627,16 @@ function openInspectionPopup(roomNumber) {
         { icon: "🥤", name: "Minibar" }
     ];
 
-    // Retrieve latest inspection logs (already received & stored earlier)
+    // Fetch correct inspection log for the room
     const roomLog = inspectionLogs.find(log => log.roomNumber === roomNumber);
 
     let htmlContent = checklistItems.map(item => {
-        const status = roomLog && roomLog.items && roomLog.items[item.name] 
-                        ? roomLog.items[item.name] : null;
+        // Check if status exists
+        const itemStatus = roomLog && roomLog.items && roomLog.items[item.name] 
+            ? roomLog.items[item.name] : null;
 
-        let cleanClass = status === "clean" ? 'active' : '';
-        let notCleanClass = status === "not_clean" ? 'active' : '';
+        let cleanClass = itemStatus === "clean" ? 'active' : '';
+        let notCleanClass = itemStatus === "not_clean" ? 'active' : '';
 
         return `
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
