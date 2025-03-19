@@ -2195,6 +2195,45 @@ async function clearLogs() {
     }
 }
 
+function exportInspectionPDF() {
+    if (!window.jspdf) {
+        console.error("❌ jsPDF library is not loaded.");
+        return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF();
+
+    pdf.text("Room Inspection Report", 10, 10);
+
+    if (!inspectionLogs || inspectionLogs.length === 0) {
+        alert("No inspection logs found.");
+        return;
+    }
+
+    let inspectionData = [];
+
+    // Sort by room number
+    inspectionLogs.sort((a, b) => parseInt(a.roomNumber, 10) - parseInt(b.roomNumber, 10));
+
+    inspectionLogs.forEach(log => {
+        let row = [log.roomNumber];
+        for (let item of ["TV", "Sofa", "Lamp", "Light", "Amenity", "Complimentary", "Balcony", "Sink", "Door", "Minibar"]) {
+            row.push(log.items && log.items[item] === "clean" ? "✔️" : log.items && log.items[item] === "not_clean" ? "❌" : "-");
+        }
+        inspectionData.push(row);
+    });
+
+    pdf.autoTable({
+        head: [["Room", "TV", "Sofa", "Lamp", "Light", "Amenity", "Complimentary", "Balcony", "Sink", "Door", "Minibar"]],
+        body: inspectionData,
+        startY: 20
+    });
+
+    const formattedDate = new Date().toISOString().split('T')[0];
+    pdf.save(`inspection_logs_${formattedDate}.pdf`);
+}
+
     
 function exportLogs() {
     if (!window.jspdf) {
