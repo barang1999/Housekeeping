@@ -256,16 +256,6 @@ async function connectWebSocket() {
 });
 }
 
-let housekeepingState = {
-    inspectionLogs: [],
-    checkedRooms: [],
-    reconnectAttempts: 0
-};
-
-// Replace usage:
-housekeepingState.inspectionLogs = logs;
-
-
 function reconnectWebSocket() {
     if (reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
         console.warn("❌ Max WebSocket reconnect attempts reached.");
