@@ -142,9 +142,15 @@ async function connectWebSocket() {
         requestInspectionLogs();
     });
         window.socket.on("inspectionLogs", (logs) => {
-        console.log("📡 Received inspection logs:", logs);
-        inspectionLogs = logs; // Save inspection logs globally
-    });
+            console.log("📡 Received inspection logs:", logs);
+            inspectionLogs = logs; // Save inspection logs globally
+
+            // 🟢 Restore inspection buttons after receiving logs
+            inspectionLogs.forEach(log => {
+                restoreInspectionButton(log.roomNumber, log.items);
+            });
+        });
+
    // ✅ Handle incoming priority status updates
     window.socket.on("priorityStatus", (priorities) => {
         console.log("📡 Received Room Priority Data:", priorities);
