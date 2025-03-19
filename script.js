@@ -256,12 +256,15 @@ async function connectWebSocket() {
 });
 }
 
-let inspectionLogs = [];
+let housekeepingState = {
+    inspectionLogs: [],
+    checkedRooms: [],
+    reconnectAttempts: 0
+};
 
-    window.socket.on("inspectionLogsStatus", (logs) => {
-        inspectionLogs = logs; // ✅ Store globally
-        console.log("📡 Received inspection logs:", inspectionLogs);
-    });
+// Replace usage:
+housekeepingState.inspectionLogs = logs;
+
 
 function reconnectWebSocket() {
     if (reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
