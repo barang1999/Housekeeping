@@ -129,16 +129,6 @@ async function connectWebSocket() {
         requestInspectionLogs();
     });
 
-        // Listen for inspection logs status
-    window.socket.on("inspectionLogsStatus", (inspectionLogs) => {
-        console.log("📡 Received inspection logs:", inspectionLogs);
-        inspectionLogs.forEach(log => {
-            Object.entries(log.items).forEach(([item, status]) => {
-                console.log(`Restored inspection: Room ${log.roomNumber} - ${item}: ${status}`);
-                // Optional: visually reflect status in UI
-            });
-        });
-    });
 
 
    // ✅ Handle incoming priority status updates
@@ -265,6 +255,13 @@ async function connectWebSocket() {
     updateDNDStatus(data.roomNumber, data.status);
 });
 }
+
+let inspectionLogs = [];
+
+    window.socket.on("inspectionLogsStatus", (logs) => {
+        inspectionLogs = logs; // ✅ Store globally
+        console.log("📡 Received inspection logs:", inspectionLogs);
+    });
 
 function reconnectWebSocket() {
     if (reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
@@ -1623,16 +1620,25 @@ function openInspectionPopup(roomNumber) {
         { icon: "🥤", name: "Minibar" }
     ];
 
-    let htmlContent = checklistItems.map(item => `
+    // Retrieve latest inspection logs (already received & stored earlier)
+    const roomLog = inspectionLogs.find(log => log.roomNumber === roomNumber);
+
+    let htmlContent = checklistItems.map(item => {
+        const status = roomLog && roomLog.items && roomLog.items[item.name] 
+                        ? roomLog.items[item.name] : null;
+
+        let cleanClass = status === "clean" ? 'active' : '';
+        let notCleanClass = status === "not_clean" ? 'active' : '';
+
+        return `
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
             <div style="font-size:18px;">${item.icon} ${item.name}</div>
             <div>
-                <button class="inspect-btn clean" onclick="updateInspection('${roomNumber}', '${item.name}', 'clean')">✔️</button>
-                <button class="inspect-btn not-clean" onclick="updateInspection('${roomNumber}', '${item.name}', 'not_clean')">❌</button>
-
+                <button class="inspect-btn clean ${cleanClass}" onclick="updateInspection('${roomNumber}', '${item.name}', 'clean')">✔️</button>
+                <button class="inspect-btn not-clean ${notCleanClass}" onclick="updateInspection('${roomNumber}', '${item.name}', 'not_clean')">❌</button>
             </div>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 
     Swal.fire({
         title: `📝 Inspection - Room ${roomNumber}`,
@@ -1642,6 +1648,7 @@ function openInspectionPopup(roomNumber) {
         width: 400
     });
 }
+
 
 async function updateInspection(roomNumber, item, status) {
     const username = localStorage.getItem("username");
