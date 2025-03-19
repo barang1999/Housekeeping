@@ -1658,23 +1658,21 @@ async function updateInspection(roomNumber, item, status) {
 
     console.log(`✅ ${item} in Room ${roomNumber} marked as ${status}`);
 
-    // ✅ NEW: Update UI Button Appearance
-    // Remove 'active' class from both buttons first
-    const buttons = document.querySelectorAll(`.swal2-popup .inspect-btn`);
+    /** 🟢 ADD THIS SECTION: */
+    const buttons = Swal.getPopup().querySelectorAll(`.inspect-btn`);
     buttons.forEach(btn => {
-        if (btn.parentElement.innerText.includes(item)) {
+        if (btn.parentElement.parentElement.innerText.includes(item)) {
             btn.classList.remove('active');
         }
     });
 
-    // Add active class to the clicked one
-    const clickedButtonSelector = `.swal2-popup .inspect-btn.${status === 'clean' ? 'clean' : 'not-clean'}`;
-    const clickedButton = Array.from(document.querySelectorAll(clickedButtonSelector))
-        .find(btn => btn.parentElement.innerText.includes(item));
+    const targetClass = status === 'clean' ? 'clean' : 'not-clean';
+    const clickedButton = Swal.getPopup().querySelector(`.inspect-btn.${targetClass}[onclick*="${item}"]`);
     if (clickedButton) {
         clickedButton.classList.add('active');
     }
 }
+
 
 // Client-side request for inspection logs
 function requestInspectionLogs() {
