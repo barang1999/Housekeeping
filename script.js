@@ -1758,36 +1758,47 @@ async function updateInspection(roomNumber, item, status) {
     const username = localStorage.getItem("username");
     const token = localStorage.getItem("token");
 
-    // Send update to backend with token
+    const popup = Swal.getPopup();
+
+    // Get target buttons
+    const cleanButton = popup.querySelector(`.inspect-btn.clean[onclick*="${item}"]`);
+    const notCleanButton = popup.querySelector(`.inspect-btn.not-clean[onclick*="${item}"]`);
+
+    let newStatus = status; // default
+
+    // Check if user clicked the same active button → toggle off
+    if (status === 'clean' && cleanButton.classList.contains('active')) {
+        newStatus = null; // Unset status
+    } 
+    if (status === 'not_clean' && notCleanButton.classList.contains('active')) {
+        newStatus = null; // Unset status
+    }
+
+    // Send update to backend
     await fetch(`${apiUrl}/logs/inspection`, {
         method: "POST",
         headers: { 
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}` // FIXED
+            "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({ roomNumber, item, status, username })
+        body: JSON.stringify({ roomNumber, item, status: newStatus, username })
     });
 
     // Emit WebSocket update
-    safeEmit("inspectionUpdate", { roomNumber, item, status, updatedBy: username });
+    safeEmit("inspectionUpdate", { roomNumber, item, status: newStatus, updatedBy: username });
 
-    console.log(`✅ ${item} in Room ${roomNumber} marked as ${status}`);
+    console.log(`✅ ${item} in Room ${roomNumber} updated → ${newStatus ?? "cleared"}`);
 
     // Update button visuals
-    const buttons = Swal.getPopup().querySelectorAll(`.inspect-btn`);
-    buttons.forEach(btn => {
-        if (btn.parentElement.parentElement.innerText.includes(item)) {
-            btn.classList.remove('active');
-        }
-    });
+    cleanButton.classList.remove('active');
+    notCleanButton.classList.remove('active');
 
-    const targetClass = status === 'clean' ? 'clean' : 'not-clean';
-    const clickedButton = Swal.getPopup().querySelector(`.inspect-btn.${targetClass}[onclick*="${item}"]`);
-    if (clickedButton) {
-        clickedButton.classList.add('active');
+    if (newStatus === 'clean') {
+        cleanButton.classList.add('active');
+    } else if (newStatus === 'not_clean') {
+        notCleanButton.classList.add('active');
     }
 }
-
 
 
 // Client-side request for inspection logs
