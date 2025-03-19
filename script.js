@@ -964,7 +964,6 @@ async function fetchRoomStatuses() {
 
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
         const statuses = await response.json();
-
         console.log("✅ Room Statuses Fetched:", statuses);
 
         // Fetch room priorities
@@ -978,33 +977,55 @@ async function fetchRoomStatuses() {
 
         if (!priorityResponse.ok) throw new Error(`HTTP error! Status: ${priorityResponse.status}`);
         const priorities = await priorityResponse.json();
-        
         console.log("✅ Room Priorities Fetched:", priorities);
 
-       Object.entries(statuses).forEach(([roomNumber, status]) => {
-                const formattedRoom = formatRoomNumber(roomNumber);
+        // Fetch inspection logs
+        const inspectionResponse = await fetch(`${apiUrl}/logs/inspection`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${localStorage.getItem("token")}`
+            }
+        });
 
-                updateButtonStatus(formattedRoom, status);
+        if (!inspectionResponse.ok) throw new Error(`HTTP error! Status: ${inspectionResponse.status}`);
+        const inspectionLogs = await inspectionResponse.json();
+        console.log("✅ Inspection Logs Fetched:", inspectionLogs);
 
-                if (status === "checked") {
-                    drawCheckButton(formattedRoom, "#4CAF50", 1.0, false);
-                }
+        // Process cleaning statuses & priorities
+        Object.entries(statuses).forEach(([roomNumber, status]) => {
+            const formattedRoom = formatRoomNumber(roomNumber);
 
-                // Always format both room numbers before comparison
-                const roomPriority = priorities.find(p => 
-                    formatRoomNumber(p.roomNumber) === formattedRoom
-                )?.priority || "default";
+            updateButtonStatus(formattedRoom, status);
 
-                console.log(`🔄 Restoring priority for Room ${formattedRoom}: ${roomPriority}`);
+            if (status === "checked") {
+                drawCheckButton(formattedRoom, "#4CAF50", 1.0, false);
+            }
 
-                updateSelectedPriorityDisplay(formattedRoom, roomPriority);
-            });
+            const roomPriority = priorities.find(p => 
+                formatRoomNumber(p.roomNumber) === formattedRoom
+            )?.priority || "default";
+
+            console.log(`🔄 Restoring priority for Room ${formattedRoom}: ${roomPriority}`);
+            updateSelectedPriorityDisplay(formattedRoom, roomPriority);
+        });
+
+        // Process inspection logs
+        inspectionLogs.forEach(log => {
+            const formattedRoom = formatRoomNumber(log.roomNumber);
+
+            // Restore inspection button status (clean/not clean)
+            if (log.inspectionData) {
+                restoreInspectionButton(formattedRoom, log.inspectionData);
+            }
+        });
 
     } catch (error) {
-        console.error("❌ Error fetching room statuses or priorities:", error);
+        console.error("❌ Error fetching room statuses, priorities, or inspections:", error);
         alert("Failed to fetch room data. Check console for details.");
     }
 }
+
 
 // Call on page load
 window.addEventListener("DOMContentLoaded", async () => {
@@ -1704,6 +1725,40 @@ function requestInspectionLogs() {
     }
 }
 
+function restoreInspectionButton(roomNumber, inspectionData) {
+    const btn = document.getElementById(`inspection-${roomNumber}`);
+    if (!btn) return;
+
+    // Calculate overall status based on all inspection items
+    let isClean = true;
+    let hasStatus = false;
+
+    if (inspectionData) {
+        for (let key in inspectionData) {
+            if (inspectionData[key] === "not_clean") {
+                isClean = false;
+                hasStatus = true;
+                break;
+            }
+            if (inspectionData[key] === "clean") {
+                hasStatus = true;
+            }
+        }
+    }
+
+    // Apply classes based on result
+    btn.classList.remove("clean", "not-clean", "active");
+
+    if (hasStatus) {
+        if (isClean) {
+            btn.classList.add("clean", "active");
+        } else {
+            btn.classList.add("not-clean", "active");
+        }
+    }
+
+    console.log(`🔄 Restored inspection button for Room ${roomNumber}: ${isClean ? "clean" : "not_clean"}`);
+}
 
 function updateButtonStatus(roomNumber, status, dndStatus = "available") {
     let formattedRoom = formatRoomNumber(roomNumber);
