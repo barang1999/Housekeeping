@@ -1645,11 +1645,15 @@ function openInspectionPopup(roomNumber) {
 
 async function updateInspection(roomNumber, item, status) {
     const username = localStorage.getItem("username");
+    const token = localStorage.getItem("token");
 
-    // Send update to backend
+    // Send update to backend with token
     await fetch(`${apiUrl}/logs/inspection`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}` // FIXED
+        },
         body: JSON.stringify({ roomNumber, item, status, username })
     });
 
@@ -1658,7 +1662,7 @@ async function updateInspection(roomNumber, item, status) {
 
     console.log(`✅ ${item} in Room ${roomNumber} marked as ${status}`);
 
-    /** 🟢 ADD THIS SECTION: */
+    // Update button visuals
     const buttons = Swal.getPopup().querySelectorAll(`.inspect-btn`);
     buttons.forEach(btn => {
         if (btn.parentElement.parentElement.innerText.includes(item)) {
@@ -1672,6 +1676,7 @@ async function updateInspection(roomNumber, item, status) {
         clickedButton.classList.add('active');
     }
 }
+
 
 
 // Client-side request for inspection logs
