@@ -166,11 +166,23 @@
             background-color: #FF6B6B !important; /* Light Red */
         }
 
-        .inspect-btn {
-              background-color: transparent !important; /* Remove blue background */
-              border: none; /* Optional: remove border if needed */
-              box-shadow: none; /* Optional: remove shadow if applied */
-            }
+        .inspection-btn {
+            background-color: transparent !important; /* Remove blue */
+            border: none !important;
+            box-shadow: none !important;
+            padding: 6px;
+            margin-left: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-size: 20px; /* Optional: Adjust icon size */
+        }
+
+        .inspection-btn:hover,
+        .inspection-btn:focus,
+        .inspection-btn:active {
+            background-color: transparent !important; /* Prevent hover blue */
+            box-shadow: none !important;
+        }
 
 
            .dashboard-header {
