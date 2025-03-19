@@ -93,8 +93,7 @@ async function connectWebSocket() {
 
     // 🟢 ADD THIS LINE:
      window.socket.emit("requestCheckedRooms");
-     window.socket.emit("requestInspectionLogs"); // To refill inspectionLogs
-
+    
        window.socket.on("checkedRoomsStatus", (checkedRooms) => {
             checkedRooms.forEach(roomNumber => {
                 drawCheckButton(roomNumber, "#4CAF50", 1.0, false);
@@ -124,19 +123,20 @@ async function connectWebSocket() {
 });
 
     window.socket.on("inspectionUpdate", ({ roomNumber, item, status }) => {
-        // Update global inspectionLogs
         const logIndex = inspectionLogs.findIndex(log => log.roomNumber === roomNumber);
         if (logIndex !== -1) {
-            // Update existing log
             inspectionLogs[logIndex].items[item] = status;
         } else {
-            // If log doesn't exist, create new
             inspectionLogs.push({
                 roomNumber,
                 items: { [item]: status }
             });
         }
+
+        // ✅ Immediately update localStorage copy:
+        localStorage.setItem("inspectionLogs", JSON.stringify(inspectionLogs));
     });
+
 
 
         // Call when WebSocket connects
@@ -146,10 +146,40 @@ async function connectWebSocket() {
 
        window.socket.on("inspectionLogs", (logs) => {
             console.log("📡 Received inspection logs:", logs);
-            inspectionLogs = logs; // Save globally
-            restoreAllInspectionButtons(); // <--- ADD THIS!
+            inspectionLogs = logs;
+            // ✅ Save into localStorage
+             localStorage.setItem("inspectionLogs", JSON.stringify(logs));
+            restoreAllInspectionButtons();
         });
 
+
+        socket.on("inspectionLogsStatus", (logs) => {
+            console.log("✅ Received Inspection Logs:", logs);
+
+            // Restore inspection buttons from logs
+            logs.forEach(log => {
+                restoreInspectionButton(log.roomNumber, log.items);
+            });
+
+            // Optionally save to localStorage
+            localStorage.setItem("inspectionLogs", JSON.stringify(logs));
+        });
+
+
+        window.socket.emit("requestInspectionLogs"); // To refill inspectionLogs
+
+
+        window.socket.on("inspectionLogsCleared", () => {
+            console.log("🧹 Inspection logs cleared by server, resetting inspection buttons...");
+
+            // Clear localStorage (if needed)
+            localStorage.removeItem("inspectionLogs");
+
+            // Reset all inspection buttons visually
+            document.querySelectorAll(".inspection-button").forEach(button => {
+                // Reset logic here, e.g. grey out
+            });
+        });
 
 
    // ✅ Handle incoming priority status updates
@@ -276,6 +306,25 @@ async function connectWebSocket() {
     updateDNDStatus(data.roomNumber, data.status);
 });
 }
+
+document.addEventListener("DOMContentLoaded", async () => {
+    console.log("🔄 Initializing housekeeping system...");
+
+    // === STEP 1: Restore Inspection Logs from LocalStorage ===
+    const savedLogs = JSON.parse(localStorage.getItem("inspectionLogs"));
+    if (savedLogs) {
+        inspectionLogs = savedLogs;
+        restoreAllInspectionButtons();
+        console.log("✅ Restored inspection logs from localStorage.");
+    }
+
+    // === STEP 2: Connect WebSocket ===
+    await ensureValidToken();
+    await connectWebSocket();
+
+    // Continue with other initializations...
+});
+
 
 function reconnectWebSocket() {
     if (reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {

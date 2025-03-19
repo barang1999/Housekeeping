@@ -918,54 +918,68 @@ app.post("/logs/clear", async (req, res) => {
     session.startTransaction();
 
     try {
-        console.log("🧹 Resetting all cleaning logs, DND statuses, and priorities...");
+        console.log("🧹 Initiating full housekeeping logs reset...");
 
+        /** 🔸 1. CLEAR CLEANING LOGS */
         const logCount = await CleaningLog.countDocuments().session(session);
         if (logCount > 0) {
             await CleaningLog.deleteMany({}).session(session);
-            console.log(`✅ ${logCount} cleaning logs cleared.`);
+            console.log(`✅ Cleared ${logCount} cleaning logs.`);
         } else {
             console.log("ℹ️ No cleaning logs found.");
         }
 
-        const dndResetResult = await RoomDND.updateMany({}, { $set: { dndStatus: false } }).session(session);
-        console.log(`✅ Reset DND status for ${dndResetResult.modifiedCount} rooms.`);
-
-        const priorityResetResult = await RoomPriority.updateMany({}, { $set: { priority: "default" } }).session(session);
-        console.log(`✅ Reset priorities for ${priorityResetResult.modifiedCount} rooms.`);
+        /** 🔸 2. RESET DND STATUS */
+        const dndReset = await RoomDND.updateMany({}, { $set: { dndStatus: false } }).session(session);
+        console.log(`✅ Reset DND status for ${dndReset.modifiedCount} rooms.`);
 
         const dndLogs = await RoomDND.find({}, "roomNumber dndStatus").lean();
 
+        /** 🔸 3. RESET PRIORITIES */
+        const priorityReset = await RoomPriority.updateMany({}, { $set: { priority: "default" } }).session(session);
+        console.log(`✅ Reset priorities for ${priorityReset.modifiedCount} rooms.`);
+
+        /** 🔸 4. CLEAR INSPECTION LOGS */
+        const inspectionCount = await InspectionLog.countDocuments().session(session);
+        if (inspectionCount > 0) {
+            await InspectionLog.deleteMany({}).session(session);
+            console.log(`✅ Cleared ${inspectionCount} inspection logs.`);
+        } else {
+            console.log("ℹ️ No inspection logs found.");
+        }
+
+        /** 🔸 5. COMMIT TRANSACTION */
         await session.commitTransaction();
         session.endSession();
+        console.log("✅ All housekeeping logs & statuses reset successfully.");
 
-        console.log("✅ All logs, DND statuses, and priorities reset successfully.");
-
+        /** 🔸 6. EMIT SOCKET EVENTS FOR CLIENT SYNC */
         io.emit("clearLogs");
         io.emit("dndUpdate", { roomNumber: "all", status: "available", dndLogs });
         io.emit("priorityUpdate", { roomNumber: "all", priority: "default" });
         io.emit("resetCheckedRooms");
+        io.emit("inspectionLogsCleared");
 
+        // Reset cleaning buttons for all rooms
         allRoomNumbers.forEach(roomNumber => {
             io.emit("resetCleaning", { roomNumber, status: "available" });
             console.log(`🔄 Reset Cleaning Button for Room ${roomNumber}`);
         });
 
-        return res.json({
-            message: "All cleaning logs, DND statuses, priorities, and checked statuses reset successfully.",
+        return res.status(200).json({
+            message: "✅ All logs, DND, priorities, checked statuses, and inspection logs cleared successfully.",
             dndLogs
         });
 
     } catch (error) {
-        console.error("❌ Error resetting logs:", error);
+        console.error("❌ Error during logs reset:", error);
 
         await session.abortTransaction();
         session.endSession();
 
-        return res.status(500).json({ message: "Internal server error. Logs were not cleared." });
+        return res.status(500).json({ message: "Internal server error. Logs reset failed." });
     }
 });
-
 
 
 // 🏠 Home Route
