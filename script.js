@@ -172,14 +172,25 @@ async function connectWebSocket() {
         window.socket.on("inspectionLogsCleared", () => {
             console.log("🧹 Inspection logs cleared by server, resetting inspection buttons...");
 
-            // Clear localStorage (if needed)
+            // Clear localStorage
             localStorage.removeItem("inspectionLogs");
 
-            // Reset all inspection buttons visually
-            document.querySelectorAll(".inspection-button").forEach(button => {
-                // Reset logic here, e.g. grey out
+            // Reset inspectionLogs array (for safety)
+            inspectionLogs = [];
+
+            // Reset ALL inspection buttons' visuals
+            document.querySelectorAll(".inspection-btn").forEach(button => {
+                button.classList.remove('active');
             });
+
+            // Optional: Also reset the overall room inspection status buttons
+            document.querySelectorAll(".inspection-button").forEach(button => {
+                button.classList.remove('clean', 'not-clean', 'active');
+            });
+
+            console.log("✅ Inspection buttons visually reset.");
         });
+
 
 
    // ✅ Handle incoming priority status updates
@@ -2115,14 +2126,13 @@ function logout() {
     }, 2000);
 }
 
-
 async function clearLogs() {
-    console.log("🧹 Clearing all logs and resetting room statuses...");
+    console.log("🧹 Clearing all logs, inspection logs, and resetting room statuses...");
 
-    // ✅ Confirmation
+    // ✅ Confirmation popup
     const confirmClear = await Swal.fire({
         title: "អ្នកប្រាកដទេ?",
-        text: "វានឹងលុចចោលទិន្នន័យការសម្អាតនៅថ្ងៃនេះ!",
+        text: "វានឹងលុចចោលទិន្នន័យសម្អាត និងត្រួតពិនិត្យទាំងអស់!",
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#d33",
@@ -2137,7 +2147,7 @@ async function clearLogs() {
     }
 
     try {
-        // ✅ API Clear Request
+        // ✅ API Request to clear logs server-side
         const res = await fetch(`${apiUrl}/logs/clear`, { method: "POST" });
         if (!res.ok) {
             const errorData = await res.json();
@@ -2145,13 +2155,12 @@ async function clearLogs() {
             alert(`❌ Failed to clear logs: ${errorData.message}`);
             return;
         }
-
         console.log("✅ Logs cleared successfully on server.");
 
-        // ✅ Reset Logs Table
+        /** === STEP 1: Reset Logs Table === */
         document.querySelector("#logTable tbody").innerHTML = "";
 
-        // ✅ Reset All Room Buttons
+        /** === STEP 2: Reset All Room Buttons === */
         document.querySelectorAll(".room").forEach(roomDiv => {
             const roomNumber = roomDiv.querySelector("span").innerText.replace("Room ", "").trim();
 
@@ -2184,29 +2193,26 @@ async function clearLogs() {
             }
         });
 
-        // ✅ Reset Priority Dropdowns
+        /** === STEP 3: Reset Priorities === */
         document.querySelectorAll(".priority-toggle").forEach(button => {
-            button.innerHTML = "⚪"; // Default
+            button.innerHTML = "⚪";
         });
         document.querySelectorAll(".priority-dropdown").forEach(dropdown => {
             dropdown.classList.remove("show");
         });
 
-     
-
-        // ✅ Clear relevant LocalStorage
+        /** === STEP 4: Clear Relevant LocalStorage === */
         Object.keys(localStorage).forEach(key => {
             if (key.startsWith("priority-") || key.startsWith("status-") || key.startsWith("dnd-")) {
                 localStorage.removeItem(key);
             }
         });
 
-        // ✅ CLEAR CHECKED ROOMS LIST
+        /** === STEP 5: Clear Checked Rooms List === */
         localStorage.removeItem("checkedRooms");
         console.log("✅ Cleared checkedRooms from localStorage.");
 
-
-        // ✅ Reset Checked Buttons UI to GREY
+        /** === STEP 6: Reset Checked Buttons UI === */
         document.querySelectorAll(".room button").forEach(button => {
             if (button.id.startsWith("checked-")) {
                 let roomNum = button.id.replace("checked-", "");
@@ -2214,30 +2220,39 @@ async function clearLogs() {
             }
         });
 
-        console.log("✅ All local logs, priorities, DND & checked cleared.");
+        /** === STEP 7: Clear Inspection Logs & UI === */
+        inspectionLogs = []; // Reset variable
+        localStorage.removeItem("inspectionLogs");
+        console.log("✅ Cleared inspectionLogs from localStorage.");
 
-        // ✅ Emit WebSocket Events
+        // Reset inspection buttons visually
+        document.querySelectorAll(".inspection-btn, .inspection-button").forEach(button => {
+            button.classList.remove("clean", "not-clean", "active");
+        });
+        console.log("✅ All inspection buttons visually reset.");
+
+        /** === STEP 8: Emit WebSocket Events to ALL devices === */
         if (window.socket && window.socket.connected) {
             window.socket.emit("clearLogs");
             window.socket.emit("updatePriorityStatus", { status: "reset" });
-             // 🚀 NEW: Emit checked reset to all devices
             window.socket.emit("resetCheckedRooms");
-            window.socket.emit("requestButtonStatus"); // Force reload
             window.socket.emit("forceClearCheckedRooms");
+            window.socket.emit("clearInspectionLogs"); // 🚀 Inspection logs clear event!
+            window.socket.emit("requestButtonStatus"); // Force reload
         } else {
             console.warn("⚠️ WebSocket disconnected. Attempt reconnect...");
             reconnectWebSocket();
         }
 
-        // ✅ Reload Logs (Empty)
-            await restoreCleaningStatus();
-            await loadLogs();
+        /** === STEP 9: Reload Logs & Buttons === */
+        await restoreCleaningStatus();
+        await loadLogs();
 
-        // ✅ Success Notification
+        /** === STEP 10: Success Message === */
         Swal.fire({
             icon: "success",
             title: "របាយការណ៍ត្រូវបានលុច",
-            text: "របាយការណ៍ចាស់នៅថ្ងៃនេះត្រូវបានលុចចេញ.",
+            text: "បានលុបរបាយការណ៍ និងត្រួតពិនិត្យទាំងអស់ដោយជោគជ័យ.",
             timer: 2000,
             showConfirmButton: false
         });
@@ -2247,7 +2262,7 @@ async function clearLogs() {
         Swal.fire({
             icon: "error",
             title: "មានបញ្ហា",
-            text: "សូមអភ័យទោស មានបញ្ចាបច្ចេកទេសក្នុងពេលលុបទិន្នន័យ",
+            text: "បញ្ហាបច្ចេកទេសក្នុងពេលលុបទិន្នន័យ",
             confirmButtonText: "OK"
         });
     }
