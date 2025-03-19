@@ -141,15 +141,12 @@ async function connectWebSocket() {
     window.socket.on("connect", () => {
         requestInspectionLogs();
     });
-        window.socket.on("inspectionLogs", (logs) => {
-            console.log("📡 Received inspection logs:", logs);
-            inspectionLogs = logs; // Save inspection logs globally
 
-            // 🟢 Restore inspection buttons after receiving logs
-            inspectionLogs.forEach(log => {
-                restoreInspectionButton(log.roomNumber, log.items);
-            });
-        });
+        window.socket.on("inspectionLogs", (logs) => {
+        console.log("📡 Received inspection logs:", logs);
+        inspectionLogs = logs; // Save globally
+    });
+
 
    // ✅ Handle incoming priority status updates
     window.socket.on("priorityStatus", (priorities) => {
@@ -719,11 +716,19 @@ async function showDashboard(username) {
 
     // Load rooms first, then ensure the ground floor is shown
     loadRooms();
+    restoreAllInspectionButtons();
+
 
     setTimeout(() => {
         console.log("✅ Activating ground floor...");
         toggleFloor("ground-floor"); // Ensure it's visible after rooms load
     }, 1000);
+}
+
+function restoreAllInspectionButtons() {
+    inspectionLogs.forEach(log => {
+        restoreInspectionButton(log.roomNumber, log.items);
+    });
 }
 
 function updatePriorityDropdown(roomNumber, priority) {
@@ -2219,7 +2224,7 @@ function exportInspectionPDF() {
     inspectionLogs.forEach(log => {
         let row = [log.roomNumber];
         for (let item of ["TV", "Sofa", "Lamp", "Light", "Amenity", "Complimentary", "Balcony", "Sink", "Door", "Minibar"]) {
-            row.push(log.items && log.items[item] === "clean" ? "✔️" : log.items && log.items[item] === "not_clean" ? "❌" : "-");
+            row.push(log.items && log.items[item] === "clean" ? "Yes" : log.items && log.items[item] === "not_clean" ? "No" : "-");
         }
         inspectionData.push(row);
     });
