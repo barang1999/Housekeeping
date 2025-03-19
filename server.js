@@ -63,6 +63,14 @@ const prioritySchema = new mongoose.Schema({
 });
 const RoomPriority = mongoose.model("RoomPriority", prioritySchema);
 
+const InspectionLogSchema = new mongoose.Schema({
+    roomNumber: String,
+    items: { type: Map, of: String }, // Example: { TV: 'clean', Sofa: 'not_clean' }
+    updatedBy: String,
+    updatedAt: Date
+});
+
+const InspectionLog = mongoose.model('InspectionLog', InspectionLogSchema);
 
 // ✅ CORS Configuration
 app.use(cors({
@@ -198,6 +206,40 @@ socket.on("updatePriorityStatus", (data) => {
 
         socket.emit("checkedRoomsStatus", checkedRooms); // Custom event
     });
+
+     /** 📝 Inspection Update Listener */
+    socket.on('inspectionUpdate', async ({ roomNumber, item, status, updatedBy }) => {
+        try {
+            console.log(`📝 Received inspection update: Room ${roomNumber}, Item: ${item}, Status: ${status}`);
+
+            // Update or insert inspection log
+            await InspectionLog.updateOne(
+                { roomNumber },
+                { 
+                    $set: { [`items.${item}`]: status, updatedBy: updatedBy, updatedAt: new Date() },
+                    $setOnInsert: { roomNumber }
+                },
+                { upsert: true }
+            );
+
+            // Broadcast to all connected clients
+            io.emit('inspectionUpdate', { roomNumber, item, status, updatedBy });
+
+            console.log(`✅ Broadcasted inspection update for Room ${roomNumber}`);
+        } catch (err) {
+            console.error('❌ Failed to process inspection update:', err);
+        }
+    });
+
+    socket.on('requestInspectionLogs', async () => {
+    try {
+        const logs = await InspectionLog.find({});
+        socket.emit('inspectionLogsStatus', logs); // Send full logs back to this client
+        console.log(`📡 Sent current inspection logs to ${socket.id}`);
+    } catch (err) {
+        console.error('❌ Failed to fetch inspection logs:', err);
+    }
+});
 
 
 // ✅ Handle Room Checked WebSocket Event
@@ -411,6 +453,38 @@ app.get("/logs/status", async (req, res) => {
     } catch (error) {
         console.error("❌ Error fetching room status:", error);
         res.status(500).json({ message: "Server error", error });
+    }
+});
+
+app.post("/logs/inspection", authenticateToken, async (req, res) => {
+    const { roomNumber, item, status, username } = req.body;
+
+    try {
+        await InspectionLog.updateOne(
+            { roomNumber },
+            { 
+                $set: { [`items.${item}`]: status, updatedBy: username, updatedAt: new Date() },
+                $setOnInsert: { roomNumber }
+            },
+            { upsert: true }
+        );
+
+        io.emit("inspectionUpdate", { roomNumber, item, status, updatedBy: username });
+        res.status(200).json({ message: "Inspection updated successfully" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Failed to update inspection" });
+    }
+});
+
+
+app.get('/logs/inspection', authenticateToken, async (req, res) => {
+    try {
+        const logs = await InspectionLog.find({});
+        res.status(200).json(logs);
+    } catch (err) {
+        console.error('❌ Failed to fetch inspection logs:', err);
+        res.status(500).json({ message: 'Failed to retrieve inspection logs' });
     }
 });
 

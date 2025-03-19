@@ -16,11 +16,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     // ✅ Ensure socket is available before emitting
     if (window.socket) {
         window.socket.emit("requestPriorityStatus");
+        window.socket.emit("requestInspectionLogs");
     } else {
         console.warn("⚠️ WebSocket is not initialized. Retrying...");
         setTimeout(() => {
             if (window.socket) {
                 window.socket.emit("requestPriorityStatus");
+                window.socket.emit("requestInspectionLogs");
             } else {
                 console.error("❌ WebSocket still not initialized. Check connection setup.");
             }
@@ -82,6 +84,7 @@ async function connectWebSocket() {
         // 🚀 Emit checked rooms after socket connected!
         setTimeout(() => {
             emitCheckedRoomsToAllDevices();
+            emitInspectionRequest(); // ✅ Request inspections after connect
         }, 300); // Add delay
     });
 
@@ -115,6 +118,27 @@ async function connectWebSocket() {
         console.log(`✅ Real-time checked restored: Room ${roomNumber}`);
     }
 });
+
+    window.socket.on("inspectionUpdate", ({ roomNumber, item, status, updatedBy }) => {
+        console.log(`📡 Inspection update: Room ${roomNumber} - ${item}: ${status} by ${updatedBy}`);
+        // Optionally reflect this on the UI (e.g., small badge, status list, etc.)
+    });
+
+        // Call when WebSocket connects
+    window.socket.on("connect", () => {
+        requestInspectionLogs();
+    });
+
+        // Listen for inspection logs status
+    window.socket.on("inspectionLogsStatus", (inspectionLogs) => {
+        console.log("📡 Received inspection logs:", inspectionLogs);
+        inspectionLogs.forEach(log => {
+            Object.entries(log.items).forEach(([item, status]) => {
+                console.log(`Restored inspection: Room ${log.roomNumber} - ${item}: ${status}`);
+                // Optional: visually reflect status in UI
+            });
+        });
+    });
 
 
    // ✅ Handle incoming priority status updates
@@ -605,6 +629,7 @@ async function loadRooms() {
                 </div>
                 <button id="start-${room}" onclick="startCleaning('${room}')">សម្អាត</button>
                 <button id="finish-${room}" onclick="finishCleaning('${room}')" disabled>ហើយ</button>
+                <button id="inspection-${room}" class="inspection-btn" onclick="openInspectionPopup('${room}')" disabled>📝</button> 
                 <button id="checked-${room}" onclick="checkRoom('${room}')" disabled class="checked">
                     <canvas id="canvas-${room}" width="24" height="24"></canvas>
                 </button>
@@ -1095,6 +1120,14 @@ async function restoreCleaningStatus() {
             }
         });
 
+         // ✅ Restore Inspection Logs
+        inspectionLogs.forEach(log => {
+            Object.entries(log.items).forEach(([item, status]) => {
+                console.log(`Restored inspection: Room ${log.roomNumber} - ${item}: ${status}`);
+                // Optional: visually reflect status (green/red badge per item)
+            });
+        });
+
         console.log("✅ Cleaning & Checked buttons restored.");
     } catch (error) {
         console.error("❌ Error restoring cleaning status:", error);
@@ -1568,6 +1601,69 @@ function emitCheckedRoomsToAllDevices() {
     });
 }
 
+function emitInspectionRequest() {
+    if (window.socket && window.socket.connected) {
+        console.log("📡 Requesting inspection logs...");
+        window.socket.emit("requestInspectionLogs");
+    }
+}
+
+
+function openInspectionPopup(roomNumber) {
+    const checklistItems = [
+        { icon: "📺", name: "TV" },
+        { icon: "🛋️", name: "Sofa" },
+        { icon: "💡", name: "Lamp" },
+        { icon: "🔆", name: "Light" },
+        { icon: "🧴", name: "Amenity" },
+        { icon: "🍪", name: "Complimentary" },
+        { icon: "🌿", name: "Balcony" },
+        { icon: "🚰", name: "Sink" },
+        { icon: "🚪", name: "Door" },
+        { icon: "🥤", name: "Minibar" }
+    ];
+
+    let htmlContent = checklistItems.map(item => `
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+            <div style="font-size:18px;">${item.icon} ${item.name}</div>
+            <div>
+                <button onclick="updateInspection('${roomNumber}', '${item.name}', 'clean')" style="margin-right:5px;">✔️</button>
+                <button onclick="updateInspection('${roomNumber}', '${item.name}', 'not_clean')">❌</button>
+            </div>
+        </div>
+    `).join('');
+
+    Swal.fire({
+        title: `📝 Inspection - Room ${roomNumber}`,
+        html: htmlContent,
+        showCloseButton: true,
+        showConfirmButton: false,
+        width: 400
+    });
+}
+
+async function updateInspection(roomNumber, item, status) {
+    const username = localStorage.getItem("username");
+
+    await fetch(`${apiUrl}/logs/inspection`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomNumber, item, status, username })
+    });
+
+    safeEmit("inspectionUpdate", { roomNumber, item, status, updatedBy: username });
+
+    console.log(`✅ ${item} in Room ${roomNumber} marked as ${status}`);
+}
+// Client-side request for inspection logs
+function requestInspectionLogs() {
+    if (window.socket && window.socket.connected) {
+        console.log("📡 Requesting inspection logs from server...");
+        window.socket.emit("requestInspectionLogs");
+    } else {
+        console.warn("⚠️ WebSocket not connected. Cannot request inspection logs.");
+    }
+}
 
 
 function updateButtonStatus(roomNumber, status, dndStatus = "available") {
