@@ -1645,16 +1645,36 @@ function openInspectionPopup(roomNumber) {
 async function updateInspection(roomNumber, item, status) {
     const username = localStorage.getItem("username");
 
+    // Send update to backend
     await fetch(`${apiUrl}/logs/inspection`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ roomNumber, item, status, username })
     });
 
+    // Emit WebSocket update
     safeEmit("inspectionUpdate", { roomNumber, item, status, updatedBy: username });
 
     console.log(`✅ ${item} in Room ${roomNumber} marked as ${status}`);
+
+    // ✅ NEW: Update UI Button Appearance
+    // Remove 'active' class from both buttons first
+    const buttons = document.querySelectorAll(`.swal2-popup .inspect-btn`);
+    buttons.forEach(btn => {
+        if (btn.parentElement.innerText.includes(item)) {
+            btn.classList.remove('active');
+        }
+    });
+
+    // Add active class to the clicked one
+    const clickedButtonSelector = `.swal2-popup .inspect-btn.${status === 'clean' ? 'clean' : 'not-clean'}`;
+    const clickedButton = Array.from(document.querySelectorAll(clickedButtonSelector))
+        .find(btn => btn.parentElement.innerText.includes(item));
+    if (clickedButton) {
+        clickedButton.classList.add('active');
+    }
 }
+
 // Client-side request for inspection logs
 function requestInspectionLogs() {
     if (window.socket && window.socket.connected) {
