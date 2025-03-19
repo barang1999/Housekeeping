@@ -1,6 +1,7 @@
 const apiUrl = "https://housekeeping-production.up.railway.app";
 
 let reconnectAttempts = 0;
+let inspectionLogs = []; // Declare it at the top
 const MAX_RECONNECT_ATTEMPTS = 3;
 window.socket = null;
 
@@ -128,9 +129,10 @@ async function connectWebSocket() {
     window.socket.on("connect", () => {
         requestInspectionLogs();
     });
-
-
-
+        window.socket.on("inspectionLogs", (logs) => {
+        console.log("📡 Received inspection logs:", logs);
+        inspectionLogs = logs; // Save inspection logs globally
+    });
    // ✅ Handle incoming priority status updates
     window.socket.on("priorityStatus", (priorities) => {
         console.log("📡 Received Room Priority Data:", priorities);
