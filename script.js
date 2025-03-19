@@ -1627,8 +1627,9 @@ function openInspectionPopup(roomNumber) {
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
             <div style="font-size:18px;">${item.icon} ${item.name}</div>
             <div>
-                <button onclick="updateInspection('${roomNumber}', '${item.name}', 'clean')" style="margin-right:5px;">✔️</button>
-                <button onclick="updateInspection('${roomNumber}', '${item.name}', 'not_clean')">❌</button>
+                <button class="inspect-btn clean" onclick="updateInspection('${roomNumber}', '${item.name}', 'clean')">✔️</button>
+                <button class="inspect-btn not-clean" onclick="updateInspection('${roomNumber}', '${item.name}', 'not_clean')">❌</button>
+
             </div>
         </div>
     `).join('');
