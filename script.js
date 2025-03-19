@@ -144,10 +144,12 @@ async function connectWebSocket() {
         requestInspectionLogs();
     });
 
-        window.socket.on("inspectionLogs", (logs) => {
-        console.log("📡 Received inspection logs:", logs);
-        inspectionLogs = logs; // Save globally
-    });
+       window.socket.on("inspectionLogs", (logs) => {
+            console.log("📡 Received inspection logs:", logs);
+            inspectionLogs = logs; // Save globally
+            restoreAllInspectionButtons(); // <--- ADD THIS!
+        });
+
 
 
    // ✅ Handle incoming priority status updates
