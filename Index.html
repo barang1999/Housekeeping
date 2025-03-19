@@ -312,8 +312,9 @@
 .priority-toggle.vacancy { background-color: black; }
 
 
+/* Fix inspect button's background */
 .inspect-btn {
-    background-color: transparent;
+    background-color: transparent !important;  /* FORCE remove blue background */
     border: none;
     border-radius: 50%;
     padding: 6px;
@@ -322,13 +323,15 @@
     transition: background-color 0.3s ease;
 }
 
+/* Active States */
 .inspect-btn.clean.active {
-    background-color: #90EE90; /* Light Green */
+    background-color: #90EE90 !important; /* Light Green */
 }
 
 .inspect-btn.not-clean.active {
-    background-color: #FF6B6B; /* Light Red */
+    background-color: #FF6B6B !important; /* Light Red */
 }
+
 
     </style>
 </head>
