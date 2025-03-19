@@ -629,7 +629,7 @@ async function loadRooms() {
                 </div>
                 <button id="start-${room}" onclick="startCleaning('${room}')">សម្អាត</button>
                 <button id="finish-${room}" onclick="finishCleaning('${room}')" disabled>ហើយ</button>
-                <button id="inspection-${room}" class="inspection-btn" onclick="openInspectionPopup('${room}')" disabled>📝</button> 
+                <button id="inspection-${room}" class="inspection-btn" onclick="openInspectionPopup('${room}')">📝</button> 
                 <button id="checked-${room}" onclick="checkRoom('${room}')" disabled class="checked">
                     <canvas id="canvas-${room}" width="24" height="24"></canvas>
                 </button>
