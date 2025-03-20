@@ -158,7 +158,6 @@
 
         .inspection-btn {
             background-color: transparent !important; /* Remove blue */
-            border: none !important;
             box-shadow: none !important;
             padding: 6px;
             margin-left: 4px;
@@ -195,14 +194,21 @@
         .inspect-btn.animate {
             transform: scale(1.2); /* Slight grow effect */
         }
-        button.inspection-btn.clean-border {
-        border: 1px solid #4CAF50; /* Green */
-        transition: border-color 0.5s ease, box-shadow 0.5s ease;
+
+        /* Green border when everything is clean */
+        .clean-border {
+            border: 2px solid #4CAF50 !important;  /* Green */
+            border-radius: 50%;  /* Make it round if needed */
+            padding: 4px;        /* Some padding to make border visible */
+            box-shadow: 0 0 8px #4CAF50; /* Optional glow effect */
         }
 
-        button.inspection-btn.not-clean-border {
-            border: 1px solid #FF6B6B; /* Red */
-            transition: border-color 0.5s ease, box-shadow 0.5s ease;
+        /* Red border when something not clean */
+        .not-clean-border {
+            border: 2px solid #FF4B5C !important; /* Red */
+            border-radius: 50%;
+            padding: 4px;
+            box-shadow: 0 0 8px #FF4B5C;
         }
 
         .fade-in {
