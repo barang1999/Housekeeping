@@ -1829,6 +1829,9 @@ async function updateInspection(roomNumber, item, status) {
         triggerInspectButtonAnimation(notCleanButton); // 🎯 Animate not clean button
         notCleanButton.style.backgroundColor = '#FF6B6B'; // Light red
     }
+
+    // ✅ Add this here after buttons updated
+    restoreInspectionBorder(roomNumber);
 }
 
 
@@ -1846,7 +1849,6 @@ function restoreInspectionButton(roomNumber, inspectionData) {
     const btn = document.getElementById(`inspection-${roomNumber}`);
     if (!btn) return;
 
-    // Calculate overall status based on all inspection items
     let isClean = true;
     let hasStatus = false;
 
@@ -1863,19 +1865,59 @@ function restoreInspectionButton(roomNumber, inspectionData) {
         }
     }
 
-    // Apply classes based on result
-    btn.classList.remove("clean", "not-clean", "active");
+    // Remove previous classes
+    btn.classList.remove("clean", "not-clean", "active", "clean-border", "not-clean-border");
 
+    // Set border color based on cleanliness
     if (hasStatus) {
         if (isClean) {
-            btn.classList.add("clean", "active");
+            btn.classList.add("clean", "active", "clean-border");
         } else {
-            btn.classList.add("not-clean", "active");
+            btn.classList.add("not-clean", "active", "not-clean-border");
         }
     }
 
     console.log(`🔄 Restored inspection button for Room ${roomNumber}: ${isClean ? "clean" : "not_clean"}`);
 }
+
+function restoreInspectionBorder(roomNumber) {
+    const popup = Swal.getPopup();
+
+    // Select all clean and not-clean buttons in this popup
+    const cleanButtons = popup.querySelectorAll(`.inspect-btn.clean`);
+    const notCleanButtons = popup.querySelectorAll(`.inspect-btn.not-clean`);
+
+    let hasNotClean = false;
+    let allClean = true;
+
+    // Check if any 'not clean' button is active
+    notCleanButtons.forEach(btn => {
+        if (btn.classList.contains('active')) {
+            hasNotClean = true;
+        }
+    });
+
+    // Check if any clean button is NOT active (meaning incomplete)
+    cleanButtons.forEach(btn => {
+        if (!btn.classList.contains('active')) {
+            allClean = false;
+        }
+    });
+
+    const popupContent = popup.querySelector('.swal2-html-container');
+
+    // Apply border based on status
+    if (hasNotClean) {
+        popupContent.style.border = '1px solid #FF6B6B'; // Red border
+    } else if (allClean) {
+        popupContent.style.border = '1px solid #4CAF50'; // Green border
+    } else {
+        popupContent.style.border = 'none'; // No border if incomplete
+    }
+}
+
+
+
 
 function updateButtonStatus(roomNumber, status, dndStatus = "available") {
     let formattedRoom = formatRoomNumber(roomNumber);
