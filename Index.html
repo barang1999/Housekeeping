@@ -147,16 +147,6 @@
             color: white;
         }
 
-        button.inspect-btn {
-            background-color: transparent !important;
-            border: none;
-            border-radius: 50%;
-            padding: 6px;
-            margin-left: 4px;
-            cursor: pointer;
-            transition: background-color 0.1s ease;
-        }
-
         /* Active States */
         button.inspect-btn.clean.active {
             background-color: #90EE90 !important; /* Light Green */
@@ -173,7 +163,7 @@
             padding: 6px;
             margin-left: 4px;
             cursor: pointer;
-            transition: background-color 0.1s ease, transform 0.2s ease; /* Keep both */
+            transition: background-color 0.1s ease; /* Keep both */
             font-size: 20px; /* Optional: Adjust icon size */
         }
 
@@ -183,8 +173,20 @@
             background-color: transparent !important; /* Prevent hover blue */
             box-shadow: none !important;
         }
-        .inspection-btn.animate {
-            transform: scale(1.2); /* Expand slightly */
+
+        .inspect-btn {
+            background-color: transparent !important;
+            padding: 6px;
+            border-radius: 50%;
+            margin-left: 4px;
+            cursor: pointer;
+            font-size: 20px;
+            border: none;
+            transition: background-color 0.1s ease, transform 0.25s cubic-bezier(0.25, 1.5, 0.5, 1);
+        }
+
+        .inspect-btn.animate {
+            transform: scale(1.2); /* Slight grow effect */
         }
 
 

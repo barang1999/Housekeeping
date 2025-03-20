@@ -1759,6 +1759,7 @@ function triggerInspectButtonAnimation(button) {
     setTimeout(() => {
         button.classList.remove('animate');
     }, 200); // Match transform duration
+
 }
 
 
@@ -1803,8 +1804,10 @@ async function updateInspection(roomNumber, item, status) {
 
     if (newStatus === 'clean') {
         cleanButton.classList.add('active');
+        triggerInspectButtonAnimation(cleanButton); // 🎯 Animate clean button
     } else if (newStatus === 'not_clean') {
         notCleanButton.classList.add('active');
+        triggerInspectButtonAnimation(notCleanButton); // 🎯 Animate not clean button
     }
 }
 
