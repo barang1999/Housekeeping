@@ -2311,22 +2311,42 @@ function exportInspectionPDF() {
         inspectionData.push(row);
     });
 
-    pdf.autoTable({
-        head: [["Room", "TV", "Sofa", "Lamp", "Light", "Amenity", "Complimentary", "Balcony", "Sink", "Door", "Minibar"]],
+       pdf.autoTable({
+        head: [[
+            "Room", "TV", "Sofa", "Lamp", "Light", "Amenity", 
+            "Complimentary", "Balcony", "Sink", "Door", "Minibar"
+        ]],
         body: inspectionData,
         startY: 25,
         styles: {
             fontSize: 10,
             cellPadding: 3,
             valign: 'middle',
+            overflow: 'linebreak',
+            minCellHeight: 10,           // Uniform row height
+        },
+        columnStyles: {
+            0: { cellWidth: 15 },        // Room column narrower
+            1: { cellWidth: 15 },
+            2: { cellWidth: 15 },
+            3: { cellWidth: 15 },
+            4: { cellWidth: 15 },
+            5: { cellWidth: 20 },
+            6: { cellWidth: 25 },        // Longer text columns slightly wider
+            7: { cellWidth: 20 },
+            8: { cellWidth: 15 },
+            9: { cellWidth: 15 },
+            10: { cellWidth: 20 },
         },
         headStyles: {
-            fillColor: [41, 128, 185], // Clean blue header
+            fillColor: [41, 128, 185], // Blue header
             textColor: 255,
-            halign: 'center'
+            halign: 'center',
+            valign: 'middle',
         },
         bodyStyles: {
             halign: 'center',
+            valign: 'middle',
         },
         didParseCell: function (data) {
             if (data.section === 'body' && data.cell.text[0] === "No") {
@@ -2335,7 +2355,6 @@ function exportInspectionPDF() {
             }
         }
     });
-
     pdf.save(`inspection_logs_${formattedDate}.pdf`);
 }
 
