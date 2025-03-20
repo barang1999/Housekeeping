@@ -1756,9 +1756,13 @@ function openInspectionPopup(roomNumber) {
 function triggerInspectButtonAnimation(button) {
     button.classList.add('animate');
 
+    // Force reflow for immediate effect (optional, makes animation reliable)
+    void button.offsetWidth;
+
+
     setTimeout(() => {
         button.classList.remove('animate');
-    }, 200); // Match transform duration
+    }, 150); // Match transform duration
 
 }
 
@@ -1805,9 +1809,12 @@ async function updateInspection(roomNumber, item, status) {
     if (newStatus === 'clean') {
         cleanButton.classList.add('active');
         triggerInspectButtonAnimation(cleanButton); // 🎯 Animate clean button
+        // Directly set background color
+         cleanButton.style.backgroundColor = '#90EE90'; // Light green
     } else if (newStatus === 'not_clean') {
         notCleanButton.classList.add('active');
         triggerInspectButtonAnimation(notCleanButton); // 🎯 Animate not clean button
+        notCleanButton.style.backgroundColor = '#FF6B6B'; // Light red
     }
 }
 
