@@ -1881,53 +1881,39 @@ function restoreInspectionButton(roomNumber, inspectionData) {
 }
 
 function restoreInspectionBorder(roomNumber) {
-    const popup = Swal.getPopup();
+    const btn = document.getElementById(`inspection-${roomNumber}`);
+    if (!btn) return;
 
-    // Select clean & not-clean buttons
-    const cleanButtons = popup.querySelectorAll(`.inspect-btn.clean`);
-    const notCleanButtons = popup.querySelectorAll(`.inspect-btn.not-clean`);
+    const roomLog = inspectionLogs.find(log => log.roomNumber === roomNumber);
 
     let hasNotClean = false;
     let allClean = true;
 
-    // Check for not_clean buttons active
-    notCleanButtons.forEach(btn => {
-        if (btn.classList.contains('active')) {
-            hasNotClean = true;
+    if (roomLog && roomLog.items) {
+        for (let key in roomLog.items) {
+            if (roomLog.items[key] === "not_clean") {
+                hasNotClean = true;
+                allClean = false;
+                break;
+            }
+            if (roomLog.items[key] !== "clean") {
+                allClean = false;
+            }
         }
-    });
-
-    // Check if all clean buttons active
-    cleanButtons.forEach(btn => {
-        if (!btn.classList.contains('active')) {
-            allClean = false;
-        }
-    });
-
-    const popupContent = popup.querySelector('.swal2-html-container');
-
-    // Remove old border classes
-    popupContent.classList.remove('border-green', 'border-red');
-
-    // Add appropriate border class
-    if (hasNotClean) {
-        popupContent.classList.add('border-red');
-    } else if (allClean) {
-        popupContent.classList.add('border-green');
+    } else {
+        allClean = false;
     }
 
-    // Add animation class
-    popupContent.classList.add('fade-border');
+    // Remove old border classes
+    btn.classList.remove("clean-border", "not-clean-border", "fade-in");
 
-    // Optionally: remove fade class after animation ends (optional cleanup)
-    setTimeout(() => {
-        popupContent.classList.remove('fade-border');
-    }, 300);
+    // Apply new class
+    if (hasNotClean) {
+        btn.classList.add("not-clean-border", "fade-in");
+    } else if (allClean) {
+        btn.classList.add("clean-border", "fade-in");
+    }
 }
-
-
-
-
 
 function updateButtonStatus(roomNumber, status, dndStatus = "available") {
     let formattedRoom = formatRoomNumber(roomNumber);

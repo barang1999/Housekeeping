@@ -196,12 +196,19 @@
             transform: scale(1.2); /* Slight grow effect */
         }
         button.inspection-btn.clean-border {
-            border: 1px solid #4CAF50; /* Green border */
+        border: 1px solid #4CAF50; /* Green */
+        transition: border-color 0.5s ease, box-shadow 0.5s ease;
         }
 
         button.inspection-btn.not-clean-border {
-            border: 1px solid #FF6B6B; /* Red border */
+            border: 1px solid #FF6B6B; /* Red */
+            transition: border-color 0.5s ease, box-shadow 0.5s ease;
         }
+
+        .fade-in {
+            box-shadow: 0 0 8px rgba(0,0,0,0.2);
+        }
+
 
         .swal2-html-container {
         transition: border 0.3s ease, box-shadow 0.3s ease;
