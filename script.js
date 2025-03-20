@@ -13,10 +13,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     await loadLogs(); // ✅ Fetch logs before restoring buttons
     await restoreCleaningStatus(); // ✅ Ensure buttons are updated after logs are loaded
     await connectWebSocket(); // ✅ Connect WebSocket first for real-time updates
-
-    await loadRooms(); // ✅ Make sure buttons exist
-    restoreAllInspectionButtons(); // ✅ Restore inspection button UI
-    emitInspectionRequest();  // ✅ Emit inspection logs request safely AFTER buttons exist
+   
      
     // ✅ Ensure socket is available before emitting
     if (window.socket) {
@@ -78,17 +75,23 @@ async function connectWebSocket() {
         timeout: 5000
     });
 
-    window.socket.on("connect", () => {
+    // ON CONNECT:
+    window.socket.on("connect", async () => {
         console.log("✅ WebSocket connected successfully.");
-        reconnectAttempts = 0;  // Reset attempts on successful connection
-        safeEmit("requestDNDStatus"); // Ensure DND data loads
-        safeEmit("requestButtonStatus"); // Ensure button statuses load
-        safeEmit("requestPriorityStatus"); // ✅ Request priority data
-        // 🚀 Emit checked rooms after socket connected!
-        setTimeout(() => {
-            emitCheckedRoomsToAllDevices();
-            emitInspectionRequest(); // ✅ Request inspections after connect
-        }, 300); // Add delay
+
+        // === 1️⃣ Load room buttons AFTER connection ===
+        await loadRooms();
+
+        // === 2️⃣ Emit Inspection logs request ===
+        emitInspectionRequest();
+
+        // === 3️⃣ Emit DND & Priority requests ===
+        safeEmit("requestDNDStatus");
+        safeEmit("requestButtonStatus");
+        safeEmit("requestPriorityStatus");
+
+        // === 4️⃣ Emit checkedRooms ===
+        emitCheckedRoomsToAllDevices();
     });
 
     // 🟢 ADD THIS LINE:
