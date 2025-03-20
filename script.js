@@ -1753,6 +1753,14 @@ function openInspectionPopup(roomNumber) {
     });
 }
 
+function triggerInspectButtonAnimation(button) {
+    button.classList.add('animate');
+
+    setTimeout(() => {
+        button.classList.remove('animate');
+    }, 200); // Match transform duration
+}
+
 
 async function updateInspection(roomNumber, item, status) {
     const username = localStorage.getItem("username");
