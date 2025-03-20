@@ -138,8 +138,17 @@ async function connectWebSocket() {
 
         // ✅ Immediately update localStorage copy:
         localStorage.setItem("inspectionLogs", JSON.stringify(inspectionLogs));
+
+        // Immediately restore the inspection button for real-time visual update!
+        restoreInspectionButton(roomNumber, inspectionLogs.find(log => log.roomNumber === roomNumber)?.items);
+
+        // Optional: log to confirm
+        console.log(`🔄 Real-time inspection UI updated for Room ${roomNumber}`);
     });
 
+    window.socket.on("inspectionUpdate", ({ roomNumber, item, status }) => {
+    updateInspectionLogAndUI(roomNumber, item, status);
+});
 
 
         // Call when WebSocket connects
@@ -1917,6 +1926,22 @@ function restoreInspectionBorder(roomNumber) {
         btn.classList.add("clean-border", "fade-in");
     }
 }
+
+function updateInspectionLogAndUI(roomNumber, item, status) {
+    const logIndex = inspectionLogs.findIndex(log => log.roomNumber === roomNumber);
+    if (logIndex !== -1) {
+        inspectionLogs[logIndex].items[item] = status;
+    } else {
+        inspectionLogs.push({
+            roomNumber,
+            items: { [item]: status }
+        });
+    }
+
+    localStorage.setItem("inspectionLogs", JSON.stringify(inspectionLogs));
+    restoreInspectionButton(roomNumber, inspectionLogs.find(log => log.roomNumber === roomNumber)?.items);
+}
+
 
 function updateButtonStatus(roomNumber, status, dndStatus = "available") {
     let formattedRoom = formatRoomNumber(roomNumber);
