@@ -203,7 +203,28 @@
             border: 1px solid #FF6B6B; /* Red border */
         }
 
+        .swal2-html-container {
+        transition: border 0.3s ease, box-shadow 0.3s ease;
+        }
 
+        .border-green {
+            border: 2px solid #4CAF50;
+            box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
+        }
+
+        .border-red {
+            border: 2px solid #FF6B6B;
+            box-shadow: 0 0 8px rgba(255, 107, 107, 0.6);
+        }
+
+        .fade-border {
+            animation: fadeInBorder 0.3s ease;
+        }
+
+        @keyframes fadeInBorder {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
 
            .dashboard-header {
             display: flex;

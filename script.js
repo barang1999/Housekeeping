@@ -1883,21 +1883,21 @@ function restoreInspectionButton(roomNumber, inspectionData) {
 function restoreInspectionBorder(roomNumber) {
     const popup = Swal.getPopup();
 
-    // Select all clean and not-clean buttons in this popup
+    // Select clean & not-clean buttons
     const cleanButtons = popup.querySelectorAll(`.inspect-btn.clean`);
     const notCleanButtons = popup.querySelectorAll(`.inspect-btn.not-clean`);
 
     let hasNotClean = false;
     let allClean = true;
 
-    // Check if any 'not clean' button is active
+    // Check for not_clean buttons active
     notCleanButtons.forEach(btn => {
         if (btn.classList.contains('active')) {
             hasNotClean = true;
         }
     });
 
-    // Check if any clean button is NOT active (meaning incomplete)
+    // Check if all clean buttons active
     cleanButtons.forEach(btn => {
         if (!btn.classList.contains('active')) {
             allClean = false;
@@ -1906,15 +1906,25 @@ function restoreInspectionBorder(roomNumber) {
 
     const popupContent = popup.querySelector('.swal2-html-container');
 
-    // Apply border based on status
+    // Remove old border classes
+    popupContent.classList.remove('border-green', 'border-red');
+
+    // Add appropriate border class
     if (hasNotClean) {
-        popupContent.style.border = '1px solid #FF6B6B'; // Red border
+        popupContent.classList.add('border-red');
     } else if (allClean) {
-        popupContent.style.border = '1px solid #4CAF50'; // Green border
-    } else {
-        popupContent.style.border = 'none'; // No border if incomplete
+        popupContent.classList.add('border-green');
     }
+
+    // Add animation class
+    popupContent.classList.add('fade-border');
+
+    // Optionally: remove fade class after animation ends (optional cleanup)
+    setTimeout(() => {
+        popupContent.classList.remove('fade-border');
+    }, 300);
 }
+
 
 
 
