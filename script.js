@@ -1787,6 +1787,19 @@ async function updateInspection(roomNumber, item, status) {
         newStatus = null; // Unset status
     }
 
+    // Play sound based on choice
+    let sound;
+    if (status === 'clean') {
+        sound = new Audio('Sound/Yes.mp3'); // ✅ Your Yes sound
+    } else if (status === 'not_clean') {
+        sound = new Audio('Sound/No.mp3');  // ✅ Your No sound
+    }
+
+    if (sound) {
+        sound.volume = 0.5;
+        sound.play();
+    }
+
     // Send update to backend
     await fetch(`${apiUrl}/logs/inspection`, {
         method: "POST",
