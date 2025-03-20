@@ -2288,7 +2288,9 @@ function exportInspectionPDF() {
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF();
 
-    pdf.text("Room Inspection Report", 10, 10);
+    const formattedDate = new Date().toISOString().split('T')[0];
+    pdf.setFontSize(16);
+    pdf.text(`Room Inspection Report (${formattedDate})`, 14, 15);
 
     if (!inspectionLogs || inspectionLogs.length === 0) {
         alert("No inspection logs found.");
@@ -2297,12 +2299,13 @@ function exportInspectionPDF() {
 
     let inspectionData = [];
 
-    // Sort by room number
+    // Sort logs by room number
     inspectionLogs.sort((a, b) => parseInt(a.roomNumber, 10) - parseInt(b.roomNumber, 10));
 
     inspectionLogs.forEach(log => {
         let row = [log.roomNumber];
-        for (let item of ["TV", "Sofa", "Lamp", "Light", "Amenity", "Complimentary", "Balcony", "Sink", "Door", "Minibar"]) {
+        const items = ["TV", "Sofa", "Lamp", "Light", "Amenity", "Complimentary", "Balcony", "Sink", "Door", "Minibar"];
+        for (let item of items) {
             row.push(log.items && log.items[item] === "clean" ? "Yes" : log.items && log.items[item] === "not_clean" ? "No" : "-");
         }
         inspectionData.push(row);
@@ -2311,10 +2314,28 @@ function exportInspectionPDF() {
     pdf.autoTable({
         head: [["Room", "TV", "Sofa", "Lamp", "Light", "Amenity", "Complimentary", "Balcony", "Sink", "Door", "Minibar"]],
         body: inspectionData,
-        startY: 20
+        startY: 25,
+        styles: {
+            fontSize: 10,
+            cellPadding: 3,
+            valign: 'middle',
+        },
+        headStyles: {
+            fillColor: [41, 128, 185], // Clean blue header
+            textColor: 255,
+            halign: 'center'
+        },
+        bodyStyles: {
+            halign: 'center',
+        },
+        didParseCell: function (data) {
+            if (data.section === 'body' && data.cell.text[0] === "No") {
+                data.cell.styles.fillColor = [231, 76, 60]; // Red background
+                data.cell.styles.textColor = 255;           // White text
+            }
+        }
     });
 
-    const formattedDate = new Date().toISOString().split('T')[0];
     pdf.save(`inspection_logs_${formattedDate}.pdf`);
 }
 
