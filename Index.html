@@ -168,11 +168,16 @@
         }
 
         .inspection-btn:hover,
-        .inspection-btn:focus,
-        .inspection-btn:active {
+        .inspection-btn:focus {
             background-color: transparent !important; /* Prevent hover blue */
             box-shadow: none !important;
         }
+
+         .inspect-btn:active {
+            transform: scale(1.15);
+            background-color: rgba(144, 238, 144, 0.7); /* Light green overlay effect */
+        }
+
 
         .inspect-btn {
             background-color: transparent !important;
@@ -184,6 +189,8 @@
             border: none;
             transition: background-color 0.05s ease, transform 0.15s cubic-bezier(0.25, 1.5, 0.5, 1);
         }
+
+       
 
         .inspect-btn.animate {
             transform: scale(1.2); /* Slight grow effect */
