@@ -2,24 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Housekeeping Management</title>
     <link rel="icon" type="image/png" href="Image\Logo.png">
     <style>
         body, html {
-        .header-container {
-            display: flex;
-            flex-direction: column; /* Stack logo and text */
-            align-items: center; /* Center horizontally */
-            justify-content: center;
-        }
-
-        .logo {
-            max-width: 50%;  /* Makes the logo at most 50% of text width */
-            max-height: 40px; /* Restrict height for better proportions */
-            object-fit: contain;
-        }
-
             font-family: 'Poppins', sans-serif;
             background-color: #f8f9fa;
             color: #333;
@@ -27,6 +14,21 @@
             padding: 0;
             height: 100vh;
             overflow-y: auto;
+            min-height: 100vh;
+            height: auto;
+        }
+
+        .header-container {
+            display: flex;
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+        }
+
+        .logo {
+            max-width: 50%;
+            max-height: 40px;
+            object-fit: contain;
         }
 
         .container {
@@ -91,6 +93,11 @@
             .dnd-btn.active-dnd {
                 background-color: red;
             }
+
+            button:focus {
+            outline: 2px solid #007bff;
+}
+
 
         button {
             padding: 10px 16px;
@@ -331,14 +338,20 @@
 
 /* Style each dropdown option */
 .priority-option {
-    display: flex;
-    align-items: center;
-    justify-content: center;  /* Center the content */
-    gap: 5px;  /* Reduce spacing */
-    padding: 8px 10px; /* Adjust padding */
+    display: flex;               /* Add flexbox */
+    flex-direction: column;
+    align-items: center;         /* Center horizontally */
+    justify-content: center;     /* Center vertically */
+    gap: 2px;
+    padding: 2px 4px;
     cursor: pointer;
     transition: background 0.2s ease-in-out;
     border-bottom: 1px solid #eee;
+}
+
+
+.priority-option .blue {
+    font-size: 16px;  /* Smaller icon */
 }
 
 .priority-option:last-child {
@@ -358,6 +371,10 @@
     align-items: center;
     justify-content: center;
     text-align: center;
+}
+
+.priority-option span:last-child {
+    font-size: 10px; /* Smaller time text */
 }
 
 /* Define colors for different statuses */
