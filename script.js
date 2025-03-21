@@ -29,6 +29,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         }, 1000);
     }
 
+    fetch("/logs/priority")
+    .then(res => res.json())
+    .then(priorities => {
+        priorities.forEach(p => {
+            if (p.priority === "allow" && p.allowCleaningTime) {
+                localStorage.setItem(`allowTime-${p.roomNumber}`, p.allowCleaningTime);
+            }
+        });
+    });
+
+
     console.log("🎯 Cleaning status restored successfully.");
     checkAuth();
 
@@ -722,7 +733,7 @@ async function loadRooms() {
                         <div class="priority-option" onclick="updatePriority('${room}', 'early-arrival')"><span class="yellow">🟡</span></div>
                         <div class="priority-option" onclick="updatePriority('${room}', 'vacancy')"><span class="black">⚫</span></div>
                         <!-- ✅ ADD BLUE OPTION -->
-                        <div class="priority-option" onclick="setAllowCleaning('${room}')"><span class="blue">🔵</span> Allow</div>
+                        <div class="priority-option" onclick="setAllowCleaning('${room}')"><span class="blue">🔵</span></div>
                     </div>
                 </div>
                 <button id="start-${room}" onclick="startCleaning('${room}')">សម្អាត</button>
@@ -912,6 +923,11 @@ function updateSelectedPriorityDisplay(roomNumber, priority) {
         return;
     }
 
+    const allowTime = localStorage.getItem(`allowTime-${roomNumber}`);
+    if (priority === "allow" && allowTime) {
+        button.innerHTML = `🔵 ${allowTime}`;
+        return;
+    }
     // ✅ Define priority icons for display
     const priorityIcons = {
         "default": "⚪",

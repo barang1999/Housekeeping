@@ -60,6 +60,7 @@ const User = mongoose.model("User", userSchema);
 const prioritySchema = new mongoose.Schema({
     roomNumber: { type: String, required: true, unique: true },
     priority: { type: String, default: "default" }
+    allowCleaningTime: { type: String, default: null } // <-- NEW FIELD!
 });
 const RoomPriority = mongoose.model("RoomPriority", prioritySchema);
 
@@ -168,30 +169,38 @@ socket.on("requestPriorityStatus", async () => {
     }
 });
 
-socket.on("allowCleaningUpdate", ({ roomNumber, time }) => {
-    io.emit("allowCleaningUpdate", { roomNumber, time }); // Broadcast to all clients
+socket.on("allowCleaningUpdate", async ({ roomNumber, time }) => {
+    try {
+        await RoomPriority.findOneAndUpdate(
+            { roomNumber: String(roomNumber) },
+            { priority: "allow", allowCleaningTime: time },
+            { upsert: true, new: true }
+        );
+
+        io.emit("allowCleaningUpdate", { roomNumber: String(roomNumber), time });
+        console.log(`✅ Allow cleaning time updated for Room ${roomNumber}`);
+    } catch (err) {
+        console.error("❌ Error updating allow cleaning time:", err);
+    }
 });
 
 
 
-socket.on("priorityUpdate", async ({ roomNumber, priority }) => {
-    try {
-        console.log(`📡 Received priorityUpdate -> Room: ${roomNumber}, Priority: ${priority}`);
 
+socket.on("priorityUpdate", async ({ roomNumber, priority, allowCleaningTime }) => {
+    try {
         await RoomPriority.findOneAndUpdate(
-            { roomNumber: String(roomNumber) }, // ✅ Ensure it's stored as a string
-            { priority },
+            { roomNumber: String(roomNumber) },
+            { priority, allowCleaningTime: allowCleaningTime || null },
             { upsert: true, new: true }
         );
 
-        // ✅ Ensure all clients receive the event
-        io.emit("priorityUpdate", { roomNumber: String(roomNumber), priority });
-
-        console.log(`✅ Priority update sent to all clients for Room ${roomNumber}`);
+        io.emit("priorityUpdate", { roomNumber: String(roomNumber), priority, allowCleaningTime });
     } catch (error) {
         console.error("❌ Error updating priority:", error);
     }
 });
+
 
 socket.on("updatePriorityStatus", (data) => {
     io.emit("updatePriorityStatus", data);
@@ -512,17 +521,12 @@ app.get('/logs/inspection', authenticateToken, async (req, res) => {
 
 app.get("/logs/priority", async (req, res) => {
     try {
-        const priorities = await RoomPriority.find({}, "roomNumber priority").lean();
+        const priorities = await RoomPriority.find({}, "roomNumber priority allowCleaningTime").lean();
 
-        if (!priorities || priorities.length === 0) {
-            console.warn("⚠️ No priorities found in database. Returning default values.");
-            return res.json([]);
-        }
-
-        // ✅ Ensure all room numbers are returned as padded 3-digit strings
         const formattedPriorities = priorities.map(p => ({
-            roomNumber: String(p.roomNumber).padStart(3, "0"), // Pad to 3 digits
-            priority: p.priority || "default"
+            roomNumber: String(p.roomNumber).padStart(3, "0"),
+            priority: p.priority || "default",
+            allowCleaningTime: p.allowCleaningTime || null // Include here
         }));
 
         res.json(formattedPriorities);
@@ -534,24 +538,24 @@ app.get("/logs/priority", async (req, res) => {
 });
 
 
+
 app.post("/logs/priority", async (req, res) => {
     try {
-        let { roomNumber, priority } = req.body;
+        let { roomNumber, priority, allowCleaningTime } = req.body;
         if (!roomNumber || !priority) {
             return res.status(400).json({ message: "Room number and priority are required." });
         }
 
-        // ✅ Pad room number to ensure consistency
         roomNumber = String(roomNumber).padStart(3, "0");
 
         await RoomPriority.findOneAndUpdate(
             { roomNumber },
-            { priority },
+            { priority, allowCleaningTime: allowCleaningTime || null },
             { upsert: true, new: true }
         );
 
-        // ✅ Emit with padded room number
-        io.emit("priorityUpdate", { roomNumber, priority });
+        // Emit to all clients
+        io.emit("priorityUpdate", { roomNumber, priority, allowCleaningTime });
 
         res.json({ message: "Priority updated successfully" });
     } catch (error) {
@@ -559,7 +563,6 @@ app.post("/logs/priority", async (req, res) => {
         res.status(500).json({ message: "Server error", error });
     }
 });
-
 
 app.post("/logs/dnd", async (req, res) => {
     try {
