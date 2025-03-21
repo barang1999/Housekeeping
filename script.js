@@ -870,7 +870,7 @@ function setAllowCleaning(roomNumber) {
     button.innerHTML = `
         <div class="priority-option" onclick="setAllowCleaning('${roomNumber}')" style="flex-direction: column; gap: 0; padding: 0; border-bottom: none;">
             <span class="blue">🔵</span>
-            <span style="font-size: 10px; margin-top: 2px;">${now}</span>
+            <span style="font-size: 6px; margin-top: 2px;">${now}</span>
         </div>
 `;
 
