@@ -59,7 +59,7 @@ const User = mongoose.model("User", userSchema);
 
 const prioritySchema = new mongoose.Schema({
     roomNumber: { type: String, required: true, unique: true },
-    priority: { type: String, default: "default" }
+    priority: { type: String, default: "default" },
     allowCleaningTime: { type: String, default: null } // <-- NEW FIELD!
 });
 const RoomPriority = mongoose.model("RoomPriority", prioritySchema);
@@ -183,8 +183,6 @@ socket.on("allowCleaningUpdate", async ({ roomNumber, time }) => {
         console.error("❌ Error updating allow cleaning time:", err);
     }
 });
-
-
 
 
 socket.on("priorityUpdate", async ({ roomNumber, priority, allowCleaningTime }) => {
