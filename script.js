@@ -874,6 +874,13 @@ function setAllowCleaning(roomNumber) {
         </div>
     `;
 
+    // Force reflow to ensure styles apply
+        const priorityTime = button.querySelector('.priority-time');
+        if (priorityTime) {
+            priorityTime.style.fontSize = '8px'; // Apply same style
+            priorityTime.style.color = '#333';
+        }
+
     // Emit WebSocket event to sync across devices
     safeEmit("allowCleaningUpdate", { roomNumber, time: now });
 
@@ -881,7 +888,7 @@ function setAllowCleaning(roomNumber) {
 
     // ✅ Send Telegram Message
     const username = localStorage.getItem("username") || "Unknown";
-    sendTelegramMessage(`🔵 Room ${roomNumber} ត្រូវបានអនុញ្ញាតឲ្យសម្អាតដោយ ${username} នៅម៉ោង ${now}`);
+    sendTelegramMessage(`👌🏻 Room ${roomNumber} ត្រូវបានអនុញ្ញាតឲ្យសម្អាតដោយ ${username} នៅម៉ោង ${now}`);
 }
 
 
