@@ -930,9 +930,14 @@ function updateSelectedPriorityDisplay(roomNumber, priority) {
 
     const allowTime = localStorage.getItem(`allowTime-${roomNumber}`);
     if (priority === "allow" && allowTime) {
-        button.innerHTML = `🔵 ${allowTime}`;
-        return;
-    }
+    button.innerHTML = `
+        <div class="priority-display">
+            <span class="blue">🔵</span>
+            <span class="priority-time">${allowTime}</span>
+        </div>
+    `;
+    return;
+}
     // ✅ Define priority icons for display
     const priorityIcons = {
         "default": "⚪",
