@@ -878,6 +878,10 @@ function setAllowCleaning(roomNumber) {
     safeEmit("allowCleaningUpdate", { roomNumber, time: now });
 
     console.log(`🔵 Room ${roomNumber} allowed for cleaning at ${now}`);
+
+    // ✅ Send Telegram Message
+    const username = localStorage.getItem("username") || "Unknown";
+    sendTelegramMessage(`🔵 Room ${roomNumber} ត្រូវបានអនុញ្ញាតឲ្យសម្អាតដោយ ${username} នៅម៉ោង ${now}`);
 }
 
 
