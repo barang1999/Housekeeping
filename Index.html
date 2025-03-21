@@ -338,15 +338,16 @@
 
 /* Style each dropdown option */
 .priority-option {
-    display: flex;               /* Add flexbox */
-    flex-direction: column;
-    align-items: center;         /* Center horizontally */
-    justify-content: center;     /* Center vertically */
+    display: flex;
+    flex-direction: column;       /* Stack vertically */
+    align-items: center;          /* Center horizontally */
+    justify-content: center;      /* Center vertically */
     gap: 2px;
-    padding: 2px 4px;
+    padding: 4px 6px;             /* Slightly more padding */
     cursor: pointer;
     transition: background 0.2s ease-in-out;
     border-bottom: 1px solid #eee;
+    white-space: nowrap;          /* Prevent wrapping */
 }
 
 
@@ -364,10 +365,10 @@
 
 /* Fix the icon and text alignment */
 .priority-option span {
-    font-size: 14px; /* Adjust icon size */
+    font-size: 7px; /* Adjust icon size */
     width: 16px;  /* Keep width uniform */
     height: 16px;
-    display: flex;
+    display: block; 
     align-items: center;
     justify-content: center;
     text-align: center;
