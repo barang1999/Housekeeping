@@ -168,6 +168,11 @@ socket.on("requestPriorityStatus", async () => {
     }
 });
 
+socket.on("allowCleaningUpdate", ({ roomNumber, time }) => {
+    io.emit("allowCleaningUpdate", { roomNumber, time }); // Broadcast to all clients
+});
+
+
 
 socket.on("priorityUpdate", async ({ roomNumber, priority }) => {
     try {

@@ -224,6 +224,19 @@ async function connectWebSocket() {
         updateSelectedPriorityDisplay(String(roomNumber), priority);
     });
 
+    window.socket.on("allowCleaningUpdate", ({ roomNumber, time }) => {
+    // Update UI
+    const button = document.getElementById(`selected-priority-${roomNumber}`);
+    button.innerHTML = `🔵 ${time}`;
+    
+    // Save in localStorage
+    localStorage.setItem(`priority-${roomNumber}`, 'allow');
+    localStorage.setItem(`allowTime-${roomNumber}`, time);
+    
+    console.log(`🟦 Sync: Room ${roomNumber} allowed at ${time}`);
+});
+
+
     window.socket.on("resetCheckedRooms", () => {
         console.log("🧹 Received checked rooms reset broadcast.");
 
@@ -708,6 +721,8 @@ async function loadRooms() {
                         <div class="priority-option" onclick="updatePriority('${room}', 'sunrise')"><span class="red">🔴</span></div>
                         <div class="priority-option" onclick="updatePriority('${room}', 'early-arrival')"><span class="yellow">🟡</span></div>
                         <div class="priority-option" onclick="updatePriority('${room}', 'vacancy')"><span class="black">⚫</span></div>
+                        <!-- ✅ ADD BLUE OPTION -->
+                        <div class="priority-option" onclick="setAllowCleaning('${room}')"><span class="blue">🔵</span> Allow</div>
                     </div>
                 </div>
                 <button id="start-${room}" onclick="startCleaning('${room}')">សម្អាត</button>
@@ -807,6 +822,7 @@ function restoreAllInspectionButtons() {
     });
 }
 
+
 function updatePriorityDropdown(roomNumber, priority) {
     console.log(`🎯 Updating priority dropdown for Room ${roomNumber}: ${priority}`);
 
@@ -825,6 +841,29 @@ function updatePriorityDropdown(roomNumber, priority) {
         console.warn(`⚠️ Priority dropdown not found for Room ${roomNumber}`);
     }
 }
+
+function setAllowCleaning(roomNumber) {
+    const now = new Date().toLocaleTimeString('en-US', {
+        timeZone: 'Asia/Phnom_Penh',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+    });
+
+    // Save locally
+    localStorage.setItem(`priority-${roomNumber}`, 'allow');
+    localStorage.setItem(`allowTime-${roomNumber}`, now);
+
+    // Update UI
+    const button = document.getElementById(`selected-priority-${roomNumber}`);
+    button.innerHTML = `🔵 ${now}`;
+
+    // Emit WebSocket event to sync across devices
+    safeEmit("allowCleaningUpdate", { roomNumber, time: now });
+
+    console.log(`🔵 Room ${roomNumber} allowed for cleaning at ${now}`);
+}
+
 
 function updatePriority(roomNumber, status) {
     const button = document.getElementById(`selected-priority-${roomNumber}`);
@@ -915,14 +954,22 @@ function highlightSelectedPriority(roomNumber, priority) {
 }
 
 
-// ✅ Load Saved Priority on Page Load
 document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".priority-toggle").forEach(button => {
         const roomNumber = button.id.replace("selected-priority-", "");
-        const savedPriority = localStorage.getItem(`priority-${roomNumber}`) || "default";
-        updateSelectedPriorityDisplay(roomNumber, savedPriority);
+        const savedPriority = localStorage.getItem(`priority-${roomNumber}`);
+        const allowTime = localStorage.getItem(`allowTime-${roomNumber}`);
+        
+        if (savedPriority === 'allow' && allowTime) {
+            // Blue priority with timestamp
+            button.innerHTML = `🔵 ${allowTime}`;
+        } else {
+            // Normal priority display (default, sunrise, etc.)
+            updateSelectedPriorityDisplay(roomNumber, savedPriority || "default");
+        }
     });
 });
+
 
 
 async function refreshToken() {
