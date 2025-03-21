@@ -375,7 +375,7 @@
 }
 
 .priority-option span:last-child {
-    font-size: 5px; /* Smaller time text */
+    font-size: 10px; /* Smaller time text */
 }
 
 /* Define colors for different statuses */
@@ -410,6 +410,24 @@
     justify-content: center;
     width: 24px; /* Adjust width */
     height: 24px;
+}
+
+.priority-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+}
+
+.priority-display .blue {
+    font-size: 16px;
+}
+
+.priority-time {
+    font-size: 6px;
+    margin-top: 2px;
+    color: #333;
 }
 
 .minimal-dropdown {

@@ -868,11 +868,11 @@ function setAllowCleaning(roomNumber) {
     // Update UI
     const button = document.getElementById(`selected-priority-${roomNumber}`);
     button.innerHTML = `
-        <div class="priority-option" onclick="setAllowCleaning('${roomNumber}')" style="flex-direction: column; gap: 0; padding: 0; border-bottom: none;">
+        <div class="priority-display">
             <span class="blue">🔵</span>
-            <span style="font-size: 5px; margin-top: 2px;">${now}</span>
+            <span class="priority-time">${now}</span>
         </div>
-`;
+    `;
 
     // Emit WebSocket event to sync across devices
     safeEmit("allowCleaningUpdate", { roomNumber, time: now });
