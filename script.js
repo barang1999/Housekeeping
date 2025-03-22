@@ -16,6 +16,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     await connectWebSocket(); // ✅ Connect WebSocket first for real-time updates
     await restorePriorities();
 
+    // ✅ Ensure socket is available before emitting
+    if (window.socket) {
+        window.socket.emit("requestPriorityStatus");
+    } else {
+        console.warn("⚠️ WebSocket is not initialized. Retrying...");
+        setTimeout(() => {
+            if (window.socket) {
+                window.socket.emit("requestPriorityStatus");
+            } else {
+                console.error("❌ WebSocket still not initialized. Check connection setup.");
+            }
+        }, 1000);
+    }
 
     console.log("🎯 Cleaning status restored successfully.");
     checkAuth();
