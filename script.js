@@ -839,42 +839,74 @@ function updatePriorityDropdown(roomNumber, priority) {
 }
 
 function setAllowCleaning(roomNumber) {
-    const now = new Date().toLocaleTimeString('en-US', {
-        timeZone: 'Asia/Phnom_Penh',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-    });
+    Swal.fire({
+        title: 'Set Allow Cleaning Time',
+        html: `
+            <input type="time" id="manual-time" class="swal2-input" style="width: 70%;" />
+            <small style="display:block;margin-top:5px;">Leave empty to auto-use current time</small>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Set',
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+            return document.getElementById('manual-time').value;
+        }
+    }).then(result => {
+        let selectedTime = result.value;
 
-    // Save locally
-    localStorage.setItem(`priority-${roomNumber}`, 'allow');
-    localStorage.setItem(`allowTime-${roomNumber}`, now);
+        // If user leaves empty → fallback to auto time
+        if (!selectedTime) {
+            const now = new Date().toLocaleTimeString('en-US', {
+                timeZone: 'Asia/Phnom_Penh',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            });
+            selectedTime = now;
+        } else {
+            // Convert to AM/PM format
+            const [hour, minute] = selectedTime.split(':');
+            const date = new Date();
+            date.setHours(hour);
+            date.setMinutes(minute);
+            selectedTime = date.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            });
+        }
 
-    // Update UI
-    const button = document.getElementById(`selected-priority-${roomNumber}`);
-    button.innerHTML = `
-        <div class="priority-display">
-            <span class="blue">🔵</span>
-            <span class="priority-time">${now}</span>
-        </div>
-    `;
+        // Save locally
+        localStorage.setItem(`priority-${roomNumber}`, 'allow');
+        localStorage.setItem(`allowTime-${roomNumber}`, selectedTime);
 
-    // Force reflow to ensure styles apply
+        // Update UI
+        const button = document.getElementById(`selected-priority-${roomNumber}`);
+        button.innerHTML = `
+            <div class="priority-display">
+                <span class="blue">🔵</span>
+                <span class="priority-time">${selectedTime}</span>
+            </div>
+        `;
+
+        // Sync styles (optional)
         const priorityTime = button.querySelector('.priority-time');
         if (priorityTime) {
-            priorityTime.style.fontSize = '8px'; // Apply same style
+            priorityTime.style.fontSize = '8px';
             priorityTime.style.color = '#333';
         }
 
-    // Emit WebSocket event to sync across devices
-    safeEmit("allowCleaningUpdate", { roomNumber, time: now });
+        // Emit WebSocket event to sync across devices
+        safeEmit("allowCleaningUpdate", { roomNumber, time: selectedTime });
 
-    console.log(`🔵 Room ${roomNumber} allowed for cleaning at ${now}`);
+        console.log(`🔵 Room ${roomNumber} allowed for cleaning at ${selectedTime}`);
 
-    // ✅ Send Telegram Message
-    const username = localStorage.getItem("username") || "Unknown";
-    sendTelegramMessage(`👌🏻 Room ${roomNumber} ត្រូវបានអនុញ្ញាតឲ្យសម្អាតដោយ ${username} នៅម៉ោង ${now}`);
+        // Telegram Notify
+        const username = localStorage.getItem("username") || "Unknown";
+        sendTelegramMessage(`👌🏻 Room ${roomNumber} ត្រូវបានអនុញ្ញាតឲ្យសម្អាតដោយ ${username} នៅម៉ោង ${selectedTime}`);
+    });
 }
+
 
 
 function updatePriority(roomNumber, status) {
