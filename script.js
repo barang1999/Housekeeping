@@ -2131,6 +2131,7 @@ async function loadLogs() {
         const logTable = document.querySelector("#logTable tbody");
         logTable.innerHTML = ""; // Clear existing logs
 
+        const checkedRooms = JSON.parse(localStorage.getItem("checkedRooms")) || [];
         let cleaningStatus = {};
 
         // ✅ Sort logs: "In Progress" first, then latest logs first
