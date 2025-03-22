@@ -8,13 +8,27 @@ window.socket = null;
 document.addEventListener("DOMContentLoaded", async () => {
     console.log("🔄 Initializing housekeeping system...");
 
+     // === Restore Inspection Logs from LocalStorage ===
+    const savedLogs = JSON.parse(localStorage.getItem("inspectionLogs"));
+    if (savedLogs) {
+        inspectionLogs = savedLogs;
+        restoreAllInspectionButtons();
+        console.log("✅ Restored inspection logs from localStorage.");
+    }
+
     await ensureValidToken();
+    await checkAuth();
+
+
     await loadDNDStatus();  // ✅ Load DND status first
     await loadLogs(); // ✅ Fetch logs before restoring buttons
     await loadRooms(); // 🟢 Load rooms first (buttons exist)
     await restoreCleaningStatus(); // ✅ Ensure buttons are updated after logs are loaded
-    await connectWebSocket(); // ✅ Connect WebSocket first for real-time updates
     await restorePriorities();
+
+
+    await connectWebSocket(); // ✅ Connect WebSocket first for real-time updates
+    
 
     // ✅ Ensure socket is available before emitting
     if (window.socket) {
@@ -31,7 +45,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     console.log("🎯 Cleaning status restored successfully.");
-    checkAuth();
+    
 
     const token = localStorage.getItem("token");
     const username = localStorage.getItem("username");
@@ -343,25 +357,6 @@ async function connectWebSocket() {
     updateDNDStatus(data.roomNumber, data.status);
 });
 }
-
-document.addEventListener("DOMContentLoaded", async () => {
-    console.log("🔄 Initializing housekeeping system...");
-
-    // === STEP 1: Restore Inspection Logs from LocalStorage ===
-    const savedLogs = JSON.parse(localStorage.getItem("inspectionLogs"));
-    if (savedLogs) {
-        inspectionLogs = savedLogs;
-        restoreAllInspectionButtons();
-        console.log("✅ Restored inspection logs from localStorage.");
-    }
-
-    // === STEP 2: Connect WebSocket ===
-    await ensureValidToken();
-    await connectWebSocket();
-
-    // Continue with other initializations...
-});
-
 
 function reconnectWebSocket() {
     if (reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
