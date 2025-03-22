@@ -976,7 +976,7 @@ function highlightSelectedPriority(roomNumber, priority) {
 }
 
 async function restorePriorities() {
-    const res = await fetch("/logs/priority");
+    const res = await fetch(`${apiUrl}/logs/priority`);
     const priorities = await res.json();
     priorities.forEach(p => {
         if (p.priority === "allow" && p.allowCleaningTime) {
