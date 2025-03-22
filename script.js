@@ -1264,11 +1264,24 @@ async function restoreCleaningStatus() {
 
         // ✅ Restore Checked Buttons from LocalStorage
         let checkedRooms = JSON.parse(localStorage.getItem("checkedRooms")) || [];
-        checkedRooms.forEach(roomNumber => {
-            drawCheckButton(roomNumber, "#4CAF50", 1.0, false);
-            console.log(`✅ Restored Checked Room ${roomNumber}`);
-            safeEmit("roomChecked", { roomNumber, username: localStorage.getItem("username") });
+        logs.forEach(log => {
+            const roomNumber = formatRoomNumber(log.roomNumber);
+            const status = log.finishTime ? "finished" : log.startTime ? "in_progress" : "available";
+    
+            updateButtonStatus(roomNumber, status);
+
+            // ✅ Only restore checked button if room is FINISHED and in checkedRooms
+            if (status === "finished") {
+                let checkedRooms = JSON.parse(localStorage.getItem("checkedRooms")) || [];
+                if (checkedRooms.includes(roomNumber)) {
+                    drawCheckButton(roomNumber, "#4CAF50", 1.0, false);
+                    console.log(`✅ Checked Restored: Room ${roomNumber}`);
+                } else {
+                    drawCheckButton(roomNumber, "grey", 1.0, false);
+                }
+            }
         });
+
 
         // ✅ Restore from localStorage other statuses
         document.querySelectorAll(".room").forEach(roomDiv => {
@@ -2147,6 +2160,15 @@ async function loadLogs() {
 
             updateButtonStatus(roomNumber, status, dndStatus);
 
+             // ✅ Correct Checked Button Logic:
+            if (status === "finished" && checkedRooms.includes(roomNumber)) {
+                drawCheckButton(roomNumber, "#4CAF50", 1.0, false);
+                console.log(`✅ Restored GREEN checked button for Room ${roomNumber}`);
+            } else {
+                drawCheckButton(roomNumber, "grey", 1.0, false);
+                console.log(`🔄 Restored GREY checked button for Room ${roomNumber}`);
+            }
+
             cleaningStatus[roomNumber] = {
                 started: status === "in_progress",
                 finished: status === "finished",
@@ -2168,16 +2190,7 @@ async function loadLogs() {
         if (!logTable.innerHTML.trim()) {
             logTable.innerHTML = "<tr><td colspan='5'>No logs found.</td></tr>";
         }
-
-        // ✅ Restore Checked Rooms
-        let checkedRooms = JSON.parse(localStorage.getItem("checkedRooms")) || [];
-        checkedRooms.forEach(roomNumber => {
-            const checkedButton = document.getElementById(`checked-${roomNumber}`);
-            if (checkedButton) {
-                drawCheckButton(roomNumber, "#4CAF50", 1.0, false);
-                console.log(`✅ Checked Button GREEN Restored (Logs): Room ${roomNumber}`);
-            }
-        });
+         console.log("✅ Finished loading logs and restoring buttons.");
 
     } catch (error) {
         console.error("❌ Error loading logs:", error);
