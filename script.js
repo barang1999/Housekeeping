@@ -11,33 +11,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     await ensureValidToken();
     await loadDNDStatus();  // ✅ Load DND status first
     await loadLogs(); // ✅ Fetch logs before restoring buttons
+    await loadRooms(); // 🟢 Load rooms first (buttons exist)
     await restoreCleaningStatus(); // ✅ Ensure buttons are updated after logs are loaded
     await connectWebSocket(); // ✅ Connect WebSocket first for real-time updates
-   
-     
-    // ✅ Ensure socket is available before emitting
-    if (window.socket) {
-        window.socket.emit("requestPriorityStatus");
-    } else {
-        console.warn("⚠️ WebSocket is not initialized. Retrying...");
-        setTimeout(() => {
-            if (window.socket) {
-                window.socket.emit("requestPriorityStatus");
-            } else {
-                console.error("❌ WebSocket still not initialized. Check connection setup.");
-            }
-        }, 1000);
-    }
-
-    fetch("/logs/priority")
-    .then(res => res.json())
-    .then(priorities => {
-        priorities.forEach(p => {
-            if (p.priority === "allow" && p.allowCleaningTime) {
-                localStorage.setItem(`allowTime-${p.roomNumber}`, p.allowCleaningTime);
-            }
-        });
-    });
+    await restorePriorities();
 
 
     console.log("🎯 Cleaning status restored successfully.");
@@ -988,6 +965,17 @@ function highlightSelectedPriority(roomNumber, priority) {
     if (selectedOption) {
         selectedOption.classList.add("selected");
     }
+}
+
+async function restorePriorities() {
+    const res = await fetch("/logs/priority");
+    const priorities = await res.json();
+    priorities.forEach(p => {
+        if (p.priority === "allow" && p.allowCleaningTime) {
+            localStorage.setItem(`allowTime-${p.roomNumber}`, p.allowCleaningTime);
+        }
+    });
+    console.log("✅ Priority status restored from server.");
 }
 
 
