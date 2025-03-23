@@ -8,7 +8,7 @@ window.socket = null;
 document.addEventListener("DOMContentLoaded", async () => {
     console.log("🔄 Initializing housekeeping system...");
 
-     // === Restore Inspection Logs from LocalStorage ===
+    // === Restore Inspection Logs from LocalStorage ===
     const savedLogs = JSON.parse(localStorage.getItem("inspectionLogs"));
     if (savedLogs) {
         inspectionLogs = savedLogs;
@@ -16,21 +16,34 @@ document.addEventListener("DOMContentLoaded", async () => {
         console.log("✅ Restored inspection logs from localStorage.");
     }
 
+    // ✅ Restore Priority Buttons From LocalStorage (before rooms load)
+    document.querySelectorAll(".priority-toggle").forEach(button => {
+        const roomNumber = button.id.replace("selected-priority-", "");
+        const savedPriority = localStorage.getItem(`priority-${roomNumber}`);
+        const allowTime = localStorage.getItem(`allowTime-${roomNumber}`);
+        
+        if (savedPriority === 'allow' && allowTime) {
+            button.innerHTML = `🔵 ${allowTime}`;
+        } else {
+            updateSelectedPriorityDisplay(roomNumber, savedPriority || "default");
+        }
+    });
+
+    // ✅ Validate Token & Authentication
     await ensureValidToken();
     await checkAuth();
 
-
-    await loadDNDStatus();  // ✅ Load DND status first
-    await loadLogs(); // ✅ Fetch logs before restoring buttons
-    await loadRooms(); // 🟢 Load rooms first (buttons exist)
-    await restoreCleaningStatus(); // ✅ Ensure buttons are updated after logs are loaded
+    // ✅ Fetch DND, Logs, Rooms
+    await loadDNDStatus();
+    await loadLogs();
+    await loadRooms();
+    await restoreCleaningStatus();
     await restorePriorities();
 
+    // ✅ WebSocket Connection
+    await connectWebSocket();
 
-    await connectWebSocket(); // ✅ Connect WebSocket first for real-time updates
-    
-
-    // ✅ Ensure socket is available before emitting
+    // ✅ Ensure WebSocket emits priority request
     if (window.socket) {
         window.socket.emit("requestPriorityStatus");
     } else {
@@ -45,30 +58,33 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     console.log("🎯 Cleaning status restored successfully.");
-    
 
+    // ✅ Fetch Additional Room Status Data (Previously in window.onload)
+    await fetchRoomStatuses();
+
+    // ✅ DND Button Click Handler
+    document.body.addEventListener('click', function(e) {
+        if (e.target && e.target.classList.contains('dnd-btn')) {
+            e.target.classList.toggle('active-dnd');
+
+            // Force UI repaint (browser flush)
+            e.target.offsetHeight;
+
+            const allDndButtons = document.querySelectorAll('.dnd-btn');
+            const dndStatus = {};
+
+            allDndButtons.forEach(btn => {
+                const roomId = btn.dataset.roomId;
+                dndStatus[roomId] = btn.classList.contains('active-dnd');
+            });
+
+            localStorage.setItem('dndStatus', JSON.stringify(dndStatus));
+        }
+    });
+
+    // ✅ Check Token for Login/Logout Flow
     const token = localStorage.getItem("token");
     const username = localStorage.getItem("username");
-
-   document.body.addEventListener('click', function(e) {
-    if (e.target && e.target.classList.contains('dnd-btn')) {
-        e.target.classList.toggle('active-dnd');
-
-        // Force UI repaint (browser flush)
-        e.target.offsetHeight;  // Force reflow (quick repaint)
-
-        // Save DND states in localStorage
-        const allDndButtons = document.querySelectorAll('.dnd-btn');
-        const dndStatus = {};
-
-        allDndButtons.forEach(btn => {
-            const roomId = btn.dataset.roomId; // You'll need to add a data-room-id attribute to each DND button
-            dndStatus[roomId] = btn.classList.contains('active-dnd');
-        });
-
-        localStorage.setItem('dndStatus', JSON.stringify(dndStatus));
-    }
-    });
 
     if (token && username) {
         console.log("✅ Token and username found. Attempting authentication...");
@@ -89,6 +105,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         document.getElementById("dashboard").style.display = "none";
     }
 });
+
 
 /** ✅ WebSocket Connection & Event Handling */
 async function connectWebSocket() {
@@ -1041,24 +1058,6 @@ async function restorePriorities() {
 }
 
 
-document.addEventListener("DOMContentLoaded", () => {
-    document.querySelectorAll(".priority-toggle").forEach(button => {
-        const roomNumber = button.id.replace("selected-priority-", "");
-        const savedPriority = localStorage.getItem(`priority-${roomNumber}`);
-        const allowTime = localStorage.getItem(`allowTime-${roomNumber}`);
-        
-        if (savedPriority === 'allow' && allowTime) {
-            // Blue priority with timestamp
-            button.innerHTML = `🔵 ${allowTime}`;
-        } else {
-            // Normal priority display (default, sunrise, etc.)
-            updateSelectedPriorityDisplay(roomNumber, savedPriority || "default");
-        }
-    });
-});
-
-
-
 async function refreshToken() {
     const refreshToken = localStorage.getItem("refreshToken");
 
@@ -1246,12 +1245,6 @@ async function fetchRoomStatuses() {
         alert("Failed to fetch room data. Check console for details.");
     }
 }
-
-
-// Call on page load
-window.addEventListener("DOMContentLoaded", async () => {
-    await fetchRoomStatuses();
-});
 
 // ✅ Ensuring correct room number format across the system
 function formatRoomNumber(roomNumber) {
