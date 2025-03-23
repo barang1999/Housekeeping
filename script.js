@@ -50,6 +50,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     const token = localStorage.getItem("token");
     const username = localStorage.getItem("username");
 
+   document.body.addEventListener('click', function(e) {
+    if (e.target && e.target.classList.contains('dnd-btn')) {
+        e.target.classList.toggle('active-dnd');
+
+        // Save DND states in localStorage
+        const allDndButtons = document.querySelectorAll('.dnd-btn');
+        const dndStatus = {};
+
+        allDndButtons.forEach(btn => {
+            const roomId = btn.dataset.roomId; // You'll need to add a data-room-id attribute to each DND button
+            dndStatus[roomId] = btn.classList.contains('active-dnd');
+        });
+
+        localStorage.setItem('dndStatus', JSON.stringify(dndStatus));
+    }
+    });
+
     if (token && username) {
         console.log("✅ Token and username found. Attempting authentication...");
         const validToken = await ensureValidToken();
