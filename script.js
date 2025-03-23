@@ -36,7 +36,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     // ✅ Fetch DND, Logs, Rooms
     await loadDNDStatus();
     await loadLogs();
-    await loadRooms();
     await restoreCleaningStatus();
     await restorePriorities();
 
@@ -61,7 +60,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // ✅ Fetch Additional Room Status Data (Previously in window.onload)
     await fetchRoomStatuses();
-    restoreAllInspectionButtons();
 
 
     // ✅ Check Token for Login/Logout Flow
@@ -167,12 +165,6 @@ async function connectWebSocket() {
     window.socket.on("inspectionUpdate", ({ roomNumber, item, status }) => {
     updateInspectionLogAndUI(roomNumber, item, status);
 });
-
-
-        // Call when WebSocket connects
-    window.socket.on("connect", () => {
-        requestInspectionLogs();
-    });
 
        window.socket.on("inspectionLogs", (logs) => {
             console.log("📡 Received inspection logs:", logs);
