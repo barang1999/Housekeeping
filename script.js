@@ -1490,7 +1490,7 @@ async function toggleDoNotDisturb(roomNumber) {
         // ✅ Send notification to Telegram
         const message = newStatus === "dnd"
             ? `🚫 Room ${formattedRoom} មិនត្រូវការសម្អាត ${username}`
-            : `✅ Room ${formattedRoom} អាចចូលសម្អាតបាន`;
+            : `✅ Room ${formattedRoom} អាចចូលសម្អាតបាន ${username}`;
         sendTelegramMessage(message);
 
          // ✅ Save DND status to LocalStorage
@@ -1749,6 +1749,13 @@ async function finishCleaning(roomNumber) {
 
         // ✅ Enable Checked Button BLUE
         drawCheckButton(roomNumber, "#008CFF", 1.0, true);
+
+                // ✅ Add to checkedRooms
+        let checkedRooms = JSON.parse(localStorage.getItem("checkedRooms")) || [];
+        if (!checkedRooms.includes(formattedRoom)) {
+            checkedRooms.push(formattedRoom);
+            localStorage.setItem("checkedRooms", JSON.stringify(checkedRooms));
+        }
 
         // ✅ Notify
         sendTelegramMessage(`✅ Room ${formattedRoom} បានសម្អាតរួចរាល់ដោយ ${username}. ថេរវេលា: ${duration}`);
