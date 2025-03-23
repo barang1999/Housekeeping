@@ -61,6 +61,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // ✅ Fetch Additional Room Status Data (Previously in window.onload)
     await fetchRoomStatuses();
+    restoreAllInspectionButtons();
 
 
     // ✅ Check Token for Login/Logout Flow
@@ -128,6 +129,9 @@ async function connectWebSocket() {
 
         // 🟢 ADD THIS LINE:
         window.socket.emit("requestCheckedRooms");
+
+         // ✅ ADD this AFTER everything:
+         restoreAllInspectionButtons();  // 🟢 Make sure borders reapply
     });
 
     
@@ -1220,6 +1224,7 @@ async function fetchRoomStatuses() {
                 restoreInspectionButton(formattedRoom, log.inspectionData);
             }
         });
+        restoreAllInspectionButtons(); // Ensures UI fully syncs
 
     } catch (error) {
         console.error("❌ Error fetching room statuses, priorities, or inspections:", error);
