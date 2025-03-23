@@ -62,25 +62,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     // ✅ Fetch Additional Room Status Data (Previously in window.onload)
     await fetchRoomStatuses();
 
-    // ✅ DND Button Click Handler
-    document.body.addEventListener('click', function(e) {
-        if (e.target && e.target.classList.contains('dnd-btn')) {
-            e.target.classList.toggle('active-dnd');
-
-            // Force UI repaint (browser flush)
-            e.target.offsetHeight;
-
-            const allDndButtons = document.querySelectorAll('.dnd-btn');
-            const dndStatus = {};
-
-            allDndButtons.forEach(btn => {
-                const roomId = btn.dataset.roomId;
-                dndStatus[roomId] = btn.classList.contains('active-dnd');
-            });
-
-            localStorage.setItem('dndStatus', JSON.stringify(dndStatus));
-        }
-    });
 
     // ✅ Check Token for Login/Logout Flow
     const token = localStorage.getItem("token");
@@ -2304,46 +2285,36 @@ function updateDNDStatus(roomNumber, status) {
     const startButton = document.getElementById(`start-${formattedRoom}`);
     const finishButton = document.getElementById(`finish-${formattedRoom}`);
 
-    if (!dndButton) {
-        console.warn(`⚠️ DND button missing for Room ${formattedRoom}.`);
-        return;
-    }
+    if (!dndButton) return;
 
     if (status === "dnd") {
-        console.log(`🚨 Room ${formattedRoom} is in DND mode - Disabling Start Cleaning`);
         dndButton.classList.add("active-dnd");
         dndButton.style.backgroundColor = "red";
 
-        // ✅ Disable and grey out Start Cleaning button
+        // Disable Start/Fix buttons
         if (startButton) {
             startButton.disabled = true;
             startButton.style.backgroundColor = "grey";
         }
-        
-        // ✅ Disable Finish button (optional, to prevent incomplete cleaning)
         if (finishButton) {
             finishButton.disabled = true;
             finishButton.style.backgroundColor = "grey";
         }
-
     } else {
-        console.log(`✅ Room ${formattedRoom} is available - Enabling Start Cleaning`);
         dndButton.classList.remove("active-dnd");
-        dndButton.style.backgroundColor = "#008CFF00";
+        dndButton.style.backgroundColor = "transparent";
 
-        // ✅ Re-enable Start Cleaning button
         if (startButton) {
             startButton.disabled = false;
             startButton.style.backgroundColor = "#008CFF";
         }
-
-        // ✅ Keep Finish button disabled (unless room is in progress)
         if (finishButton) {
             finishButton.disabled = true;
             finishButton.style.backgroundColor = "grey";
         }
     }
 }
+
 
 function logout() {
     console.log("🔴 Logging out...");
