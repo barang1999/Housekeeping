@@ -1493,14 +1493,14 @@ async function toggleDoNotDisturb(roomNumber) {
             : `✅ Room ${formattedRoom} អាចចូលសម្អាតបាន`;
         sendTelegramMessage(message);
 
-        // ✅ Emit WebSocket Event
-        safeEmit("dndUpdate", { roomNumber: formattedRoom, status: newStatus });
-
-        // ✅ Save DND status to LocalStorage
+         // ✅ Save DND status to LocalStorage
         localStorage.setItem(`dnd-${formattedRoom}`, newStatus);
-
         // ✅ Update UI
         updateDNDStatus(formattedRoom, newStatus);
+
+        // ✅ Emit WebSocket Event
+        safeEmit("dndUpdate", { roomNumber: formattedRoom, status: newStatus });
+        
 
         // ✅ Disable Start Cleaning when DND is active
         if (newStatus === "dnd") {
