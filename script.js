@@ -54,6 +54,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (e.target && e.target.classList.contains('dnd-btn')) {
         e.target.classList.toggle('active-dnd');
 
+        // Force UI repaint (browser flush)
+        e.target.offsetHeight;  // Force reflow (quick repaint)
+
         // Save DND states in localStorage
         const allDndButtons = document.querySelectorAll('.dnd-btn');
         const dndStatus = {};
