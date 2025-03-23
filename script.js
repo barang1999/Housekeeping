@@ -1311,38 +1311,9 @@ async function loadDNDStatus() {
 
 async function restoreCleaningStatus() {
     try {
-        console.log("🔄 Restoring cleaning and DND status...");
+        console.log("🔄 Restoring cleaning, checked, and DND status...");
 
-        // ✅ Restore Checked Buttons from LocalStorage
-        let checkedRooms = JSON.parse(localStorage.getItem("checkedRooms")) || [];
-        logs.forEach(log => {
-            const roomNumber = formatRoomNumber(log.roomNumber);
-            const status = log.finishTime ? "finished" : log.startTime ? "in_progress" : "available";
-    
-            updateButtonStatus(roomNumber, status);
-
-            // ✅ Only restore checked button if room is FINISHED and in checkedRooms
-            if (status === "finished") {
-                let checkedRooms = JSON.parse(localStorage.getItem("checkedRooms")) || [];
-                if (checkedRooms.includes(roomNumber)) {
-                    drawCheckButton(roomNumber, "#4CAF50", 1.0, false);
-                    console.log(`✅ Checked Restored: Room ${roomNumber}`);
-                } else {
-                    drawCheckButton(roomNumber, "grey", 1.0, false);
-                }
-            }
-        });
-
-
-        // ✅ Restore from localStorage other statuses
-        document.querySelectorAll(".room").forEach(roomDiv => {
-            const roomNumber = roomDiv.querySelector("span").innerText.replace("Room ", "").trim();
-            const status = localStorage.getItem(`status-${roomNumber}`) || "available";
-            const dndStatus = localStorage.getItem(`dnd-${roomNumber}`) || "available";
-            updateButtonStatus(roomNumber, status, dndStatus);
-        });
-
-        // ✅ Fetch latest logs and dnd logs from server
+        // === 1️⃣ Fetch latest logs and DND logs from server FIRST ===
         const [logs, dndLogs] = await Promise.all([
             fetchWithErrorHandling(`${apiUrl}/logs`),
             fetchWithErrorHandling(`${apiUrl}/logs/dnd`)
@@ -1353,38 +1324,55 @@ async function restoreCleaningStatus() {
             return;
         }
 
+        // === 2️⃣ Build DND status map ===
         const dndStatusMap = new Map(
             (Array.isArray(dndLogs) ? dndLogs : []).map(dnd => [formatRoomNumber(dnd.roomNumber), dnd.dndStatus])
         );
 
+        // === 3️⃣ Restore Checked Rooms from LocalStorage ===
+        const checkedRooms = JSON.parse(localStorage.getItem("checkedRooms")) || [];
+
+        // === 4️⃣ Loop through logs to restore cleaning status & checked buttons ===
         logs.forEach(log => {
             const roomNumber = formatRoomNumber(log.roomNumber);
             const status = log.finishTime ? "finished" : log.startTime ? "in_progress" : "available";
             const dndStatus = dndStatusMap.get(roomNumber) ? "dnd" : "available";
 
-            console.log(`🎯 Restoring Room ${roomNumber} -> Status: ${status}, DND: ${dndStatus}`);
+            // Update UI buttons
             updateButtonStatus(roomNumber, status, dndStatus);
 
+            // Store latest status into localStorage
             localStorage.setItem(`status-${roomNumber}`, status);
             localStorage.setItem(`dnd-${roomNumber}`, dndStatus);
 
-            // ✅ Restore checked GREEN if still in checkedRooms
+            // ✅ Restore checked GREEN if in checkedRooms
             if (checkedRooms.includes(roomNumber)) {
                 drawCheckButton(roomNumber, "#4CAF50", 1.0, false);
-                console.log(`✅ Restored Checked Room ${roomNumber}`);
+                console.log(`✅ Checked restored: Room ${roomNumber}`);
                 safeEmit("roomChecked", { roomNumber, username: localStorage.getItem("username") });
+            } else {
+                // Otherwise, default grey
+                drawCheckButton(roomNumber, "grey", 1.0, false);
             }
         });
 
-         // ✅ Restore Inspection Logs
-        inspectionLogs.forEach(log => {
-            Object.entries(log.items).forEach(([item, status]) => {
-                console.log(`Restored inspection: Room ${log.roomNumber} - ${item}: ${status}`);
-                // Optional: visually reflect status (green/red badge per item)
-            });
+        // === 5️⃣ Ensure localStorage DND and Status restore for rooms that may not be in logs ===
+        document.querySelectorAll(".room").forEach(roomDiv => {
+            const roomNumber = roomDiv.querySelector("span").innerText.replace("Room ", "").trim();
+            const savedStatus = localStorage.getItem(`status-${roomNumber}`) || "available";
+            const savedDND = localStorage.getItem(`dnd-${roomNumber}`) || "available";
+            updateButtonStatus(roomNumber, savedStatus, savedDND);
         });
 
-        console.log("✅ Cleaning & Checked buttons restored.");
+         // ✅ Restore Inspection Logs
+      inspectionLogs.forEach(log => {
+          Object.entries(log.items).forEach(([item, status]) => {
+              console.log(`Restored inspection: Room ${log.roomNumber} - ${item}: ${status}`);
+              // Optional: visually reflect status (green/red badge per item)
+          });
+      });
+
+        console.log("✅ Cleaning, DND, and Checked buttons restored.");
     } catch (error) {
         console.error("❌ Error restoring cleaning status:", error);
     }
