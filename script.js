@@ -1422,77 +1422,66 @@ async function toggleDoNotDisturb(roomNumber) {
     const isDNDActive = dndButton.classList.contains("active-dnd");
     const newStatus = isDNDActive ? "available" : "dnd";
 
-    // ✅ Ensure username is properly retrieved
-    const username = localStorage.getItem("username");
-    if (!username) {
-        console.error("❌ No username found in localStorage. Cannot update DND.");
-        alert("You must be logged in to update DND mode.");
-        return;
+    // === 🔥 IMMEDIATE UI UPDATE ===
+    if (newStatus === "dnd") {
+        startButton?.setAttribute("disabled", "true");
+        startButton?.style.setProperty("background-color", "grey");
+        finishButton?.setAttribute("disabled", "true");
+        finishButton?.style.setProperty("background-color", "grey");
+
+        dndButton.classList.add("active-dnd");
+        dndButton.style.backgroundColor = "red";
+
+    } else {
+        startButton?.removeAttribute("disabled");
+        startButton?.style.setProperty("background-color", "#008CFF");
+        finishButton?.setAttribute("disabled", "true");
+        finishButton?.style.setProperty("background-color", "grey");
+
+        dndButton.classList.remove("active-dnd");
+        dndButton.style.backgroundColor = "transparent";
     }
 
-    try {
-        console.log(`🔄 Sending DND update for Room ${formattedRoom} -> ${newStatus}`);
+    // ✅ Save Local Immediately
+    localStorage.setItem(`dnd-${formattedRoom}`, newStatus);
+    updateDNDStatus(formattedRoom, newStatus); // Optional double update
 
+    // ✅ Emit WebSocket event immediately
+    safeEmit("dndUpdate", { roomNumber: formattedRoom, status: newStatus });
+
+    // ✅ Notify Telegram immediately
+    const username = localStorage.getItem("username") || "Unknown";
+    const message = newStatus === "dnd"
+        ? `🚫 Room ${formattedRoom} មិនត្រូវការសម្អាត ${username}`
+        : `✅ Room ${formattedRoom} អាចចូលសម្អាតបាន ${username}`;
+    sendTelegramMessage(message);
+
+    // === AFTER immediate UI feedback → Send API ===
+    try {
         const response = await fetch(`${apiUrl}/logs/dnd`, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                roomNumber: formattedRoom,  // Ensure correct format
+                roomNumber: formattedRoom,
                 status: newStatus,
-                updatedBy: username // ✅ Include username for logging
+                updatedBy: username
             }),
         });
 
-        // ✅ Check for API errors
         if (!response.ok) {
             const errorData = await response.json();
-            console.error(`❌ Failed to update DND status: ${response.status}`, errorData);
+            console.error("❌ Failed to update DND status:", errorData);
             alert(`Error: ${errorData.message || "Failed to update DND status."}`);
             return;
         }
 
-        
-        // ✅ Disable Start Cleaning when DND is active
-        if (newStatus === "dnd") {
-            startButton?.setAttribute("disabled", "true");
-            startButton?.style.setProperty("background-color", "grey");
-            finishButton?.setAttribute("disabled", "true");
-            finishButton?.style.setProperty("background-color", "grey");
-            dndButton.classList.add("active-dnd");
-            dndButton.style.backgroundColor = "red";
-        } else {
-            startButton?.removeAttribute("disabled");
-            startButton?.style.setProperty("background-color", "#008CFF");
-            finishButton?.setAttribute("disabled", "true");
-            finishButton?.style.setProperty("background-color", "grey");
-            dndButton.classList.remove("active-dnd");
-            dndButton.style.backgroundColor = "#008CFF00";
-        }
-
         console.log(`✅ DND status updated successfully for Room ${formattedRoom}`);
-
-        // ✅ Send notification to Telegram
-        const message = newStatus === "dnd"
-            ? `🚫 Room ${formattedRoom} មិនត្រូវការសម្អាត ${username}`
-            : `✅ Room ${formattedRoom} អាចចូលសម្អាតបាន ${username}`;
-        sendTelegramMessage(message);
-
-         // ✅ Save DND status to LocalStorage
-        localStorage.setItem(`dnd-${formattedRoom}`, newStatus);
-        // ✅ Update UI
-        updateDNDStatus(formattedRoom, newStatus);
-
-        // ✅ Emit WebSocket Event
-        safeEmit("dndUpdate", { roomNumber: formattedRoom, status: newStatus });
-       
-
     } catch (error) {
         console.error("❌ Error updating DND status:", error);
         alert("An error occurred while updating DND mode.");
     }
 }
+
 
 
 async function sendTelegramMessage(message) {
