@@ -127,12 +127,14 @@ async function connectWebSocket() {
 
         // === 4️⃣ Emit checkedRooms ===
         emitCheckedRoomsToAllDevices();
+
+        // 🟢 ADD THIS LINE:
+        window.socket.emit("requestCheckedRooms");
     });
 
-    // 🟢 ADD THIS LINE:
-     window.socket.emit("requestCheckedRooms");
     
-       window.socket.on("checkedRoomsStatus", (checkedRooms) => {
+    
+    window.socket.on("checkedRoomsStatus", (checkedRooms) => {
             checkedRooms.forEach(roomNumber => {
                 drawCheckButton(roomNumber, "#4CAF50", 1.0, false);
 
