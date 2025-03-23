@@ -1282,7 +1282,11 @@ async function loadDNDStatus() {
     document.querySelectorAll(".room").forEach(roomDiv => {
         const roomNumber = roomDiv.querySelector("span").innerText.replace("Room ", "").trim();
         let dndStatus = localStorage.getItem(`dnd-${roomNumber}`) || "available";
-        updateDNDStatus(roomNumber, dndStatus);
+
+         if (localDND) {
+        // ✅ Use localStorage first
+        updateDNDStatus(roomNumber, localDND);
+    }
     });
 
     // ✅ Fetch latest DND data from the server and update UI if needed
@@ -1480,23 +1484,7 @@ async function toggleDoNotDisturb(roomNumber) {
             return;
         }
 
-        console.log(`✅ DND status updated successfully for Room ${formattedRoom}`);
-
-        // ✅ Send notification to Telegram
-        const message = newStatus === "dnd"
-            ? `🚫 Room ${formattedRoom} មិនត្រូវការសម្អាត ${username}`
-            : `✅ Room ${formattedRoom} អាចចូលសម្អាតបាន ${username}`;
-        sendTelegramMessage(message);
-
-         // ✅ Save DND status to LocalStorage
-        localStorage.setItem(`dnd-${formattedRoom}`, newStatus);
-        // ✅ Update UI
-        updateDNDStatus(formattedRoom, newStatus);
-
-        // ✅ Emit WebSocket Event
-        safeEmit("dndUpdate", { roomNumber: formattedRoom, status: newStatus });
         
-
         // ✅ Disable Start Cleaning when DND is active
         if (newStatus === "dnd") {
             startButton?.setAttribute("disabled", "true");
@@ -1513,6 +1501,23 @@ async function toggleDoNotDisturb(roomNumber) {
             dndButton.classList.remove("active-dnd");
             dndButton.style.backgroundColor = "#008CFF00";
         }
+
+        console.log(`✅ DND status updated successfully for Room ${formattedRoom}`);
+
+        // ✅ Send notification to Telegram
+        const message = newStatus === "dnd"
+            ? `🚫 Room ${formattedRoom} មិនត្រូវការសម្អាត ${username}`
+            : `✅ Room ${formattedRoom} អាចចូលសម្អាតបាន ${username}`;
+        sendTelegramMessage(message);
+
+         // ✅ Save DND status to LocalStorage
+        localStorage.setItem(`dnd-${formattedRoom}`, newStatus);
+        // ✅ Update UI
+        updateDNDStatus(formattedRoom, newStatus);
+
+        // ✅ Emit WebSocket Event
+        safeEmit("dndUpdate", { roomNumber: formattedRoom, status: newStatus });
+       
 
     } catch (error) {
         console.error("❌ Error updating DND status:", error);
