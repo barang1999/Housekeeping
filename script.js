@@ -1708,13 +1708,6 @@ async function finishCleaning(roomNumber) {
         // ✅ Enable Checked Button BLUE
         drawCheckButton(roomNumber, "#008CFF", 1.0, true);
 
-                // ✅ Add to checkedRooms
-        let checkedRooms = JSON.parse(localStorage.getItem("checkedRooms")) || [];
-        if (!checkedRooms.includes(formattedRoom)) {
-            checkedRooms.push(formattedRoom);
-            localStorage.setItem("checkedRooms", JSON.stringify(checkedRooms));
-        }
-
         // ✅ Notify
         sendTelegramMessage(`✅ Room ${formattedRoom} បានសម្អាតរួចរាល់ដោយ ${username}. ថេរវេលា: ${duration}`);
         safeEmit("roomUpdate", { roomNumber, status: "finished" });
@@ -2178,14 +2171,18 @@ async function loadLogs() {
 
             updateButtonStatus(roomNumber, status, dndStatus);
 
-             // ✅ Correct Checked Button Logic:
-            if (status === "finished" && checkedRooms.includes(roomNumber)) {
+             // ✅ Checked Button Logic FIX:
+            if (log.status === "checked" || (checkedRooms.includes(roomNumber) && log.status === "checked")) {
                 drawCheckButton(roomNumber, "#4CAF50", 1.0, false);
                 console.log(`✅ Restored GREEN checked button for Room ${roomNumber}`);
+            } else if (status === "finished") {
+                drawCheckButton(roomNumber, "#008CFF", 1.0, true); // BLUE & Enabled after finished
+                console.log(`🔵 Restored BLUE checked button for Room ${roomNumber}`);
             } else {
-                drawCheckButton(roomNumber, "grey", 1.0, false);
+                drawCheckButton(roomNumber, "grey", 1.0, false); // Default GREY
                 console.log(`🔄 Restored GREY checked button for Room ${roomNumber}`);
             }
+
 
             cleaningStatus[roomNumber] = {
                 started: status === "in_progress",
