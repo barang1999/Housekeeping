@@ -536,9 +536,19 @@
                 // Debugging: Check if this function runs
                 console.log("showDashboard is being called with username:", data.username);
             
-                setTimeout(() => {
-                    showDashboard(data.username); // Ensure UI updates correctly
-                }, 500); // Small delay to allow UI update
+                setTimeout(async () => {
+                // 🟢 FULL RESTORE FLOW after login
+                await showDashboard(data.username);
+                 // 🟢 Load all rooms (buttons & dropdowns)
+                await loadRooms();
+
+                await restoreCleaningStatus();         // ✅ Update status buttons
+                await loadDNDStatus();                 // ✅ DND
+                await loadLogs();                      // ✅ Table + priorities
+                await restorePriorities();             // ✅ Priority dropdown (blue, red, etc.)
+                await fetchRoomStatuses();             // ✅ Optional extra
+                emitCheckedRoomsToAllDevices();        // ✅ Checked status restore
+            }, 500);
             } else {
                 Swal.fire({
                     icon: "error",
@@ -825,8 +835,7 @@
             <div>⚡ អ្នកសម្អាតបានលឿនជាងគេ: <strong>${fastestCleaner}</strong></div>
         `;
 
-        // Load rooms first, then ensure the ground floor is shown
-        loadRooms();
+       
         enforceFloorLock();
         restoreAllInspectionButtons();
 
