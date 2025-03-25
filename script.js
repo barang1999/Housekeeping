@@ -110,6 +110,8 @@
             document.getElementById("auth-section").style.display = "block";
             document.getElementById("dashboard").style.display = "none";
         }
+        // ✅ Set lock icons based on current state
+    updateFloorTabIcons();
 
     });
 
@@ -2055,6 +2057,19 @@
         restoreInspectionButton(roomNumber, inspectionLogs.find(log => log.roomNumber === roomNumber)?.items);
     }
 
+    function updateFloorTabIcons() {
+    document.querySelectorAll(".floor-tab").forEach(tab => {
+        const floorId = tab.dataset.floor;
+        const isLocked = localStorage.getItem("lockedFloor") === floorId;
+
+        if (isLocked && !tab.innerHTML.includes("🔒")) {
+            tab.innerHTML = `🔒 ${tab.dataset.label || tab.textContent.trim()}`;
+        } else if (!isLocked) {
+            tab.innerHTML = tab.dataset.label || tab.textContent.replace("🔒", "").trim();
+        }
+    });
+}
+
 
     function enforceFloorLock() {
         const lockedFloor = localStorage.getItem("lockedFloor");
@@ -2078,8 +2093,10 @@
             const lockedTab = document.querySelector(`.floor-tab[data-floor="${lockedFloor}"]`);
             if (lockedTab) lockedTab.classList.add("locked");
         }
+        updateFloorTabIcons(); // 🟢 Add this line
     }
 
+    
     function toggleFloorLock(floorId) {
             const currentLock = localStorage.getItem("lockedFloor");
 
@@ -2094,6 +2111,7 @@
             }
 
             enforceFloorLock(); // Refresh UI based on lock state
+            updateFloorTabIcons(); // 🟢 Add here too
         }
 
 
@@ -2118,6 +2136,8 @@
         const selectedTab = document.querySelector(`.floor-tab[data-floor="${floorId}"]`);
         if (selectedTab) selectedTab.classList.add("locked");
     }
+
+    
 
 
     function showNotification(message) {
