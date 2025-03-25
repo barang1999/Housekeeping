@@ -2,7 +2,6 @@
 
     let reconnectAttempts = 0;
     let inspectionLogs = []; // Declare it at the top
-    let logsCleared = false;
     const MAX_RECONNECT_ATTEMPTS = 3;
     window.socket = null;
 
@@ -1820,7 +1819,7 @@
         }
     }
 
-    
+    let logsCleared = false; // ✅ move this up here
 
     function emitCheckedRoomsToAllDevices() {
         if (logsCleared) {
