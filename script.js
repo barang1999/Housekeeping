@@ -2037,28 +2037,6 @@
         restoreInspectionButton(roomNumber, inspectionLogs.find(log => log.roomNumber === roomNumber)?.items);
     }
 
-    function toggleFloor(floorId) {
-        const locked = localStorage.getItem("lockedFloor");
-        if (locked && locked !== floorId) {
-            localStorage.removeItem("lockedFloor");
-            Swal.fire("🔓 Floor Unlocked", "You switched floors. Lock removed.", "info");
-        }
-
-        // Show the selected floor
-        document.querySelectorAll(".rooms").forEach(floor => {
-            floor.style.display = "none";
-        });
-        const selected = document.getElementById(floorId);
-        if (selected) selected.style.display = "block";
-
-        // Remove highlight from all, add to selected
-        document.querySelectorAll(".floor-tab").forEach(tab => {
-            tab.classList.remove("locked");
-        });
-        const selectedTab = document.querySelector(`.floor-tab[data-floor="${floorId}"]`);
-        if (selectedTab) selectedTab.classList.add("locked");
-    }
-
 
     function enforceFloorLock() {
         const lockedFloor = localStorage.getItem("lockedFloor");
@@ -2082,6 +2060,45 @@
             const lockedTab = document.querySelector(`.floor-tab[data-floor="${lockedFloor}"]`);
             if (lockedTab) lockedTab.classList.add("locked");
         }
+    }
+
+    function toggleFloorLock(floorId) {
+            const currentLock = localStorage.getItem("lockedFloor");
+
+            if (currentLock === floorId) {
+                // Unlock the floor
+                localStorage.removeItem("lockedFloor");
+                showNotification(`🔓 Unlocked ${floorId}`);
+            } else {
+                // Lock this floor
+                localStorage.setItem("lockedFloor", floorId);
+                showNotification(`🔒 Locked ${floorId}`);
+            }
+
+            enforceFloorLock(); // Refresh UI based on lock state
+        }
+
+
+      function toggleFloor(floorId) {
+        const locked = localStorage.getItem("lockedFloor");
+        if (locked && locked !== floorId) {
+            localStorage.removeItem("lockedFloor");
+            Swal.fire("🔓 Floor Unlocked", "You switched floors. Lock removed.", "info");
+        }
+
+        // Show the selected floor
+        document.querySelectorAll(".rooms").forEach(floor => {
+            floor.style.display = "none";
+        });
+        const selected = document.getElementById(floorId);
+        if (selected) selected.style.display = "block";
+
+        // Remove highlight from all, add to selected
+        document.querySelectorAll(".floor-tab").forEach(tab => {
+            tab.classList.remove("locked");
+        });
+        const selectedTab = document.querySelector(`.floor-tab[data-floor="${floorId}"]`);
+        if (selectedTab) selectedTab.classList.add("locked");
     }
 
 
