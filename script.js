@@ -818,11 +818,18 @@
         restoreAllInspectionButtons();
 
 
-        setTimeout(() => {
-            console.log("✅ Activating ground floor...");
-            toggleFloor("ground-floor"); // Ensure it's visible after rooms load
-        }, 1000);
-    }
+       setTimeout(() => {
+        const locked = localStorage.getItem("lockedFloor");
+
+        if (locked) {
+            console.log(`🔒 Locked floor "${locked}" already active. Skipping manual toggle.`);
+            enforceFloorLock(); // Show the locked one
+        } else {
+            console.log("✅ No locked floor found. Activating ground floor...");
+            toggleFloor("ground-floor");
+        }
+    }, 1000);
+  }
 
     function restoreAllInspectionButtons() {
         inspectionLogs.forEach(log => {
