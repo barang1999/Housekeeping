@@ -32,15 +32,26 @@
         document.querySelectorAll(".floor-tab").forEach(tab => {
             let holdTimeout;
 
-            tab.addEventListener("mousedown", () => {
+            const startHold = () => {
                 holdTimeout = setTimeout(() => {
                     const floorId = tab.dataset.floor;
                     toggleFloorLock(floorId);
                 }, 1000); // Hold for 1 second
-            });
+            };
 
-            tab.addEventListener("mouseup", () => clearTimeout(holdTimeout));
-            tab.addEventListener("mouseleave", () => clearTimeout(holdTimeout));
+            const cancelHold = () => {
+                clearTimeout(holdTimeout);
+            };
+
+            // 🖱 Desktop support
+            tab.addEventListener("mousedown", startHold);
+            tab.addEventListener("mouseup", cancelHold);
+            tab.addEventListener("mouseleave", cancelHold);
+
+            // 📱 Mobile support
+            tab.addEventListener("touchstart", startHold);
+            tab.addEventListener("touchend", cancelHold);
+            tab.addEventListener("touchcancel", cancelHold);
         });
 
 
