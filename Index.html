@@ -66,6 +66,11 @@
             background: #0056b3;
         }
 
+        .floor-tab.locked {
+            background-color: #003366 !important; /* Dark blue */
+            color: white !important;
+        }
+
         .rooms {
             display: none;
             margin-top: 20px;
@@ -476,10 +481,10 @@
             <button onclick="exportLogs()">🧾</button>
             <button onclick="exportInspectionPDF()">📝</button> <!-- 🆕 New Button -->
 
-            <div class="floor-menu">
-                <div onclick="toggleFloor('ground-floor')">ជាន់ផ្ទាល់ដី</div>
-                <div onclick="toggleFloor('second-floor')">ជាន់ទី១</div>
-                <div onclick="toggleFloor('third-floor')">ជាន់ទី២</div>
+           <div class="floor-menu">
+                <div class="floor-tab" data-floor="ground-floor" onclick="toggleFloor('ground-floor')">ជាន់ផ្ទាល់ដី</div>
+                <div class="floor-tab" data-floor="second-floor" onclick="toggleFloor('second-floor')">ជាន់ទី១</div>
+                <div class="floor-tab" data-floor="third-floor" onclick="toggleFloor('third-floor')">ជាន់ទី២</div>
             </div>
     
             <div id="ground-floor" class="rooms"></div>

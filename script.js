@@ -29,6 +29,21 @@
             }
         });
 
+        document.querySelectorAll(".floor-tab").forEach(tab => {
+            let holdTimeout;
+
+            tab.addEventListener("mousedown", () => {
+                holdTimeout = setTimeout(() => {
+                    const floorId = tab.dataset.floor;
+                    toggleFloorLock(floorId);
+                }, 1000); // Hold for 1 second
+            });
+
+            tab.addEventListener("mouseup", () => clearTimeout(holdTimeout));
+            tab.addEventListener("mouseleave", () => clearTimeout(holdTimeout));
+        });
+
+
         // ✅ Validate Token & Authentication
         await ensureValidToken();
         await checkAuth();
@@ -84,6 +99,7 @@
             document.getElementById("auth-section").style.display = "block";
             document.getElementById("dashboard").style.display = "none";
         }
+
     });
 
 
@@ -798,6 +814,7 @@
 
         // Load rooms first, then ensure the ground floor is shown
         loadRooms();
+        enforceFloorLock();
         restoreAllInspectionButtons();
 
 
@@ -2020,6 +2037,64 @@
         restoreInspectionButton(roomNumber, inspectionLogs.find(log => log.roomNumber === roomNumber)?.items);
     }
 
+    function toggleFloor(floorId) {
+        const locked = localStorage.getItem("lockedFloor");
+        if (locked && locked !== floorId) {
+            localStorage.removeItem("lockedFloor");
+            Swal.fire("🔓 Floor Unlocked", "You switched floors. Lock removed.", "info");
+        }
+
+        // Show the selected floor
+        document.querySelectorAll(".rooms").forEach(floor => {
+            floor.style.display = "none";
+        });
+        const selected = document.getElementById(floorId);
+        if (selected) selected.style.display = "block";
+
+        // Remove highlight from all, add to selected
+        document.querySelectorAll(".floor-tab").forEach(tab => {
+            tab.classList.remove("locked");
+        });
+        const selectedTab = document.querySelector(`.floor-tab[data-floor="${floorId}"]`);
+        if (selectedTab) selectedTab.classList.add("locked");
+    }
+
+
+    function enforceFloorLock() {
+        const lockedFloor = localStorage.getItem("lockedFloor");
+
+        // Hide all floors
+        document.querySelectorAll(".rooms").forEach(floor => {
+            floor.style.display = "none";
+        });
+
+        // Reset all tab styles first
+        document.querySelectorAll(".floor-tab").forEach(tab => {
+            tab.classList.remove("locked");
+        });
+
+        // If there's a locked floor, show only that
+        if (lockedFloor) {
+            const floorToShow = document.getElementById(lockedFloor);
+            if (floorToShow) floorToShow.style.display = "block";
+
+            // Highlight the locked tab
+            const lockedTab = document.querySelector(`.floor-tab[data-floor="${lockedFloor}"]`);
+            if (lockedTab) lockedTab.classList.add("locked");
+        }
+    }
+
+
+    function showNotification(message) {
+        Swal.fire({
+            toast: true,
+            position: "top-end",
+            icon: "info",
+            title: message,
+            showConfirmButton: false,
+            timer: 1500
+        });
+    }
 
     function updateButtonStatus(roomNumber, status, dndStatus = "available") {
         let formattedRoom = formatRoomNumber(roomNumber);
