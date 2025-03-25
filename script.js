@@ -2,6 +2,7 @@
 
     let reconnectAttempts = 0;
     let inspectionLogs = []; // Declare it at the top
+    let logsCleared = false;
     const MAX_RECONNECT_ATTEMPTS = 3;
     window.socket = null;
 
@@ -1819,6 +1820,8 @@
         }
     }
 
+    
+
     function emitCheckedRoomsToAllDevices() {
         if (logsCleared) {
             console.log("🧹 Logs just cleared, skipping broadcasting old checkedRooms...");
@@ -2472,6 +2475,7 @@
                 return;
             }
             console.log("✅ Logs cleared successfully on server.");
+            logsCleared = true; // ✅ Set flag to true
 
             /** === STEP 1: Reset Logs Table === */
             document.querySelector("#logTable tbody").innerHTML = "";
