@@ -1281,15 +1281,10 @@
     async function loadDNDStatus() {
         console.log("🔄 Restoring DND status for all rooms...");
 
-        // ✅ Restore from localStorage first (ensures instant UI updates)
-        document.querySelectorAll(".room").forEach(roomDiv => {
+       document.querySelectorAll(".room").forEach(roomDiv => {
             const roomNumber = roomDiv.querySelector("span").innerText.replace("Room ", "").trim();
             let dndStatus = localStorage.getItem(`dnd-${roomNumber}`) || "available";
-
-             if (localDND) {
-            // ✅ Use localStorage first
-            updateDNDStatus(roomNumber, localDND);
-        }
+            updateDNDStatus(roomNumber, dndStatus); // ✅ FIXED
         });
 
         // ✅ Fetch latest DND data from the server and update UI if needed
