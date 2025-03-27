@@ -512,10 +512,6 @@
 .dropdown-content button:hover {
   background-color: #f1f1f1;
 }
-
-.dropdown-menu:hover .dropdown-content {
-  display: block;
-}
 .menu-toggle:hover {
   background-color: #0056b3;
   transform: scale(1.05);
@@ -550,7 +546,7 @@
                 <h2>Welcome, <span id="user-name"></span></h2>
               </div>
               <div class="dropdown-menu">
-                <button class="menu-toggle">☰</button>
+                <button class="menu-toggle" onclick="toggleDropdownMenu()">☰</button>
                 <div class="dropdown-content">
                   <button onclick="clearLocalStorageOnly()">🧹 Clear Local Storage</button>
                   <button onclick="exportInspectionPDF()">📝 Export Inspection</button>

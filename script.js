@@ -113,6 +113,24 @@
         // ✅ Set lock icons based on current state
     updateFloorTabIcons();
 
+
+            // ✅ Toggle dropdown menu on click
+        const menuToggleBtn = document.querySelector(".menu-toggle");
+        const dropdownContent = document.querySelector(".dropdown-content");
+
+        if (menuToggleBtn && dropdownContent) {
+            menuToggleBtn.addEventListener("click", () => {
+                dropdownContent.classList.toggle("show");
+            });
+
+            // ✅ Close dropdown if clicked outside
+            window.addEventListener("click", (e) => {
+                if (!menuToggleBtn.contains(e.target) && !dropdownContent.contains(e.target)) {
+                    dropdownContent.classList.remove("show");
+                }
+            });
+        }
+
     });
 
 
@@ -2605,6 +2623,11 @@
             });
         }
     }
+
+   function toggleDropdownMenu() {
+    const menu = document.querySelector('.dropdown-content');
+    menu.classList.toggle('show');
+  }
 
   function clearLocalStorageOnly() {
     localStorage.clear();
