@@ -2627,11 +2627,11 @@
     }
 
    function toggleDropdownMenu() {
-    const dropdown = document.querySelector('.dropdown-content');
-    if (dropdown) {
-        dropdown.classList.toggle('show');
-        }
+      const menu = document.querySelector(".dropdown-content");
+      console.log("Toggling menu"); // ✅ See if this logs
+      menu.classList.toggle("show");
     }
+
 
   function clearLocalStorageOnly() {
     localStorage.clear();
