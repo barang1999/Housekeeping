@@ -120,16 +120,20 @@
         if (menuToggleBtn && dropdownContent) {
             menuToggleBtn.addEventListener("click", () => {
                 dropdownContent.classList.toggle("show");
+                console.log("🟢 Menu toggled.");
             });
 
             window.addEventListener("click", (e) => {
                 if (!menuToggleBtn.contains(e.target) && !dropdownContent.contains(e.target)) {
                     dropdownContent.classList.remove("show");
+                    console.log("🔘 Menu closed.");
                 }
             });
+        } else {
+            console.warn("❌ Dropdown elements not found in DOM.");
         }
 
-    });
+});
 
 
     /** ✅ WebSocket Connection & Event Handling */
