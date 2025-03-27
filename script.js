@@ -114,24 +114,21 @@
     updateFloorTabIcons();
 
 
-        const menuToggleBtn = document.querySelector(".menu-toggle");
-    const dropdownMenu = document.querySelector(".dropdown-menu");
+   const menuToggleBtn = document.querySelector(".menu-toggle");
+   const dropdownContent = document.querySelector(".dropdown-content");
 
-    if (menuToggleBtn && dropdownMenu) {
+    if (menuToggleBtn && dropdownContent) {
         menuToggleBtn.addEventListener("click", () => {
-            dropdownMenu.classList.toggle("show");
+            dropdownContent.classList.toggle("show");
             console.log("🟢 Menu toggled.");
         });
 
-        // ✅ Close menu when clicking outside
-        document.addEventListener("click", (e) => {
-            if (!dropdownMenu.contains(e.target) && !menuToggleBtn.contains(e.target)) {
-                dropdownMenu.classList.remove("show");
+        window.addEventListener("click", (e) => {
+            if (!menuToggleBtn.contains(e.target) && !dropdownContent.contains(e.target)) {
+                dropdownContent.classList.remove("show");
                 console.log("🔘 Menu closed.");
             }
         });
-    } else {
-        console.warn("❌ Dropdown elements not found in DOM.");
     }
 
 });

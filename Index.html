@@ -472,15 +472,6 @@
   position: relative;
 }
 
-.dropdown-menu {
-  position: absolute;
-  top: 100%; /* right below the button */
-  right: 0;   /* or left: 0 depending on your layout */
-  background: white;
-  border: 1px solid #ccc;
-  z-index: 1000;
-  display: none; /* toggled on via JS */
-}
 .menu-toggle {
   background-color: #007bff;
   color: white;
@@ -491,33 +482,27 @@
   cursor: pointer;
 }
 
-.dropdown-menu {
-  display: none;
-}
-
-.dropdown-menu.show {
-  display: block;
-}
-
 .dropdown-content {
   opacity: 0;
   transition: opacity 0.3s ease;
   display: none;
   position: absolute;
-  top: 60px; /* adjust based on your layout */
+  top: 60px;
   right: 20px;
   min-width: 150px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  background-color: red !important;  /* temporary visual aid */
-  z-index: 9999 !important;          /* force on top */
+  background-color: red !important;
+  z-index: 9999 !important;
   border-radius: 6px;
   overflow: hidden;
+  outline: 2px dashed red;
 }
 
 .dropdown-content.show {
   display: block !important;
   opacity: 1;
 }
+
 
 .dropdown-content button {
   padding: 10px;
@@ -568,7 +553,7 @@
               </div>
               <div class="dropdown-container">
                 <button class="menu-toggle" onclick="toggleDropdownMenu()">☰</button>
-                <div class="dropdown-menu">
+                <div class="dropdown-content">
                   <button onclick="clearLocalStorageOnly()">🧹 Clear Local Storage</button>
                   <button onclick="exportInspectionPDF()">📝 Export Inspection</button>
                   <button onclick="exportLogs()">🧾 Export Cleaning Logs</button>
