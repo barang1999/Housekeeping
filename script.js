@@ -1344,15 +1344,13 @@
                 localStorage.setItem(`dnd-${roomNumber}`, dndStatus);
 
                 // ✅ Restore checked GREEN if in checkedRooms
-                if (checkedRooms.includes(roomNumber)) {
+               if (checkedRooms.includes(roomNumber) && log.status === "checked") {
                     drawCheckButton(roomNumber, "#4CAF50", 1.0, false);
                     console.log(`✅ Checked restored: Room ${roomNumber}`);
                     safeEmit("roomChecked", { roomNumber, username: localStorage.getItem("username") });
                 } else {
-                    // Otherwise, default grey
                     drawCheckButton(roomNumber, "grey", 1.0, false);
                 }
-            });
 
             // === 5️⃣ Ensure localStorage DND and Status restore for rooms that may not be in logs ===
             document.querySelectorAll(".room").forEach(roomDiv => {
