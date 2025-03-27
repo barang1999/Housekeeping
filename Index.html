@@ -455,21 +455,24 @@
 
 .top-bar {
   display: flex;
-  justify-content: center; /* Center contents */
+  justify-content: space-between;
   align-items: center;
-  position: relative; /* So the menu can be absolutely positioned */
-  margin-bottom: 10px;
+  margin-bottom: 20px;
+  padding: 0 10px;
 }
 
 .logo-area {
   display: flex;
-  flex-direction: column;
-  align-items: center; /* Center horizontally */
-  text-align: center;
+  align-items: center;
+  gap: 12px;
+}
+.logo-area h2 {
+  margin: 0;
+  font-size: 22px;
 }
 
 .dropdown-container {
-  position: relative;
+  text-align: right;
 }
 
 .menu-toggle {
@@ -482,25 +485,26 @@
   cursor: pointer;
 }
 
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
 .dropdown-content {
-  opacity: 0;
-  transition: opacity 0.3s ease;
   display: none;
   position: absolute;
-  top: 60px;
-  right: 20px;
-  min-width: 150px;
+  right: 0;
+  top: 40px;
+  background-color: white;
+  min-width: 180px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  background-color: red !important;
-  z-index: 9999 !important;
+  z-index: 999;
   border-radius: 6px;
   overflow: hidden;
-  outline: 2px dashed red;
 }
 
 .dropdown-content.show {
-  display: block !important;
-  opacity: 1;
+  display: block;
 }
 
 
@@ -522,6 +526,22 @@
   background-color: #0056b3;
   transform: scale(1.05);
 }
+
+.dropdown-content a {
+  padding: 10px 16px;
+  display: block;
+  text-decoration: none;
+  color: black;
+}
+
+.dropdown-content a:hover {
+  background-color: #f1f1f1;
+}
+
+.dropdown-content.show {
+  display: block;
+}
+
 
 
     </style>
