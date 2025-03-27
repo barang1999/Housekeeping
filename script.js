@@ -1214,21 +1214,38 @@
             const inspectionLogs = await inspectionResponse.json();
             console.log("✅ Inspection Logs Fetched:", inspectionLogs);
 
-            // Process cleaning statuses & priorities
+            // ✅ Restore checkedRooms from localStorage
+            const checkedRooms = JSON.parse(localStorage.getItem("checkedRooms")) || [];
+
+            // ✅ Process cleaning statuses
             Object.entries(statuses).forEach(([roomNumber, status]) => {
                 const formattedRoom = formatRoomNumber(roomNumber);
 
                 updateButtonStatus(formattedRoom, status);
 
-                if (status === "checked") {
+                // ✅ Explicitly restore GREEN checked if in checkedRooms or backend says 'checked'
+                if (status === "checked" || checkedRooms.includes(formattedRoom)) {
                     drawCheckButton(formattedRoom, "#4CAF50", 1.0, false);
+
+                    // ✅ Ensure it's in localStorage
+                    if (!checkedRooms.includes(formattedRoom)) {
+                        checkedRooms.push(formattedRoom);
+                        localStorage.setItem("checkedRooms", JSON.stringify(checkedRooms));
+                    }
+
+                    console.log(`✅ Restored GREEN checked for Room ${formattedRoom}`);
+                } else if (status === "finished") {
+                    drawCheckButton(formattedRoom, "#008CFF", 1.0, true);
+                    console.log(`🔵 Restored BLUE checked (finished) for Room ${formattedRoom}`);
+                } else {
+                    drawCheckButton(formattedRoom, "grey", 1.0, false);
                 }
 
-                const roomPriority = priorities.find(p => 
+                // ✅ Handle Priority
+                const roomPriority = priorities.find(p =>
                     formatRoomNumber(p.roomNumber) === formattedRoom
                 )?.priority || "default";
 
-                console.log(`🔄 Restoring priority for Room ${formattedRoom}: ${roomPriority}`);
                 updateSelectedPriorityDisplay(formattedRoom, roomPriority);
             });
 
