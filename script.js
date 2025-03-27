@@ -1343,11 +1343,14 @@
                 localStorage.setItem(`status-${roomNumber}`, status);
                 localStorage.setItem(`dnd-${roomNumber}`, dndStatus);
 
-                // ✅ Restore checked GREEN if in checkedRooms
-               if (checkedRooms.includes(roomNumber) && log.status === "checked") {
+                if (checkedRooms.includes(roomNumber)) {
                     drawCheckButton(roomNumber, "#4CAF50", 1.0, false);
                     console.log(`✅ Checked restored: Room ${roomNumber}`);
                     safeEmit("roomChecked", { roomNumber, username: localStorage.getItem("username") });
+                } else if (log.finishTime) {
+                    // Show blue if finished but not checked
+                    drawCheckButton(roomNumber, "#008CFF", 1.0, true);
+                    console.log(`🔵 Blue restored (finished): Room ${roomNumber}`);
                 } else {
                     drawCheckButton(roomNumber, "grey", 1.0, false);
                 }
