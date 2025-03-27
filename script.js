@@ -115,23 +115,24 @@
 
 
         const menuToggleBtn = document.querySelector(".menu-toggle");
-        const dropdownContent = document.querySelector(".dropdown-content");
+    const dropdownMenu = document.querySelector(".dropdown-menu");
 
-        if (menuToggleBtn && dropdownContent) {
-            menuToggleBtn.addEventListener("click", () => {
-                dropdownContent.classList.toggle("show");
-                console.log("🟢 Menu toggled.");
-            });
+    if (menuToggleBtn && dropdownMenu) {
+        menuToggleBtn.addEventListener("click", () => {
+            dropdownMenu.classList.toggle("show");
+            console.log("🟢 Menu toggled.");
+        });
 
-            window.addEventListener("click", (e) => {
-                if (!menuToggleBtn.contains(e.target) && !dropdownContent.contains(e.target)) {
-                    dropdownContent.classList.remove("show");
-                    console.log("🔘 Menu closed.");
-                }
-            });
-        } else {
-            console.warn("❌ Dropdown elements not found in DOM.");
-        }
+        // ✅ Close menu when clicking outside
+        document.addEventListener("click", (e) => {
+            if (!dropdownMenu.contains(e.target) && !menuToggleBtn.contains(e.target)) {
+                dropdownMenu.classList.remove("show");
+                console.log("🔘 Menu closed.");
+            }
+        });
+    } else {
+        console.warn("❌ Dropdown elements not found in DOM.");
+    }
 
 });
 

@@ -468,14 +468,19 @@
   text-align: center;
 }
 
+.dropdown-container {
+  position: relative;
+}
 
 .dropdown-menu {
   position: absolute;
-  top: 0;
-  right: 0;
-  padding: 10px;
+  top: 100%; /* right below the button */
+  right: 0;   /* or left: 0 depending on your layout */
+  background: white;
+  border: 1px solid #ccc;
+  z-index: 1000;
+  display: none; /* toggled on via JS */
 }
-
 .menu-toggle {
   background-color: #007bff;
   color: white;
@@ -484,6 +489,14 @@
   padding: 8px 12px;
   border-radius: 6px;
   cursor: pointer;
+}
+
+.dropdown-menu {
+  display: none;
+}
+
+.dropdown-menu.show {
+  display: block;
 }
 
 .dropdown-content {
@@ -553,9 +566,9 @@
                 <img src="Image\Logo.png" alt="Logo" class="logo">
                 <h2>Welcome, <span id="user-name"></span></h2>
               </div>
-              <div class="dropdown-menu">
+              <div class="dropdown-container">
                 <button class="menu-toggle" onclick="toggleDropdownMenu()">☰</button>
-                <div class="dropdown-content">
+                <div class="dropdown-menu">
                   <button onclick="clearLocalStorageOnly()">🧹 Clear Local Storage</button>
                   <button onclick="exportInspectionPDF()">📝 Export Inspection</button>
                   <button onclick="exportLogs()">🧾 Export Cleaning Logs</button>
