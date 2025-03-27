@@ -2606,6 +2606,17 @@
         }
     }
 
+  function clearLocalStorageOnly() {
+    localStorage.clear();
+    Swal.fire({
+      icon: 'success',
+      title: 'Local Storage Cleared!',
+      text: 'All local data has been removed.',
+      timer: 1500,
+      showConfirmButton: false
+    });
+  }
+
     function exportInspectionPDF() {
         if (!window.jspdf) {
             console.error("❌ jsPDF library is not loaded.");
