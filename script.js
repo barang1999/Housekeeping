@@ -129,7 +129,6 @@
             });
         }
 
-
     });
 
 
@@ -2624,9 +2623,11 @@
     }
 
    function toggleDropdownMenu() {
-    const menu = document.querySelector('.dropdown-content');
-    menu.classList.toggle('show');
-  }
+    const dropdown = document.querySelector('.dropdown-content');
+    if (dropdown) {
+        dropdown.classList.toggle('show');
+        }
+    }
 
   function clearLocalStorageOnly() {
     localStorage.clear();
