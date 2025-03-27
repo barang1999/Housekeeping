@@ -1351,6 +1351,7 @@
                 } else {
                     drawCheckButton(roomNumber, "grey", 1.0, false);
                 }
+               }); // ✅ <-- You were missing this line
 
             // === 5️⃣ Ensure localStorage DND and Status restore for rooms that may not be in logs ===
             document.querySelectorAll(".room").forEach(roomDiv => {
