@@ -114,7 +114,7 @@
     updateFloorTabIcons();
 
 
-        onst menuToggleBtn = document.querySelector(".menu-toggle");
+        const menuToggleBtn = document.querySelector(".menu-toggle");
         const dropdownContent = document.querySelector(".dropdown-content");
 
         if (menuToggleBtn && dropdownContent) {
