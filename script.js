@@ -1123,7 +1123,7 @@
 
     async function ensureValidToken() {
         let token = localStorage.getItem("token");
-        let refreshToken = localStorage.getItem("refreshToken");
+        let storedRefreshToken = localStorage.getItem("refreshToken"); // ✅ rename this
 
         if (!token) {
             console.warn("⚠ No token found. Attempting to refresh...");
