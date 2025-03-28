@@ -2671,7 +2671,7 @@
 
    document.getElementById("menu-button").addEventListener("click", () => {
   Swal.fire({
-    title: '📋 Menu',
+    title: 'Menu',
     html: `
       <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
         <button class="minimal-menu-button" onclick="handleUserAccount()">👤 User Account</button>

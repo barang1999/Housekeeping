@@ -457,25 +457,32 @@
   border-radius: 16px;
   padding: 24px;
   font-size: 14px;
-  background: transparent !important;
-  box-shadow: none;
+  background: rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px); /* Optional: adds glass-like blur */
 }
+
 
 .minimal-menu-button {
   background: transparent;
   color: #333;
   padding: 10px 16px;
   border: 1px solid #ccc;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 14px;
   width: 100%;
   transition: all 0.2s ease;
+  text-align: left; /* Optional: left-align text */
 }
 
-.minimal-menu-button:hover {
-  background: rgba(0, 0, 0, 0.05);
-  border-color: #999;
+.minimal-menu-button:hover,
+.minimal-menu-button:focus {
+  background: #e0f3ff; /* soft sky blue */
+  border-color: #7dcfff;
+  color: #007acc;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
+
 
 
     </style>
