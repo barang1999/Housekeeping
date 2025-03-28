@@ -831,86 +831,72 @@ function updateHeaderProfile({ username, profileImage }) {
         console.log("✅ Rooms loaded successfully with priorities.");
     }
 
+async function showDashboard(username) {
+    console.log("Inside showDashboard function. Username:", username);
 
-    async function showDashboard(username) {
-        console.log("Inside showDashboard function. Username:", username);
+    const dashboard = document.getElementById("dashboard");
+    const authSection = document.getElementById("auth-section");
 
-        const dashboard = document.getElementById("dashboard");
-        const authSection = document.getElementById("auth-section");
-        const usernameDisplay = document.getElementById("user-name");
+    if (!dashboard || !authSection) {
+        console.error("❌ Dashboard or Auth section not found in DOM.");
+        return;
+    }
 
-        if (!dashboard || !authSection || !usernameDisplay) {
-            console.error("❌ Dashboard, Auth section, or Username display not found in DOM.");
-            return;
-        }
+    // Hide login section
+    authSection.style.display = "none";
 
-        // Hide login section
-        authSection.style.display = "none";
+    // Show dashboard properly
+    dashboard.classList.remove("hidden");
+    dashboard.style.display = "block"; // ✅ Ensure it's visible
 
-        // Show dashboard properly
-        dashboard.classList.remove("hidden");
-        dashboard.style.display = "block"; // ✅ Ensure it's visible
+    try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${apiUrl}/user/profile`, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
 
-        try {
-            const token = localStorage.getItem("token");
-            const res = await fetch(`${apiUrl}/user/profile`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
-
-           const profileData = await res.json();
-           const fullImageURL = profileData.profileImage?.startsWith("data:image/")
-              ? profileData.profileImage
-              : profileData.profileImage
+        const profileData = await res.json();
+        const fullImageURL = profileData.profileImage?.startsWith("data:image/")
+            ? profileData.profileImage
+            : profileData.profileImage
                 ? `${apiUrl}/uploads/${profileData.profileImage}`
                 : "default-avatar.png";
 
-            updateHeaderProfile({
-                username: profileData.username,
-                profileImage: fullImageURL
-            });
+        updateHeaderProfile({
+            username: profileData.username,
+            profileImage: fullImageURL
+        });
 
-            console.log("✅ Header profile updated from showDashboard()");
-        } catch (error) {
-            console.error("❌ Failed to update header profile:", error);
-        }
+        console.log("✅ Header profile updated from showDashboard()");
+    } catch (error) {
+        console.error("❌ Failed to update header profile:", error);
+    }
 
+    // 🏆 Fetch and Display Stats
+    const { userDurations, fastestUser, fastestAverageDuration } = await calculateUserCleaningStats();
 
-        // Set username display
-        usernameDisplay.textContent = username;
+    const avgDuration = userDurations[username]?.average || "N/A";
+    const fastestCleaner = fastestUser ? `${fastestUser} (${fastestAverageDuration} min)` : "N/A";
 
+    // Inject into a known container if needed — or skip entirely if no display needed
+    const statsContainer = document.getElementById("user-stats") || document.createElement("div");
+    statsContainer.id = "user-stats";
+    statsContainer.style.fontSize = "14px";
+    statsContainer.style.marginTop = "5px";
+    statsContainer.style.color = "#555";
+    statsContainer.innerHTML = `
+        <div>🕒 ល្បឿនសម្អាតរបស់អ្នកជាមធ្យម: <strong>${avgDuration} min</strong></div>
+        <div>⚡ អ្នកសម្អាតបានលឿនជាងគេ: <strong>${fastestCleaner}</strong></div>
+    `;
+    dashboard.appendChild(statsContainer);
 
-        // 🛠️ Create Stats Elements
-        let statsContainer = document.getElementById("user-stats");
-        if (!statsContainer) {
-            statsContainer = document.createElement("div");
-            statsContainer.id = "user-stats";
-            statsContainer.style.fontSize = "14px";
-            statsContainer.style.marginTop = "5px";
-            statsContainer.style.color = "#555";
-            usernameDisplay.parentNode.appendChild(statsContainer);
-        }
+    enforceFloorLock();
+    restoreAllInspectionButtons();
 
-        // 🏆 Fetch and Display Stats
-        const { userDurations, fastestUser, fastestAverageDuration } = await calculateUserCleaningStats();
-    
-        const avgDuration = userDurations[username]?.average || "N/A";
-        const fastestCleaner = fastestUser ? `${fastestUser} (${fastestAverageDuration} min)` : "N/A";
-
-        statsContainer.innerHTML = `
-            <div>🕒 ល្បឿនសម្អាតរបស់អ្នកជាមធ្យម: <strong>${avgDuration} min</strong></div>
-            <div>⚡ អ្នកសម្អាតបានលឿនជាងគេ: <strong>${fastestCleaner}</strong></div>
-        `;
-
-       
-        enforceFloorLock();
-        restoreAllInspectionButtons();
-
-
-       setTimeout(() => {
+    setTimeout(() => {
         const locked = localStorage.getItem("lockedFloor");
-
         if (locked) {
             console.log(`🔒 Locked floor "${locked}" already active. Skipping manual toggle.`);
             enforceFloorLock(); // Show the locked one
@@ -919,7 +905,7 @@ function updateHeaderProfile({ username, profileImage }) {
             toggleFloor("ground-floor");
         }
     }, 1000);
-  }
+}
 
     function restoreAllInspectionButtons() {
         inspectionLogs.forEach(log => {
