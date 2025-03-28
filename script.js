@@ -493,6 +493,14 @@
         }
     }
 
+   function updateHeaderProfile({ username, profileImage }) {
+    const profilePic = document.getElementById("user-profile-header");
+    const usernameText = document.getElementById("user-name-header");
+
+    if (profilePic) profilePic.src = profileImage || "https://via.placeholder.com/80";
+    if (usernameText) usernameText.textContent = username || "User";
+}
+
     // ✅ Improved Login Function
     async function login(event) {
         event.preventDefault(); // Prevent page refresh
@@ -523,6 +531,20 @@
                 console.log("✅ Login successful:", data);
                 localStorage.setItem("token", data.token);
                 localStorage.setItem("username", data.username);
+
+                                // 🔽 FETCH FULL PROFILE to update header
+                const profileRes = await fetch("https://housekeeping-production.up.railway.app/user/profile", {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${data.token}`
+                    }
+                });
+                const profileData = await profileRes.json();
+                updateHeaderProfile({
+                    username: profileData.username,
+                    profileImage: profileData.profileImage
+                });
 
                 // ✅ Show Success Notification
                 Swal.fire({
