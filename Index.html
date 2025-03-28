@@ -453,6 +453,12 @@
 .priority-toggle.early-arrival { background-color: yellow; }
 .priority-toggle.vacancy { background-color: black; }
 
+.swal2-popup.minimal-popup-menu {
+  border-radius: 10px;
+  padding: 20px;
+  font-size: 14px;
+}
+
 
     </style>
 </head>
@@ -483,6 +489,7 @@
             <button onclick="clearLogs()">Clear Logs</button>
             <button onclick="exportLogs()">🧾</button>
             <button onclick="exportInspectionPDF()">📝</button> <!-- 🆕 New Button -->
+            <button id="menu-button" style="margin-left: 10px;">☰ Menu</button>
 
            <div class="floor-menu">
                 <div class="floor-tab" data-floor="ground-floor" onclick="toggleFloor('ground-floor')">ជាន់ផ្ទាល់ដី</div>

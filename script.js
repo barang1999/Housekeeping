@@ -113,24 +113,6 @@
         // ✅ Set lock icons based on current state
     updateFloorTabIcons();
 
-
-   const menuToggleBtn = document.querySelector(".menu-toggle");
-   const dropdownContent = document.querySelector(".dropdown-content");
-
-    if (menuToggleBtn && dropdownContent) {
-        menuToggleBtn.addEventListener("click", () => {
-            dropdownContent.classList.toggle("show");
-            console.log("🟢 Menu toggled.");
-        });
-
-        window.addEventListener("click", (e) => {
-            if (!menuToggleBtn.contains(e.target) && !dropdownContent.contains(e.target)) {
-                dropdownContent.classList.remove("show");
-                console.log("🔘 Menu closed.");
-            }
-        });
-    }
-
 });
 
 
@@ -2631,16 +2613,38 @@
     }
 
 
-  function clearLocalStorageOnly() {
-    localStorage.clear();
-    Swal.fire({
-      icon: 'success',
-      title: 'Local Storage Cleared!',
-      text: 'All local data has been removed.',
-      timer: 1500,
-      showConfirmButton: false
+    function handleUserAccount() {
+      const username = localStorage.getItem("username") || "Unknown";
+      Swal.fire("👤 User Info", `You are logged in as <strong>${username}</strong>`, "info");
+    }
+
+    function clearLocalStorage() {
+      localStorage.clear();
+      Swal.fire("🧹 Cleared", "Local storage cleared!", "success").then(() => {
+        location.reload(); // Optional
+      });
+    }
+
+
+    document.getElementById("menu-button").addEventListener("click", () => {
+      Swal.fire({
+        title: '📋 Menu',
+        html: `
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <button class="swal2-confirm swal2-styled" style="background-color: #3498db; padding: 8px 12px;" onclick="handleUserAccount()">👤 User Account</button>
+            <button class="swal2-confirm swal2-styled" style="background-color: #e67e22;" onclick="clearLocalStorage()">🧹 Clear Local Storage</button>
+            <button class="swal2-confirm swal2-styled" style="background-color: #2ecc71;" onclick="exportLogs()">📄 Export Cleaning Logs</button>
+            <button class="swal2-confirm swal2-styled" style="background-color: #9b59b6;" onclick="exportInspectionPDF()">📝 Export Inspection</button>
+          </div>
+        `,
+        showConfirmButton: false,
+        width: 350,
+        background: '#fff',
+        customClass: {
+          popup: 'minimal-popup-menu'
+        }
+      });
     });
-  }
 
     function exportInspectionPDF() {
         if (!window.jspdf) {
