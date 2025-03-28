@@ -497,7 +497,10 @@ function updateHeaderProfile({ username, profileImage }) {
   const usernameText = document.getElementById("user-name-header");
 
   if (profilePic) {
-    profilePic.src = profileImage || "default-avatar.png"; // ✅ Just use the URL as-is
+    profilePic.src = profileImage 
+  ? `${profileImage}?t=${Date.now()}` 
+  : "default-avatar.png";
+
   }
 
   if (usernameText) {
@@ -554,8 +557,9 @@ function updateHeaderProfile({ username, profileImage }) {
                     const fullImageURL = profileData.profileImage?.startsWith("data:image/")
                     ? profileData.profileImage
                     : profileData.profileImage
-                        ? `${apiUrl}/uploads/${profileData.profileImage}`
+                        ? `${apiUrl}/uploads/${profileData.profileImage}?t=${Date.now()}`
                         : "default-avatar.png";
+
 
 
                     updateHeaderProfile({
@@ -856,12 +860,11 @@ function updateHeaderProfile({ username, profileImage }) {
             });
 
             const profileData = await res.json();
-           const fullImageURL = profileData.profileImage?.startsWith("data:image/")
+            const fullImageURL = profileData.profileImage?.startsWith("data:image/")
             ? profileData.profileImage
             : profileData.profileImage
-                ? `${apiUrl}/uploads/${profileData.profileImage}`
+                ? `${apiUrl}/uploads/${profileData.profileImage}?t=${Date.now()}`
                 : "default-avatar.png";
-
 
             updateHeaderProfile({
                 username: profileData.username,
