@@ -2675,11 +2675,11 @@
     html: `
       <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
         <button class="minimal-menu-button" onclick="handleUserAccount()">👤 User Account</button>
-        <button class="minimal-menu-button" onclick="clearLocalStorage()">🧹 Clear Local Storage</button>
         <button class="minimal-menu-button" onclick="exportLogs()">📄 Export Cleaning Logs</button>
-        <button class="minimal-menu-button" onclick="exportInspectionPDF()">📝 Export Inspection</button>
+        <button class="minimal-menu-button" onclick="exportInspectionPDF()">📝 Export Inspection Logs</button>
+        <button class="minimal-menu-button" onclick="clearLocalStorage()">🧹 Clear Local Storage</button>
         <button class="minimal-menu-button" onclick="logout()">🔓 Logout</button>
-        <button class="minimal-menu-button" onclick="clearLogs()">🧼 Clear Logs</button>
+        <button class="minimal-menu-button" onclick="clearLogs()">🗑️ Clear Logs</button>
       </div>
     `,
     showConfirmButton: false,

@@ -267,7 +267,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px;
+            position: relative;
+            padding: 20px;
             background: #fff;
             border-radius: 12px;
             box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
@@ -462,7 +463,6 @@
   backdrop-filter: blur(10px); /* Optional: adds glass-like blur */
 }
 
-
 .minimal-menu-button {
   background: rgba(255, 255, 255, 0.6) !important; /* white with 60% opacity */
   color: #333;
@@ -481,6 +481,31 @@
   border-color: #7dcfff;
   color: #007acc;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+#menu-button {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  padding: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#menu-button:hover {
+  background: rgba(224, 243, 255, 0.8);
+}
+
+#menu-button svg {
+  display: block;
 }
 
 
@@ -507,11 +532,17 @@
         </div>
         
         <div id="dashboard" class="hidden">
+        <button id="menu-button" aria-label="Menu">
+              <svg width="24" height="24" viewBox="0 0 20 20" fill="none">
+                <rect y="3" width="20" height="2" rx="1" fill="#333"/>
+                <rect y="9" width="20" height="2" rx="1" fill="#333"/>
+                <rect y="15" width="20" height="2" rx="1" fill="#333"/>
+              </svg>
+            </button>
         <img src="Image\Logo.png" alt="Logo" class="logo">
             <h2>Welcome, <span id="user-name"></span></h2>
             <button onclick="fetchRoomStatuses()" class="reload-btn">🔄</button>
-            <button onclick="clearLogs()">Clear Logs</button>
-            <button id="menu-button" style="margin-left: 10px;">☰ Menu</button>
+            
 
            <div class="floor-menu">
                 <div class="floor-tab" data-floor="ground-floor" onclick="toggleFloor('ground-floor')">ជាន់ផ្ទាល់ដី</div>
