@@ -2616,51 +2616,81 @@
 // 🧠 Load user profile and display modal
 async function handleUserAccount() {
   const res = await fetch(`${apiUrl}/user/profile`, {
-  headers: { Authorization: `Bearer ${getToken()}` }
-});
+    headers: { Authorization: `Bearer ${getToken()}` }
+  });
 
   const data = await res.json();
   const { username, phone, profileImage, score } = data;
-
-  const stars = "⭐".repeat(score);
+  const stars = "⭐".repeat(score || 0);
 
   Swal.fire({
     title: "👤 User Account",
     html: `
-      <form id="profile-form" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
-        <img id="profile-preview" src="${profileImage || "https://via.placeholder.com/80"}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #ccc;" />
-        <input type="file" id="profile-upload" accept="image/*" />
-        <input id="phone-input" type="tel" placeholder="Phone Number" value="${phone || ""}" style="padding: 8px; width: 100%; border-radius: 6px; border: 1px solid #ccc;" />
-        <p>Logged in as <strong>${username}</strong></p>
+      <div id="view-profile" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+        <img src="${profileImage || "https://via.placeholder.com/80"}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #ccc;" />
+        <p><strong>Username:</strong> ${username}</p>
+        <p><strong>Phone:</strong> ${phone || "Not set"}</p>
+        <p><strong>Score:</strong> ${stars} (${score})</p>
+      </div>
+      <div style="margin-top: 10px;">
+        <button id="edit-profile-btn" class="swal2-confirm swal2-styled">Edit Profile</button>
+      </div>
+    `,
+    showCancelButton: true,
+    cancelButtonText: "Close",
+    showConfirmButton: false,
+    customClass: { popup: "minimal-popup-menu" },
+    didOpen: () => {
+      document.getElementById("edit-profile-btn").addEventListener("click", () => {
+        showEditProfileForm({ username, phone, profileImage, score });
+      });
+    }
+  });
+}
+
+// ✏️ Separate function for edit mode
+function showEditProfileForm({ username, phone, profileImage, score }) {
+  const stars = "⭐".repeat(score || 0);
+
+  Swal.fire({
+    title: "✏️ Edit Profile",
+    html: `
+      <form id="edit-profile-form" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+        <img id="edit-profile-preview" src="${profileImage || "https://via.placeholder.com/80"}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #ccc;" />
+        <input type="file" id="edit-profile-upload" accept="image/*" />
+        <input id="edit-phone" type="tel" value="${phone || ""}" placeholder="Phone" style="padding: 6px; width: 100%;" />
+        <input id="edit-password" type="password" placeholder="New Password (optional)" style="padding: 6px; width: 100%;" />
+        <p><strong>Username:</strong> ${username}</p>
         <p>Score: ${stars} (${score})</p>
       </form>
     `,
     showCancelButton: true,
     confirmButtonText: "Save",
-    cancelButtonText: "Close",
+    cancelButtonText: "Cancel",
     preConfirm: async () => {
-      const phone = document.getElementById("phone-input").value;
-      const file = document.getElementById("profile-upload").files[0];
+      const phone = document.getElementById("edit-phone").value;
+      const password = document.getElementById("edit-password").value;
+      const file = document.getElementById("edit-profile-upload").files[0];
 
       const formData = new FormData();
       formData.append("phone", phone);
+      if (password) formData.append("password", password);
       if (file) formData.append("profileImage", file);
 
       const response = await fetch(`${apiUrl}/user/update-profile`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${getToken()}` },
-      body: formData
-    });
-
+        method: "POST",
+        headers: { Authorization: `Bearer ${getToken()}` },
+        body: formData
+      });
 
       if (!response.ok) throw new Error("Failed to update profile");
+
       Swal.fire("✅ Saved", "Your profile has been updated.", "success");
     },
     didOpen: () => {
-      const uploadInput = document.getElementById("profile-upload");
-      uploadInput.addEventListener("change", (event) => {
+      document.getElementById("edit-profile-upload").addEventListener("change", (event) => {
         const file = event.target.files[0];
-        const preview = document.getElementById("profile-preview");
+        const preview = document.getElementById("edit-profile-preview");
         if (file) {
           const reader = new FileReader();
           reader.onload = (e) => preview.src = e.target.result;
