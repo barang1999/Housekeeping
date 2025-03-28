@@ -493,17 +493,22 @@
         }
     }
 function updateHeaderProfile({ username, profileImage }) {
-    const profilePic = document.getElementById("user-profile-header");
-    const usernameText = document.getElementById("user-name-header");
+  const profilePic = document.getElementById("user-profile-header");
+  const usernameText = document.getElementById("user-name-header");
 
-    if (profilePic) {
-        profilePic.src = profileImage || "default-avatar.png"; // fallback
-    }
+  if (profilePic) {
+    const validSrc = profileImage?.startsWith("http")
+      ? profileImage
+      : `${apiUrl}/uploads/${profileImage}`; // fallback if relative path
 
-    if (usernameText) {
-        usernameText.textContent = username || "User";
-    }
+    profilePic.src = validSrc || "default-avatar.png";
+  }
+
+  if (usernameText) {
+    usernameText.textContent = username || "User";
+  }
 }
+
 
 
     // ✅ Improved Login Function
@@ -533,32 +538,39 @@ function updateHeaderProfile({ username, profileImage }) {
             const data = await response.json();
 
             if (response.ok) {
-                console.log("✅ Login successful:", data);
-                localStorage.setItem("token", data.token);
-                localStorage.setItem("username", data.username);
+                    console.log("✅ Login successful:", data);
+                    localStorage.setItem("token", data.token);
+                    localStorage.setItem("username", data.username);
 
-                                // 🔽 FETCH FULL PROFILE to update header
-                const profileRes = await fetch("https://housekeeping-production.up.railway.app/user/profile", {
-                    method: "GET",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${data.token}`
-                    }
-                });
-                const profileData = await profileRes.json();
-                updateHeaderProfile({
-                    username: profileData.username,
-                    profileImage: profileData.profileImage
-                });
+                    // 🔽 FETCH FULL PROFILE to update header
+                    const profileRes = await fetch("https://housekeeping-production.up.railway.app/user/profile", {
+                        method: "GET",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${data.token}`
+                        }
+                    });
 
-                // ✅ Show Success Notification
-                Swal.fire({
-                    icon: "ជោគជ័យ",
-                    title: "ការតភ្ជាប់បានជោគជ័យ",
+                    const profileData = await profileRes.json();
+                    console.log(profileData); // 🔍 Check here!
+
+                    const fullImageURL = profileData.profileImage 
+                        ? `${apiUrl}/uploads/${profileData.profileImage}` 
+                        : "default-avatar.png";
+
+                    updateHeaderProfile({
+                        username: profileData.username,
+                        profileImage: fullImageURL  // ✅ Use this!
+                    });
+
+                    Swal.fire({
+                        icon: "ជោគជ័យ",
+                        title: "ការតភ្ជាប់បានជោគជ័យ",
                     text: `ស្វាគមន៍, ${data.username}!`,
                     timer: 2000,
                     showConfirmButton: false
                 });
+            }
 
                 // Debugging: Check if this function runs
                 console.log("showDashboard is being called with username:", data.username);
