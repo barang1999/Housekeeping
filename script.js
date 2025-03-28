@@ -2670,26 +2670,26 @@
 
 
    document.getElementById("menu-button").addEventListener("click", () => {
-      Swal.fire({
-        title: '📋 Menu',
-        html: `
-          <div style="display: flex; flex-direction: column; gap: 10px;">
-            <button class="swal2-confirm swal2-styled" style="background-color: #3498db; padding: 8px 12px;" onclick="handleUserAccount()">👤 User Account</button>
-            <button class="swal2-confirm swal2-styled" style="background-color: #e67e22;" onclick="clearLocalStorage()">🧹 Clear Local Storage</button>
-            <button class="swal2-confirm swal2-styled" style="background-color: #2ecc71;" onclick="exportLogs()">📄 Export Cleaning Logs</button>
-            <button class="swal2-confirm swal2-styled" style="background-color: #9b59b6;" onclick="exportInspectionPDF()">📝 Export Inspection</button>
-            <button class="swal2-confirm swal2-styled" style="background-color: #c0392b;" onclick="logout()">🚪 Logout</button>
-            <button class="swal2-confirm swal2-styled" style="background-color: #f39c12;" onclick="clearLogs()">🧽 Clear Logs</button>
-          </div>
-        `,
-        showConfirmButton: false,
-        width: 350,
-        background: '#fff',
-        customClass: {
-          popup: 'minimal-popup-menu'
-        }
-      });
-    });
+  Swal.fire({
+    title: '📋 Menu',
+    html: `
+      <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+        <button class="minimal-menu-button" onclick="handleUserAccount()">👤 User Account</button>
+        <button class="minimal-menu-button" onclick="clearLocalStorage()">🧹 Clear Local Storage</button>
+        <button class="minimal-menu-button" onclick="exportLogs()">📄 Export Cleaning Logs</button>
+        <button class="minimal-menu-button" onclick="exportInspectionPDF()">📝 Export Inspection</button>
+        <button class="minimal-menu-button" onclick="logout()">🔓 Logout</button>
+        <button class="minimal-menu-button" onclick="clearLogs()">🧼 Clear Logs</button>
+      </div>
+    `,
+    showConfirmButton: false,
+    width: 320,
+    customClass: {
+      popup: 'minimal-popup-menu'
+    }
+  });
+});
+
 
 
     function exportInspectionPDF() {
