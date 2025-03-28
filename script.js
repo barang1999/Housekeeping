@@ -842,15 +842,16 @@ async function showDashboard(username) {
         return;
     }
 
-    // Hide login section
+    // Hide the login section
     authSection.style.display = "none";
 
-    // Show dashboard properly
+    // Show the main dashboard
     dashboard.classList.remove("hidden");
-    dashboard.style.display = "block"; // ✅ Ensure it's visible
+    dashboard.style.display = "block";
 
     try {
         const token = localStorage.getItem("token");
+
         const res = await fetch(`${apiUrl}/user/profile`, {
             headers: {
                 Authorization: `Bearer ${token}`
@@ -858,6 +859,7 @@ async function showDashboard(username) {
         });
 
         const profileData = await res.json();
+
         const fullImageURL = profileData.profileImage?.startsWith("data:image/")
             ? profileData.profileImage
             : profileData.profileImage
@@ -871,41 +873,60 @@ async function showDashboard(username) {
 
         console.log("✅ Header profile updated from showDashboard()");
     } catch (error) {
-        console.error("❌ Failed to update header profile:", error);
+        console.error("❌ Failed to fetch or update header profile:", error);
     }
 
-    // 🏆 Fetch and Display Stats
-    const { userDurations, fastestUser, fastestAverageDuration } = await calculateUserCleaningStats();
+    // 🏆 Fetch and display cleaning stats
+    try {
+        const { userDurations, fastestUser, fastestAverageDuration } = await calculateUserCleaningStats();
 
-    const avgDuration = userDurations[username]?.average || "N/A";
-    const fastestCleaner = fastestUser ? `${fastestUser} (${fastestAverageDuration} min)` : "N/A";
+        const avgDuration = userDurations[username]?.average || "N/A";
+        const fastestCleaner = fastestUser ? `${fastestUser} (${fastestAverageDuration} min)` : "N/A";
 
-    // Inject into a known container if needed — or skip entirely if no display needed
-    const statsContainer = document.getElementById("user-stats") || document.createElement("div");
-    statsContainer.id = "user-stats";
-    statsContainer.style.fontSize = "14px";
-    statsContainer.style.marginTop = "5px";
-    statsContainer.style.color = "#555";
-    statsContainer.innerHTML = `
-        <div>🕒 ល្បឿនសម្អាតរបស់អ្នកជាមធ្យម: <strong>${avgDuration} min</strong></div>
-        <div>⚡ អ្នកសម្អាតបានលឿនជាងគេ: <strong>${fastestCleaner}</strong></div>
-    `;
-    dashboard.appendChild(statsContainer);
+        // Create stats container
+        let statsContainer = document.getElementById("user-stats");
+        if (!statsContainer) {
+            statsContainer = document.createElement("div");
+            statsContainer.id = "user-stats";
+            statsContainer.style.fontSize = "14px";
+            statsContainer.style.marginTop = "10px";
+            statsContainer.style.textAlign = "center";
+            statsContainer.style.color = "#555";
 
+            const profileContainer = document.getElementById("header-profile");
+            if (profileContainer) {
+                profileContainer.appendChild(statsContainer);
+            } else {
+                console.warn("⚠️ 'header-profile' container not found. Appending stats to dashboard instead.");
+                dashboard.appendChild(statsContainer);
+            }
+        }
+
+        statsContainer.innerHTML = `
+            <div>🕒 ល្បឿនសម្អាតរបស់អ្នកជាមធ្យម: <strong>${avgDuration} min</strong></div>
+            <div>⚡ អ្នកសម្អាតបានលឿនជាងគេ: <strong>${fastestCleaner}</strong></div>
+        `;
+    } catch (err) {
+        console.error("❌ Failed to load cleaning stats:", err);
+    }
+
+    // 🧼 Restore floor lock and inspection button states
     enforceFloorLock();
     restoreAllInspectionButtons();
 
+    // 🧭 Fallback to default floor if no lock set
     setTimeout(() => {
         const locked = localStorage.getItem("lockedFloor");
         if (locked) {
             console.log(`🔒 Locked floor "${locked}" already active. Skipping manual toggle.`);
-            enforceFloorLock(); // Show the locked one
+            enforceFloorLock();
         } else {
             console.log("✅ No locked floor found. Activating ground floor...");
             toggleFloor("ground-floor");
         }
     }, 1000);
 }
+
 
     function restoreAllInspectionButtons() {
         inspectionLogs.forEach(log => {
