@@ -2616,8 +2616,9 @@
 // 🧠 Load user profile and display modal
 async function handleUserAccount() {
   const res = await fetch("/user/profile", {
-    headers: { Authorization: `Bearer ${token}` }
-  });
+  headers: { Authorization: `Bearer ${getToken()}` }
+});
+
 
   const data = await res.json();
   const { username, phone, profileImage, score } = data;
