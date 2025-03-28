@@ -497,17 +497,14 @@ function updateHeaderProfile({ username, profileImage }) {
   const usernameText = document.getElementById("user-name-header");
 
   if (profilePic) {
-    const validSrc = profileImage?.startsWith("http")
-      ? profileImage
-      : `${apiUrl}/uploads/${profileImage}`; // fallback if relative path
-
-    profilePic.src = validSrc || "default-avatar.png";
+    profilePic.src = profileImage || "default-avatar.png"; // ✅ Just use the URL as-is
   }
 
   if (usernameText) {
     usernameText.textContent = username || "User";
   }
 }
+
 
 
 
