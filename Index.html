@@ -464,7 +464,7 @@
 
 
 .minimal-menu-button {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.6) !important; /* white with 60% opacity */
   color: #333;
   padding: 10px 16px;
   border: 1px solid #ccc;
@@ -510,7 +510,6 @@
         <img src="Image\Logo.png" alt="Logo" class="logo">
             <h2>Welcome, <span id="user-name"></span></h2>
             <button onclick="fetchRoomStatuses()" class="reload-btn">🔄</button>
-            <button onclick="logout()">Logout</button>
             <button onclick="clearLogs()">Clear Logs</button>
             <button id="menu-button" style="margin-left: 10px;">☰ Menu</button>
 
