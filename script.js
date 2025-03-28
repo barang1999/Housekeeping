@@ -2615,10 +2615,9 @@
 
 // 🧠 Load user profile and display modal
 async function handleUserAccount() {
-  const res = await fetch("/user/profile", {
+  const res = await fetch(`${apiUrl}/user/profile`, {
   headers: { Authorization: `Bearer ${getToken()}` }
 });
-
 
   const data = await res.json();
   const { username, phone, profileImage, score } = data;
@@ -2647,11 +2646,12 @@ async function handleUserAccount() {
       formData.append("phone", phone);
       if (file) formData.append("profileImage", file);
 
-      const response = await fetch("/user/update-profile", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData
-      });
+      const response = await fetch(`${apiUrl}/user/update-profile`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${getToken()}` },
+      body: formData
+    });
+
 
       if (!response.ok) throw new Error("Failed to update profile");
       Swal.fire("✅ Saved", "Your profile has been updated.", "success");
