@@ -2648,7 +2648,6 @@ async function handleUserAccount() {
   });
 }
 
-// ✏️ Separate function for edit mode
 function showEditProfileForm({ username, phone, profileImage, score }) {
   const stars = "⭐".repeat(score || 0);
 
@@ -2665,8 +2664,10 @@ function showEditProfileForm({ username, phone, profileImage, score }) {
       </form>
     `,
     showCancelButton: true,
+    showConfirmButton: true,
     confirmButtonText: "Save",
     cancelButtonText: "Cancel",
+    customClass: { popup: "minimal-popup-menu" },
     preConfirm: async () => {
       const phone = document.getElementById("edit-phone").value;
       const password = document.getElementById("edit-password").value;
@@ -2685,7 +2686,9 @@ function showEditProfileForm({ username, phone, profileImage, score }) {
 
       if (!response.ok) throw new Error("Failed to update profile");
 
-      Swal.fire("✅ Saved", "Your profile has been updated.", "success");
+      Swal.fire("✅ Saved", "Your profile has been updated.", "success").then(() => {
+        handleUserAccount(); // Reopen profile view after saving
+      });
     },
     didOpen: () => {
       document.getElementById("edit-profile-upload").addEventListener("change", (event) => {
@@ -2698,7 +2701,10 @@ function showEditProfileForm({ username, phone, profileImage, score }) {
         }
       });
     },
-    customClass: { popup: "minimal-popup-menu" }
+    didClose: () => {
+      // If canceled without confirming, go back to view
+      handleUserAccount();
+    }
   });
 }
 
