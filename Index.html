@@ -508,31 +508,6 @@
   display: block;
 }
 
-.profile-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.logo-img {
-    width: 60px;
-    height: 60px;
-    object-fit: contain;
-}
-
-.profile-image {
-    margin-top: 10px;
-}
-
-.profile-img {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid #ccc;
-}
-
-
 
 
     </style>
@@ -564,15 +539,10 @@
                 <rect y="15" width="20" height="2" rx="1" fill="#333"/>
               </svg>
             </button>
-        <div class="profile-card">
-        <div class="logo">
-        <img src="logo.png" alt="Logo" class="logo-img" />
-        </div>
-        <div class="profile-image">
-        <img src="profile.jpg" alt="Profile" class="profile-img" />
-        </div>
+        <img src="Image\Logo.png" alt="Logo" class="logo">
+            <h2>Welcome, <span id="user-name"></span></h2>
             <button onclick="fetchRoomStatuses()" class="reload-btn">🔄</button>
-        </div>
+            
 
            <div class="floor-menu">
                 <div class="floor-tab" data-floor="ground-floor" onclick="toggleFloor('ground-floor')">ជាន់ផ្ទាល់ដី</div>
