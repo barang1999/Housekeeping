@@ -497,10 +497,11 @@ function updateHeaderProfile({ username, profileImage }) {
   const usernameText = document.getElementById("user-name-header");
 
   if (profilePic) {
-    profilePic.src = profileImage 
-  ? `${profileImage}?t=${Date.now()}` 
-  : "default-avatar.png";
-
+    profilePic.src = profileImage?.startsWith("data:image/")
+      ? profileImage
+      : profileImage
+        ? `${profileImage}`  // ✅ Removed ?t=Date.now()
+        : "default-avatar.png";
   }
 
   if (usernameText) {
@@ -554,12 +555,11 @@ function updateHeaderProfile({ username, profileImage }) {
                     const profileData = await profileRes.json();
                     console.log(profileData); // 🔍 Check here!
 
-                    const fullImageURL = profileData.profileImage?.startsWith("data:image/")
-                    ? profileData.profileImage
-                    : profileData.profileImage
-                        ? `${apiUrl}/uploads/${profileData.profileImage}?t=${Date.now()}`
-                        : "default-avatar.png";
-
+                   const fullImageURL = profileData.profileImage?.startsWith("data:image/")
+                  ? profileData.profileImage
+                  : profileData.profileImage
+                    ? `${apiUrl}/uploads/${profileData.profileImage}`
+                    : "default-avatar.png";
 
 
                     updateHeaderProfile({
@@ -861,11 +861,10 @@ function updateHeaderProfile({ username, profileImage }) {
 
            const profileData = await res.json();
            const fullImageURL = profileData.profileImage?.startsWith("data:image/")
-            ? profileData.profileImage
-            : profileData.profileImage
-                ? `${apiUrl}/uploads/${profileData.profileImage}?t=${Date.now()}`
+              ? profileData.profileImage
+              : profileData.profileImage
+                ? `${apiUrl}/uploads/${profileData.profileImage}`
                 : "default-avatar.png";
-
 
             updateHeaderProfile({
                 username: profileData.username,
