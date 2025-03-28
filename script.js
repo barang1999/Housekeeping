@@ -847,6 +847,30 @@ function updateHeaderProfile({ username, profileImage }) {
         dashboard.classList.remove("hidden");
         dashboard.style.display = "block"; // ✅ Ensure it's visible
 
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(`${apiUrl}/user/profile`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            const profileData = await res.json();
+            const fullImageURL = profileData.profileImage
+                ? `${apiUrl}/uploads/${profileData.profileImage}`
+                : "default-avatar.png";
+
+            updateHeaderProfile({
+                username: profileData.username,
+                profileImage: fullImageURL
+            });
+
+            console.log("✅ Header profile updated from showDashboard()");
+        } catch (error) {
+            console.error("❌ Failed to update header profile:", error);
+        }
+
+
         // Set username display
         usernameDisplay.textContent = username;
 
