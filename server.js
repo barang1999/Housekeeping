@@ -916,28 +916,31 @@ app.post("/user/update-profile", authenticateToken, upload.single("profileImage"
   try {
     const username = req.user.username;
     const phone = req.body.phone;
-    let imageBase64;
+    let filename;
 
     if (req.file) {
-      const resizedImage = await sharp(req.file.buffer)
+      // Generate filename and compress image
+      filename = `${username}_${Date.now()}.jpeg`;
+      await sharp(req.file.buffer)
         .resize(80, 80)
         .jpeg({ quality: 60 })
-        .toBuffer();
-
-      imageBase64 = `data:image/jpeg;base64,${resizedImage.toString("base64")}`;
+        .toFile(`uploads/${filename}`);
     }
 
     const updateFields = {};
     if (phone) updateFields.phone = phone;
-    if (imageBase64) updateFields.profileImage = imageBase64;
+    if (filename) updateFields.profileImage = filename;
 
-    const updated = await User.updateOne({ username }, { $set: updateFields });
-    res.json({ success: true, message: "Profile updated", imageBase64 });
+    await User.updateOne({ username }, { $set: updateFields });
+    res.json({ success: true, message: "Profile updated", filename });
   } catch (err) {
     console.error("Update error:", err);
     res.status(500).json({ success: false, message: "Update failed" });
   }
 });
+
+// Serve uploaded files statically
+app.use("/uploads", express.static("uploads"));
 
 app.get("/user/profile", authenticateToken, async (req, res) => {
   const username = req.user.username;
