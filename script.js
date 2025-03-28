@@ -876,39 +876,44 @@ async function showDashboard(username) {
         console.error("❌ Failed to fetch or update header profile:", error);
     }
 
-    // 🏆 Fetch and display cleaning stats
-    try {
-        const { userDurations, fastestUser, fastestAverageDuration } = await calculateUserCleaningStats();
+   // 🏆 Fetch and display cleaning stats
+try {
+    const { userDurations, fastestUser, fastestAverageDuration } = await calculateUserCleaningStats();
 
-        const avgDuration = userDurations[username]?.average || "N/A";
-        const fastestCleaner = fastestUser ? `${fastestUser} (${fastestAverageDuration} min)` : "N/A";
+    const avgDuration = userDurations[username]?.average || "N/A";
+    const fastestCleaner = fastestUser ? `${fastestUser} (${fastestAverageDuration} min)` : "N/A";
 
-        // Create stats container
-        let statsContainer = document.getElementById("user-stats");
-        if (!statsContainer) {
-            statsContainer = document.createElement("div");
-            statsContainer.id = "user-stats";
-            statsContainer.style.fontSize = "14px";
-            statsContainer.style.marginTop = "10px";
-            statsContainer.style.textAlign = "center";
-            statsContainer.style.color = "#555";
+    // Create or reuse stats container
+    let statsContainer = document.getElementById("user-stats");
+    if (!statsContainer) {
+        statsContainer = document.createElement("div");
+        statsContainer.id = "user-stats";
+        statsContainer.style.fontSize = "13px";
+        statsContainer.style.marginTop = "5px";
+        statsContainer.style.textAlign = "center";
+        statsContainer.style.color = "#666";
+        statsContainer.style.backgroundColor = "#f0f0f0";
+        statsContainer.style.padding = "8px 12px";
+        statsContainer.style.borderRadius = "8px";
+        statsContainer.style.marginTop = "10px";
 
-            const profileContainer = document.getElementById("header-profile");
-            if (profileContainer) {
-                profileContainer.appendChild(statsContainer);
-            } else {
-                console.warn("⚠️ 'header-profile' container not found. Appending stats to dashboard instead.");
-                dashboard.appendChild(statsContainer);
-            }
+        const profileSection = document.getElementById("profile-section");
+        if (profileSection) {
+            profileSection.appendChild(statsContainer);
+        } else {
+            console.warn("⚠️ profile-section not found, appending stats to dashboard.");
+            document.getElementById("dashboard").appendChild(statsContainer);
         }
-
-        statsContainer.innerHTML = `
-            <div>🕒 ល្បឿនសម្អាតរបស់អ្នកជាមធ្យម: <strong>${avgDuration} min</strong></div>
-            <div>⚡ អ្នកសម្អាតបានលឿនជាងគេ: <strong>${fastestCleaner}</strong></div>
-        `;
-    } catch (err) {
-        console.error("❌ Failed to load cleaning stats:", err);
     }
+
+    statsContainer.innerHTML = `
+        <div>🕒 ល្បឿនសម្អាតរបស់អ្នកជាមធ្យម: <strong>${avgDuration} min</strong></div>
+        <div>⚡ អ្នកសម្អាតបានលឿនជាងគេ: <strong>${fastestCleaner}</strong></div>
+    `;
+} catch (err) {
+    console.error("❌ Failed to load cleaning stats:", err);
+}
+
 
     // 🧼 Restore floor lock and inspection button states
     enforceFloorLock();
