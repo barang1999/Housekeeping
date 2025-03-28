@@ -2687,7 +2687,7 @@ function showEditProfileForm({ username, phone, profileImage, score }) {
       if (!response.ok) throw new Error("Failed to update profile");
 
       Swal.fire("✅ Saved", "Your profile has been updated.", "success").then(() => {
-        handleUserAccount(); // Reopen profile view after saving
+        handleUserAccount(); // refresh from backend after save
       });
     },
     didOpen: () => {
@@ -2701,9 +2701,12 @@ function showEditProfileForm({ username, phone, profileImage, score }) {
         }
       });
     },
-    didClose: () => {
-      // If canceled without confirming, go back to view
-      handleUserAccount();
+    willClose: (popup) => {
+      // detect if it was canceled (not confirmed)
+      if (!Swal.getTimerLeft() && !Swal.isLoading()) {
+        // instantly switch back to view mode
+        showUserProfileView({ username, phone, profileImage, score });
+      }
     }
   });
 }
