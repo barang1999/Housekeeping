@@ -492,14 +492,19 @@
             return null;
         }
     }
-
-   function updateHeaderProfile({ username, profileImage }) {
+function updateHeaderProfile({ username, profileImage }) {
     const profilePic = document.getElementById("user-profile-header");
     const usernameText = document.getElementById("user-name-header");
 
-    if (profilePic) profilePic.src = profileImage || "https://via.placeholder.com/80";
-    if (usernameText) usernameText.textContent = username || "User";
+    if (profilePic) {
+        profilePic.src = profileImage || "default-avatar.png"; // fallback
+    }
+
+    if (usernameText) {
+        usernameText.textContent = username || "User";
+    }
 }
+
 
     // ✅ Improved Login Function
     async function login(event) {
