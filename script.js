@@ -2613,50 +2613,80 @@
     }
 
 
-   function handleUserAccount() {
-  const username = localStorage.getItem("username") || "Unknown";
-  const savedPhone = localStorage.getItem("phone") || "";
-  const savedImage = localStorage.getItem("profileImage");
+// 🧠 Load user profile and display modal
+async function handleUserAccount() {
+  const res = await fetch("/user/profile", {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  const data = await res.json();
+  const { username, phone, profileImage, score } = data;
+
+  const stars = "⭐".repeat(score);
 
   Swal.fire({
     title: "👤 User Account",
     html: `
-      <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
-        <div>
-          <img id="profile-preview" src="${savedImage || 'https://via.placeholder.com/80'}" alt="Profile Image" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #ccc;">
-        </div>
-        <input type="file" id="profile-upload" accept="image/*" style="margin-bottom: 10px;">
-        <input id="phone-input" type="tel" placeholder="Phone Number" value="${savedPhone}" style="padding: 8px; width: 100%; border-radius: 6px; border: 1px solid #ccc;">
-        <p style="margin: 0;">👤 Logged in as <strong>${username}</strong></p>
-      </div>
+      <form id="profile-form" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <img id="profile-preview" src="${profileImage || "https://via.placeholder.com/80"}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #ccc;" />
+        <input type="file" id="profile-upload" accept="image/*" />
+        <input id="phone-input" type="tel" placeholder="Phone Number" value="${phone || ""}" style="padding: 8px; width: 100%; border-radius: 6px; border: 1px solid #ccc;" />
+        <p>Logged in as <strong>${username}</strong></p>
+        <p>Score: ${stars} (${score})</p>
+      </form>
     `,
     showCancelButton: true,
     confirmButtonText: "Save",
     cancelButtonText: "Close",
-    customClass: {
-      popup: 'minimal-popup-menu'
+    preConfirm: async () => {
+      const phone = document.getElementById("phone-input").value;
+      const file = document.getElementById("profile-upload").files[0];
+
+      const formData = new FormData();
+      formData.append("phone", phone);
+      if (file) formData.append("profileImage", file);
+
+      const response = await fetch("/user/update-profile", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
+      });
+
+      if (!response.ok) throw new Error("Failed to update profile");
+      Swal.fire("✅ Saved", "Your profile has been updated.", "success");
     },
     didOpen: () => {
-      const input = document.getElementById("profile-upload");
-      const preview = document.getElementById("profile-preview");
-
-      input.addEventListener("change", (event) => {
+      const uploadInput = document.getElementById("profile-upload");
+      uploadInput.addEventListener("change", (event) => {
         const file = event.target.files[0];
+        const preview = document.getElementById("profile-preview");
         if (file) {
           const reader = new FileReader();
-          reader.onload = (e) => {
-            preview.src = e.target.result;
-            localStorage.setItem("profileImage", e.target.result);
-          };
+          reader.onload = (e) => preview.src = e.target.result;
           reader.readAsDataURL(file);
         }
       });
     },
-    preConfirm: () => {
-      const phone = document.getElementById("phone-input").value;
-      localStorage.setItem("phone", phone);
-      Swal.fire("✅ Saved", "Your info has been updated.", "success");
-    }
+    customClass: { popup: "minimal-popup-menu" }
+  });
+}
+
+// 🌟 Show leaderboard (top 3 cleaners)
+async function showLeaderboard() {
+  const res = await fetch("/score/leaderboard");
+  const data = await res.json();
+
+  let html = "<ol style='text-align: left;'>";
+  data.forEach(({ _id, count }) => {
+    html += `<li><strong>${_id}</strong> ⭐ x${count}</li>`;
+  });
+  html += "</ol>";
+
+  Swal.fire({
+    title: "🌟 Top 3 Cleaners",
+    html,
+    confirmButtonText: "Close",
+    customClass: { popup: "minimal-popup-menu" }
   });
 }
 

@@ -8,6 +8,12 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const axios = require("axios");
 const telegramRoutes = require("./telegram.js");
+const multer = require("multer");
+const sharp = require('sharp'); // For image compression
+
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 const RoomDND = require("./RoomDND"); // ✅ Ensure RoomDND is imported
 const allowedOrigins = ["https://housekeepingmanagement.netlify.app"]; // Add your frontend domain
@@ -49,13 +55,17 @@ mongoose.connection.on("disconnected", () => {
     }).catch(err => console.error("❌ MongoDB reconnection failed:", err));
 });
 
-// ✅ Define User Schema & Model
 const userSchema = new mongoose.Schema({
     username: { type: String, unique: true, required: true },
-    password: { type: String, required: true },
-    refreshToken: { type: String }
+    password: { type: String }, // Optional if using OAuth in future
+    refreshToken: { type: String },
+    phone: String,
+    profileImage: String,
+    score: { type: Number, default: 0 },
+    lastUpdated: Date
 });
-const User = mongoose.model("User", userSchema);
+
+const User = mongoose.models.User || mongoose.model("User", userSchema);
 
 const prioritySchema = new mongoose.Schema({
     roomNumber: { type: String, required: true, unique: true },
@@ -72,6 +82,16 @@ const InspectionLogSchema = new mongoose.Schema({
 });
 
 const InspectionLog = mongoose.model('InspectionLog', InspectionLogSchema);
+
+const scoreLogSchema = new mongoose.Schema({
+  username: String,
+  date: String, // YYYY-MM-DD
+  score: Number,
+  isFastest: Boolean,
+});
+
+const ScoreLog = mongoose.model('ScoreLog', scoreLogSchema);
+
 
 // ✅ CORS Configuration
 app.use(cors({
@@ -892,6 +912,93 @@ app.post("/logs/check", async (req, res) => {
     }
 });
 
+app.post("/user/update-profile", authenticateToken, upload.single("profileImage"), async (req, res) => {
+  try {
+    const username = req.user.username;
+    const phone = req.body.phone;
+    let imageBase64;
+
+    if (req.file) {
+      const resizedImage = await sharp(req.file.buffer)
+        .resize(80, 80)
+        .jpeg({ quality: 60 })
+        .toBuffer();
+
+      imageBase64 = `data:image/jpeg;base64,${resizedImage.toString("base64")}`;
+    }
+
+    const updateFields = {};
+    if (phone) updateFields.phone = phone;
+    if (imageBase64) updateFields.profileImage = imageBase64;
+
+    const updated = await User.updateOne({ username }, { $set: updateFields });
+    res.json({ success: true, message: "Profile updated", imageBase64 });
+  } catch (err) {
+    console.error("Update error:", err);
+    res.status(500).json({ success: false, message: "Update failed" });
+  }
+});
+
+app.get("/user/profile", authenticateToken, async (req, res) => {
+  const username = req.user.username;
+  const user = await User.findOne({ username });
+
+  if (!user) return res.status(404).json({ message: "User not found" });
+
+  // Filter out secure info like password
+  const { phone, profileImage, username: name } = user;
+
+  // Get score for current month
+  const start = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  const end = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+
+  const scores = await ScoreLog.find({
+    username,
+    date: { $gte: start, $lte: end }
+  });
+
+  res.json({
+    username: name,
+    phone: phone || "",
+    profileImage: profileImage || "",
+    score: scores.length
+  });
+});
+
+app.post("/score/add", authenticateToken, async (req, res) => {
+  const username = req.user.username; // ✅ Always use token-based username
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  const existing = await ScoreLog.findOne({ username, date: today });
+  if (existing) return res.status(409).json({ message: "Already rewarded" });
+
+  const log = new ScoreLog({ username, date: today });
+  await log.save();
+  res.json({ success: true, message: "Score added" });
+});
+
+app.get("/score/leaderboard", async (req, res) => {
+  const start = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  const end = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+
+  const scores = await ScoreLog.aggregate([
+    {
+      $match: { date: { $gte: start, $lte: end } }
+    },
+    {
+      $group: { _id: "$username", count: { $sum: 1 } }
+    },
+    {
+      $sort: { count: -1 }
+    },
+    {
+      $limit: 3
+    }
+  ]);
+
+  res.json(scores);
+});
 
 
 app.get("/logs", async (req, res) => {
