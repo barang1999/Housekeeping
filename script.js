@@ -2613,10 +2613,53 @@
     }
 
 
-    function handleUserAccount() {
-      const username = localStorage.getItem("username") || "Unknown";
-      Swal.fire("👤 User Info", `You are logged in as <strong>${username}</strong>`, "info");
+   function handleUserAccount() {
+  const username = localStorage.getItem("username") || "Unknown";
+  const savedPhone = localStorage.getItem("phone") || "";
+  const savedImage = localStorage.getItem("profileImage");
+
+  Swal.fire({
+    title: "👤 User Account",
+    html: `
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div>
+          <img id="profile-preview" src="${savedImage || 'https://via.placeholder.com/80'}" alt="Profile Image" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #ccc;">
+        </div>
+        <input type="file" id="profile-upload" accept="image/*" style="margin-bottom: 10px;">
+        <input id="phone-input" type="tel" placeholder="Phone Number" value="${savedPhone}" style="padding: 8px; width: 100%; border-radius: 6px; border: 1px solid #ccc;">
+        <p style="margin: 0;">👤 Logged in as <strong>${username}</strong></p>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: "Save",
+    cancelButtonText: "Close",
+    customClass: {
+      popup: 'minimal-popup-menu'
+    },
+    didOpen: () => {
+      const input = document.getElementById("profile-upload");
+      const preview = document.getElementById("profile-preview");
+
+      input.addEventListener("change", (event) => {
+        const file = event.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            preview.src = e.target.result;
+            localStorage.setItem("profileImage", e.target.result);
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    },
+    preConfirm: () => {
+      const phone = document.getElementById("phone-input").value;
+      localStorage.setItem("phone", phone);
+      Swal.fire("✅ Saved", "Your info has been updated.", "success");
     }
+  });
+}
+
 
     function clearLocalStorage() {
       localStorage.clear();
@@ -2626,7 +2669,7 @@
     }
 
 
-    document.getElementById("menu-button").addEventListener("click", () => {
+   document.getElementById("menu-button").addEventListener("click", () => {
       Swal.fire({
         title: '📋 Menu',
         html: `
@@ -2635,6 +2678,8 @@
             <button class="swal2-confirm swal2-styled" style="background-color: #e67e22;" onclick="clearLocalStorage()">🧹 Clear Local Storage</button>
             <button class="swal2-confirm swal2-styled" style="background-color: #2ecc71;" onclick="exportLogs()">📄 Export Cleaning Logs</button>
             <button class="swal2-confirm swal2-styled" style="background-color: #9b59b6;" onclick="exportInspectionPDF()">📝 Export Inspection</button>
+            <button class="swal2-confirm swal2-styled" style="background-color: #c0392b;" onclick="logout()">🚪 Logout</button>
+            <button class="swal2-confirm swal2-styled" style="background-color: #f39c12;" onclick="clearLogs()">🧽 Clear Logs</button>
           </div>
         `,
         showConfirmButton: false,
@@ -2645,6 +2690,7 @@
         }
       });
     });
+
 
     function exportInspectionPDF() {
         if (!window.jspdf) {
