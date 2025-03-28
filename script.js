@@ -570,7 +570,6 @@ function updateHeaderProfile({ username, profileImage }) {
                     timer: 2000,
                     showConfirmButton: false
                 });
-            }
 
                 // Debugging: Check if this function runs
                 console.log("showDashboard is being called with username:", data.username);
