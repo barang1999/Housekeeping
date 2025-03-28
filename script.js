@@ -557,9 +557,8 @@ function updateHeaderProfile({ username, profileImage }) {
                     const fullImageURL = profileData.profileImage?.startsWith("data:image/")
                     ? profileData.profileImage
                     : profileData.profileImage
-                        ? `${apiUrl}/uploads/${profileData.profileImage}?t=${Date.now()}`
+                        ? `${apiUrl}/uploads/${profileData.profileImage}`
                         : "default-avatar.png";
-
 
 
                     updateHeaderProfile({
@@ -860,11 +859,12 @@ function updateHeaderProfile({ username, profileImage }) {
             });
 
             const profileData = await res.json();
-            const fullImageURL = profileData.profileImage?.startsWith("data:image/")
+           const fullImageURL = profileData.profileImage?.startsWith("data:image/")
             ? profileData.profileImage
             : profileData.profileImage
-                ? `${apiUrl}/uploads/${profileData.profileImage}?t=${Date.now()}`
+                ? `${apiUrl}/uploads/${profileData.profileImage}`
                 : "default-avatar.png";
+
 
             updateHeaderProfile({
                 username: profileData.username,
