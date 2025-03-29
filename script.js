@@ -1,4 +1,4 @@
-    const apiUrl = "https://househttps://via.placeholder.com/80 keeping-production.up.railway.app";
+    const apiUrl = "https://housekeeping-production.up.railway.app";
 
     let reconnectAttempts = 0;
     let inspectionLogs = []; // Declare it at the top
@@ -2700,7 +2700,7 @@ try {
     ? image
     : image
     ? `${apiUrl}/uploads/${image}`
-    : "default-avatar.png";
+    : "https://via.placeholder.com/80";
 }
 
 
@@ -2748,7 +2748,7 @@ function showEditProfileForm({ username, phone, profileImage, score, position })
     title: "Edit Profile",
     html: `
       <form id="edit-profile-form" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
-        <img id="edit-profile-preview" src="${profileImage || "default-avatar.png"}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #ccc;" />
+        <img id="edit-profile-preview" src="${profileImage || "https://via.placeholder.com/80"}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #ccc;" />
         <input type="file" id="edit-profile-upload" accept="image/*" />
         <input id="edit-phone" type="tel" value="${phone || ""}" placeholder="Phone" style="padding: 6px; width: 100%;" />
         <input id="edit-position" type="text" value="${position || ""}" placeholder="Position" style="padding: 6px; width: 100%;" />
@@ -2845,7 +2845,7 @@ async function showLeaderboard() {
     data.forEach(({ _id, count, profileImage }, index) => {
       const imageUrl = profileImage
         ? getFullImageURL(profileImage)
-        : "default-avatar.png";
+        : "https://via.placeholder.com/40";
 
       html += `
         <li style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
