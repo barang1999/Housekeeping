@@ -2748,7 +2748,7 @@ function showEditProfileForm({ username, phone, profileImage, score, position })
     title: "Edit Profile",
     html: `
       <form id="edit-profile-form" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
-        <img id="edit-profile-preview" src="${profileImage || "https://via.placeholder.com/80"}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #ccc;" />
+        <img id="edit-profile-preview" src="${profileImage || "default-avatar.png"}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #ccc;" />
         <input type="file" id="edit-profile-upload" accept="image/*" />
         <input id="edit-phone" type="tel" value="${phone || ""}" placeholder="Phone" style="padding: 6px; width: 100%;" />
         <input id="edit-position" type="text" value="${position || ""}" placeholder="Position" style="padding: 6px; width: 100%;" />
