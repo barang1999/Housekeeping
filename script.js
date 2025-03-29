@@ -2479,40 +2479,60 @@ try {
             fastestAverageDuration: fastestAverageDuration === Infinity ? null : fastestAverageDuration.toFixed(1)
         };
     }
-
-    async function rewardFastestCleanerIfNeeded() {
+async function rewardFastestCleanerIfNeeded() {
     const now = new Date();
     const currentHour = now.getHours();
-
-    // Only trigger after 5PM
-    if (currentHour < 17) return;
-
-    const lastRewardKey = "lastScoreRewardDate";
     const today = now.toISOString().slice(0, 10);
 
-    // Prevent rewarding multiple times per day
-    if (localStorage.getItem(lastRewardKey) === today) return;
+    console.log("🕐 Checking if score should be rewarded...");
+
+    if (currentHour < 17) {
+        console.log("⏳ It's not 5PM yet. Skipping score reward.");
+        return;
+    }
+
+    const lastRewardKey = "lastScoreRewardDate";
+    if (localStorage.getItem(lastRewardKey) === today) {
+        console.log("🛑 Score already rewarded today. Skipping.");
+        return;
+    }
 
     const stats = await calculateUserCleaningStats();
-    if (!stats || !stats.fastestUser) return;
+    if (!stats || !stats.fastestUser) {
+        console.warn("⚠️ No fastest user found in stats.");
+        return;
+    }
+
+    console.log("⚡ Fastest cleaner is:", stats.fastestUser);
+
+    const currentUser = localStorage.getItem("username");
+    if (stats.fastestUser !== currentUser) {
+        console.log(`👤 Logged in user (${currentUser}) is not the fastest.`);
+        return;
+    }
 
     const token = localStorage.getItem("token");
-    if (!token) return;
+    if (!token) {
+        console.warn("⚠️ No auth token found.");
+        return;
+    }
 
-    const response = await fetch(`${apiUrl}/score/add`, {
-        method: "POST",
-        headers: {
-            "Authorization": `Bearer ${token}`
+    try {
+        const res = await fetch(`${apiUrl}/score/add`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const result = await res.json();
+
+        if (res.ok && result.success) {
+            console.log(`🏅 Score successfully rewarded to ${stats.fastestUser}`);
+            localStorage.setItem(lastRewardKey, today);
+        } else {
+            console.warn("⚠️ Backend rejected score reward:", result.message);
         }
-    });
-
-    const result = await response.json();
-
-    if (result.success) {
-        console.log(`🏆 Score rewarded to ${stats.fastestUser}`);
-        localStorage.setItem(lastRewardKey, today);
-    } else {
-        console.warn("⚠️ Failed to reward score:", result.message);
+    } catch (err) {
+        console.error("❌ Error sending score reward request:", err);
     }
 }
 
