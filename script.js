@@ -1,4 +1,4 @@
-    const apiUrl = "https://housekeeping-production.up.railway.app";
+    const apiUrl = "https://househttps://via.placeholder.com/80 keeping-production.up.railway.app";
 
     let reconnectAttempts = 0;
     let inspectionLogs = []; // Declare it at the top
@@ -2700,7 +2700,7 @@ try {
     ? image
     : image
     ? `${apiUrl}/uploads/${image}`
-    : "https://via.placeholder.com/80";
+    : "default-avatar.png";
 }
 
 
@@ -2845,7 +2845,7 @@ async function showLeaderboard() {
     data.forEach(({ _id, count, profileImage }, index) => {
       const imageUrl = profileImage
         ? getFullImageURL(profileImage)
-        : "https://via.placeholder.com/40";
+        : "default-avatar.png";
 
       html += `
         <li style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
