@@ -11,6 +11,16 @@ const telegramRoutes = require("./telegram.js");
 const multer = require("multer");
 const sharp = require('sharp'); // For image compression
 
+const fs = require("fs");
+const path = require("path");
+
+// ✅ Ensure uploads/ directory exists
+const uploadDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir);
+}
+
+
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
@@ -918,8 +928,8 @@ app.post("/user/update-profile", authenticateToken, upload.single("profileImage"
     const phone = req.body.phone;
     let filename;
 
+    // ✅ Step 1: Generate and save new image if uploaded
     if (req.file) {
-      // Generate filename and compress image
       filename = `${username}_${Date.now()}.jpeg`;
       await sharp(req.file.buffer)
         .resize(80, 80)
@@ -927,11 +937,29 @@ app.post("/user/update-profile", authenticateToken, upload.single("profileImage"
         .toFile(`uploads/${filename}`);
     }
 
+    // ✅ Step 2: Prepare fields to update
     const updateFields = {};
     if (phone) updateFields.phone = phone;
     if (filename) updateFields.profileImage = filename;
 
+    // ✅ Step 3: Delete old profile image if new one is uploaded
+    if (filename) {
+      const existingUser = await User.findOne({ username });
+      if (existingUser?.profileImage) {
+        const oldImagePath = path.join(__dirname, "uploads", existingUser.profileImage);
+        fs.unlink(oldImagePath, (err) => {
+          if (err) {
+            console.warn("⚠️ Failed to delete old profile image:", err.message);
+          } else {
+            console.log("🗑️ Old profile image deleted:", existingUser.profileImage);
+          }
+        });
+      }
+    }
+
+    // ✅ Step 4: Update user info in database
     await User.updateOne({ username }, { $set: updateFields });
+
     res.json({ success: true, message: "Profile updated", filename });
   } catch (err) {
     console.error("Update error:", err);
@@ -939,33 +967,44 @@ app.post("/user/update-profile", authenticateToken, upload.single("profileImage"
   }
 });
 
+
 // Serve uploaded files statically
 app.use("/uploads", express.static("uploads"));
 
 app.get("/user/profile", authenticateToken, async (req, res) => {
-  const username = req.user.username;
-  const user = await User.findOne({ username });
+  try {
+    const username = req.user.username;
+    const user = await User.findOne({ username });
 
-  if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
 
-  // Filter out secure info like password
-  const { phone, profileImage, username: name } = user;
+    // Extract safe profile data
+    const { phone = "", profileImage = "", username: name } = user;
 
-  // Get score for current month
-  const start = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-  const end = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+    // Get score for current month
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-  const scores = await ScoreLog.find({
-    username,
-    date: { $gte: start, $lte: end }
-  });
+    const scores = await ScoreLog.find({
+      username,
+      date: { $gte: start, $lte: end }
+    });
 
-  res.json({
-    username: name,
-    phone: phone || "",
-    profileImage: profileImage || "",
-    score: scores.length
-  });
+    res.json({
+      success: true,
+      username: name,
+      phone,
+      profileImage,
+      score: scores.length
+    });
+
+  } catch (error) {
+    console.error("❌ Error fetching profile:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch profile", error: error.message });
+  }
 });
 
 app.post("/score/add", authenticateToken, async (req, res) => {
