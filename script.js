@@ -2692,6 +2692,15 @@ try {
       menu.classList.toggle("show");
     }
 
+  function getFullImageURL(image) {
+  return image?.startsWith("data:image/")
+    ? image
+    : image
+    ? `${apiUrl}/uploads/${image}`
+    : "https://via.placeholder.com/80";
+}
+
+
 // 🧠 Load user profile and display modal
 async function handleUserAccount() {
   const res = await fetch(`${apiUrl}/user/profile`, {
@@ -2706,7 +2715,9 @@ async function handleUserAccount() {
     title: "👤 User Account",
     html: `
       <div id="view-profile" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
-        <img src="${profileImage || "https://via.placeholder.com/80"}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #ccc;" />
+        <img src="${getFullImageURL(profileImage)}"
+        style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #ccc;" />
+
         <p><strong>Username:</strong> ${username}</p>
         <p><strong>Phone:</strong> ${phone || "Not set"}</p>
         <p><strong>Score:</strong> ${stars} (${score})</p>
@@ -2965,7 +2976,7 @@ async function showLeaderboard() {
 
             if (logDate === today) {
                 rowData[0] = roomNumber; // Ensure room numbers are formatted correctly
-                logs.push(rowData);
+                logs.push(rowData);handleUserAccount
             }
         });
 
