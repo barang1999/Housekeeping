@@ -2,6 +2,7 @@
 
     let reconnectAttempts = 0;
     let inspectionLogs = []; // Declare it at the top
+    let onlineUsernames = [];
     const MAX_RECONNECT_ATTEMPTS = 3;
     window.socket = null;
 
@@ -163,7 +164,7 @@ async function connectWebSocket() {
              // ✅ ADD this AFTER everything:
              restoreAllInspectionButtons();  // 🟢 Make sure borders reapply
         });
-       let onlineUsernames = [];
+
 
         window.socket.on("updateOnlineUsers", (usernames) => {
           onlineUsernames = usernames;
