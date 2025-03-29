@@ -2695,37 +2695,41 @@ try {
 
 // 🧠 Load user profile and display modal
 async function handleUserAccount() {
-  const res = await fetch(`${apiUrl}/user/profile`, {
-    headers: { Authorization: `Bearer ${getToken()}` }
-  });
+      const res = await fetch(`${apiUrl}/user/profile`, {
+      headers: { Authorization: `Bearer ${getToken()}` }
+    });
 
-  const data = await res.json();
-  const { username, phone, profileImage, score } = data;
-  const stars = "⭐".repeat(score || 0);
+    const data = await res.json();
+    const { username, phone, profileImage, score } = data;
+    const stars = "⭐".repeat(score || 0);
 
-  Swal.fire({
-    title: "👤 User Account",
-    html: `
-      <div id="view-profile" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
-        <img src="${profileImage || "https://via.placeholder.com/80"}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #ccc;" />
-        <p><strong>Username:</strong> ${username}</p>
-        <p><strong>Phone:</strong> ${phone || "Not set"}</p>
-        <p><strong>Score:</strong> ${stars} (${score})</p>
-      </div>
-      <div style="margin-top: 10px;">
-        <button id="edit-profile-btn" class="swal2-confirm swal2-styled">Edit Profile</button>
-      </div>
-    `,
-    showCancelButton: true,
-    cancelButtonText: "Close",
-    showConfirmButton: false,
-    customClass: { popup: "minimal-popup-menu" },
-    didOpen: () => {
-      document.getElementById("edit-profile-btn").addEventListener("click", () => {
-        showEditProfileForm({ username, phone, profileImage, score });
-      });
-    }
-  });
+    const imageSrc = profileImage
+      ? `${apiUrl}/uploads/${profileImage}`
+      : "https://via.placeholder.com/80";
+
+    Swal.fire({
+      title: "👤 User Account",
+      html: `
+        <div id="view-profile" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+          <img src="${imageSrc}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #ccc;" />
+          <p><strong>Username:</strong> ${username}</p>
+          <p><strong>Phone:</strong> ${phone || "Not set"}</p>
+          <p><strong>Score:</strong> ${stars} (${score})</p>
+        </div>
+        <div style="margin-top: 10px;">
+          <button id="edit-profile-btn" class="swal2-confirm swal2-styled">Edit Profile</button>
+        </div>
+      `,
+      showCancelButton: true,
+      cancelButtonText: "Close",
+      showConfirmButton: false,
+      customClass: { popup: "minimal-popup-menu" },
+      didOpen: () => {
+        document.getElementById("edit-profile-btn").addEventListener("click", () => {
+          showEditProfileForm({ username, phone, profileImage, score });
+        });
+      }
+    });
 }
 
 // ✏️ Separate function for edit mode
