@@ -923,22 +923,24 @@ app.post("/logs/check", async (req, res) => {
     }
 });
 
+// ✅ Update Profile with Base64 Profile Image
 app.post("/user/update-profile", authenticateToken, upload.single("profileImage"), async (req, res) => {
   try {
     const username = req.user.username;
     const { phone, position, password } = req.body;
-    let filename;
 
-    // ✅ Step 1: Generate and save new image if uploaded
+    // ✅ Step 1: Convert image to base64 and compress
+    let base64Image = null;
     if (req.file) {
-      filename = `${username}_${Date.now()}.jpeg`;
-      await sharp(req.file.buffer)
+      const compressed = await sharp(req.file.buffer)
         .resize(80, 80)
         .jpeg({ quality: 60 })
-        .toFile(`uploads/${filename}`);
+        .toBuffer();
+
+      base64Image = `data:image/jpeg;base64,${compressed.toString("base64")}`;
     }
 
-    // ✅ Step 2: Prepare fields to update
+    // ✅ Step 2: Prepare update fields
     const updateFields = {};
     if (phone) updateFields.phone = phone;
     if (position) updateFields.position = position;
@@ -946,33 +948,18 @@ app.post("/user/update-profile", authenticateToken, upload.single("profileImage"
       const hashed = await bcrypt.hash(password, 10);
       updateFields.password = hashed;
     }
+    if (base64Image) updateFields.profileImage = base64Image;
 
-    if (filename) updateFields.profileImage = filename;
-
-    // ✅ Step 3: Delete old profile image if new one is uploaded
-    if (filename) {
-      const existingUser = await User.findOne({ username });
-      if (existingUser?.profileImage) {
-        const oldImagePath = path.join(__dirname, "uploads", existingUser.profileImage);
-        fs.unlink(oldImagePath, (err) => {
-          if (err) {
-            console.warn("⚠️ Failed to delete old profile image:", err.message);
-          } else {
-            console.log("🗑️ Old profile image deleted:", existingUser.profileImage);
-          }
-        });
-      }
-    }
-
-    // ✅ Step 4: Update user info in database
+    // ✅ Step 3: Update user in DB
     await User.updateOne({ username }, { $set: updateFields });
 
-    res.json({ success: true, message: "Profile updated", filename });
+    res.json({ success: true, message: "Profile updated" });
   } catch (err) {
     console.error("Update error:", err);
     res.status(500).json({ success: false, message: "Update failed" });
   }
 });
+
 
 
 // Serve uploaded files statically
