@@ -167,9 +167,9 @@ async function connectWebSocket() {
 
 
         window.socket.on("updateOnlineUsers", (usernames) => {
-          console.log("🟢 Online users:", usernames);  // DEBUG
+          console.log("🟢 Online users:", usernames);
           onlineUsernames = usernames;
-          updateOnlineIndicators(); // refresh the UI
+          showAllUsers(); // This will re-render the modal with updated indicators
         });
     
         window.socket.on("checkedRoomsStatus", (checkedRooms) => {
@@ -2711,12 +2711,25 @@ try {
 
 function updateOnlineIndicators() {
   document.querySelectorAll(".user-card").forEach(card => {
-    const username = card.getAttribute("data-username");
+    const username = card.dataset.username;
     const isOnline = onlineUsernames.includes(username);
-    card.classList.toggle("online", isOnline);
+
+    const existingDot = card.querySelector(".online-dot");
+    if (isOnline) {
+      if (!existingDot) {
+        const dot = document.createElement("span");
+        dot.className = "online-dot";
+        dot.style = "position: absolute; bottom: 2px; right: 2px; width: 12px; height: 12px; background-color: #0f0; border: 2px solid white; border-radius: 50%;";
+        const container = card.querySelector("div[style*='position: relative']");
+        if (container) container.appendChild(dot);
+      }
+    } else {
+      if (existingDot) {
+        existingDot.remove();
+      }
+    }
   });
 }
-
 
 // 🧠 Load user profile and display modal
 async function handleUserAccount() {
@@ -2925,17 +2938,18 @@ async function showAllUsers() {
       const onlineDot = isOnline ? `<span class="online-dot" style="display:inline-block; width:10px; height:10px; border-radius:50%; background-color:#0f0; margin-right:6px;"></span>` : "";
 
       return `
-        <div class="user-card" data-username="${user.username}" style="display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #ddd; padding: 10px 0;">
-          ${onlineDot}
+      <div class="user-card" data-username="${user.username}" style="display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #ddd; padding: 10px 0;">
+        <div style="position: relative; display: inline-block;">
           <img src="${imageUrl}" alt="${user.username}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 1px solid #ccc;" />
-          ${isOnline ? `<span class="online-dot" style="position: absolute; bottom: 2px; right: 2px; width: 12px; height: 12px; background-color: #0f0; border: 2px solid white; border-radius: 50%;"></span>` : ""}
-          <div style="flex-grow: 1;">
-            <strong>${user.username}</strong><br/>
-            <small>📞 ${user.phone || "Not set"}</small><br/>
-            <small>${user.position || "Unknown Position"}</small>
-          </div>
+          ${isOnline ? `<span style="position: absolute; bottom: 2px; right: 2px; width: 12px; height: 12px; background-color: #0f0; border: 2px solid white; border-radius: 50%;"></span>` : ""}
         </div>
-      `;
+        <div style="flex-grow: 1;">
+          <strong>${user.username}</strong><br/>
+          <small>📞 ${user.phone || "Not set"}</small><br/>
+          <small>${user.position || "Unknown Position"}</small>
+        </div>
+      </div>
+    `;
     }).join('');
 
     Swal.fire({
