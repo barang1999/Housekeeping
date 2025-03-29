@@ -2748,25 +2748,48 @@ function showEditProfileForm({ username, phone, profileImage, score }) {
     confirmButtonText: "Save",
     cancelButtonText: "Cancel",
     preConfirm: async () => {
-      const phone = document.getElementById("edit-phone").value;
-      const password = document.getElementById("edit-password").value;
-      const file = document.getElementById("edit-profile-upload").files[0];
+  const phone = document.getElementById("edit-phone").value;
+  const password = document.getElementById("edit-password").value;
+  const file = document.getElementById("edit-profile-upload").files[0];
 
-      const formData = new FormData();
-      formData.append("phone", phone);
-      if (password) formData.append("password", password);
-      if (file) formData.append("profileImage", file);
+  const formData = new FormData();
+  formData.append("phone", phone);
+  if (password) formData.append("password", password);
+  if (file) formData.append("profileImage", file);
+  Swal.showLoading();
 
-      const response = await fetch(`${apiUrl}/user/update-profile`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${getToken()}` },
-        body: formData
-      });
-
-      if (!response.ok) throw new Error("Failed to update profile");
-
-      Swal.fire("✅ Saved", "Your profile has been updated.", "success");
+  const res = await fetch(`${apiUrl}/user/update-profile`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${getToken()}` // ✅ Don't set Content-Type!
     },
+    body: formData
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    console.error("❌ Failed to update profile:", err);
+    throw new Error(err.message || "Failed to update profile.");
+  }
+
+  const updated = await res.json();
+
+  // ✅ Refresh UI with new profile image
+  updateHeaderProfile({
+    username: updated.username,
+    profileImage: updated.profileImage?.startsWith("data:image/")
+      ? updated.profileImage
+      : updated.profileImage
+        ? `${apiUrl}/uploads/${updated.profileImage}`
+        : "default-avatar.png"
+  });
+
+  Swal.fire("✅ Saved", "Your profile has been updated.", "success");
+
+
+  // Optional: Refresh dashboard stats
+  await showDashboard(updated.username);
+},
     didOpen: () => {
       document.getElementById("edit-profile-upload").addEventListener("change", (event) => {
         const file = event.target.files[0];
