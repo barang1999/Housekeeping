@@ -2818,23 +2818,57 @@ function showEditProfileForm({ username, phone, profileImage, score }) {
   });
 }
 
-// 🌟 Show leaderboard (top 3 cleaners)
 async function showLeaderboard() {
-  const res = await fetch("/score/leaderboard");
-  const data = await res.json();
+  try {
+    // Show loading while fetching
+    Swal.fire({
+      title: "Loading leaderboard...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading()
+    });
 
-  let html = "<ol style='text-align: left;'>";
-  data.forEach(({ _id, count }) => {
-    html += `<li><strong>${_id}</strong> ⭐ x${count}</li>`;
-  });
-  html += "</ol>";
+    const res = await fetch("/score/leaderboard", {
+      headers: {
+        Authorization: `Bearer ${getToken()}`
+      }
+    });
 
-  Swal.fire({
-    title: "🌟 Top 3 Cleaners",
-    html,
-    confirmButtonText: "Close",
-    customClass: { popup: "minimal-popup-menu" }
-  });
+    const data = await res.json();
+
+    // Define medals
+    const medals = ["🥇", "🥈", "🥉"];
+
+    // Create leaderboard HTML
+    let html = "<ol style='text-align: left; padding-left: 0;'>";
+
+    data.forEach(({ _id, count, profileImage }, index) => {
+      const imageUrl = profileImage
+        ? getFullImageURL(profileImage)
+        : "https://via.placeholder.com/40";
+
+      html += `
+        <li style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+          <span style="font-size: 20px;">${medals[index] || "⭐"}</span>
+          <img src="${imageUrl}" alt="Profile" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #ccc; object-fit: cover;" />
+          <div>
+            <strong>${_id}</strong><br/>
+            <small>⭐ x${count}</small>
+          </div>
+        </li>`;
+    });
+
+    html += "</ol>";
+
+    Swal.fire({
+      title: "🌟 Top 3 Cleaners",
+      html,
+      confirmButtonText: "Close",
+      customClass: { popup: "minimal-popup-menu" }
+    });
+  } catch (err) {
+    console.error("❌ Error loading leaderboard:", err);
+    Swal.fire("Error", "Unable to load leaderboard.", "error");
+  }
 }
 
 
@@ -2852,6 +2886,7 @@ async function showLeaderboard() {
     html: `
       <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
         <button class="minimal-menu-button" onclick="handleUserAccount()">👤 User Account</button>
+        <button class="minimal-menu-button" onclick="showLeaderboard()">🏅 Board</button>
         <button class="minimal-menu-button" onclick="exportLogs()">📄 Export Cleaning Logs</button>
         <button class="minimal-menu-button" onclick="exportInspectionPDF()">📝 Export Inspection Logs</button>
         <button class="minimal-menu-button" onclick="clearLocalStorage()">🧹 Clear Local Storage</button>
