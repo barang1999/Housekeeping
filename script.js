@@ -2827,11 +2827,12 @@ async function showLeaderboard() {
       didOpen: () => Swal.showLoading()
     });
 
-    const res = await fetch("/score/leaderboard", {
+    const res = await fetch(`${apiUrl}/score/leaderboard`, {
       headers: {
         Authorization: `Bearer ${getToken()}`
       }
     });
+
 
     const data = await res.json();
 
