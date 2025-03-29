@@ -167,10 +167,13 @@ async function connectWebSocket() {
 
 
         window.socket.on("updateOnlineUsers", (usernames) => {
-          console.log("🟢 Online users:", usernames);
-          onlineUsernames = usernames;
-          showAllUsers(); // This will re-render the modal with updated indicators
+          onlineUsernames = usernames.map(name => name.toLowerCase());
+          console.log("🟢 Online users from socket:", onlineUsernames);
+
+          // ✅ only call this AFTER we receive the updated list
+          showAllUsers();
         });
+
     
         window.socket.on("checkedRoomsStatus", (checkedRooms) => {
                 checkedRooms.forEach(roomNumber => {
@@ -2936,7 +2939,7 @@ async function showAllUsers() {
     // Build user cards with online indicator
     const userCards = users.map(user => {
       const imageUrl = getFullImageURL(user.profileImage);
-      const isOnline = onlineUsernames.includes(user.username);
+      const isOnline = onlineUsernames.includes(user.username.toLowerCase());
       const onlineDot = isOnline ? `<span class="online-dot" style="display:inline-block; width:10px; height:10px; border-radius:50%; background-color:#0f0; margin-right:6px;"></span>` : "";
 
       return `
