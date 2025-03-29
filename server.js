@@ -155,37 +155,35 @@ io.use(async (socket, next) => {
 io.on("connection", (socket) => {
     console.log(`⚡ WebSocket Client Connected: ${socket.id}`);
 
+    let username = "";
     try {
     const token = socket.handshake.auth.token;
     if (!token) throw new Error("Missing token");
 
     const user = jwt.verify(token, secretKey);
-    const username = user.username;
+    username = user.username;
+    socket.user = user;
 
+    // Add user to online list
     onlineUsers.add(username);
     io.emit("updateOnlineUsers", Array.from(onlineUsers));
 
     console.log(`🟢 ${username} connected (${socket.id})`);
-
-    socket.on("disconnect", () => {
-      onlineUsers.delete(username);
-      io.emit("updateOnlineUsers", Array.from(onlineUsers));
-      console.log(`🔴 ${username} disconnected`);
-    });
   } catch (err) {
     console.warn("❌ Unauthorized WebSocket connection:", err.message);
     socket.disconnect(true);
+    return;
   }
-});
 
-    // Verify if the client is authenticated
-    if (!socket.user) {
-        console.warn("❌ Unauthorized WebSocket Connection Attempt");
-        socket.disconnect(true);
-        return;
-    }
+  console.log(`🔐 WebSocket Authenticated: ${username}`);
 
-    console.log(`🔐 WebSocket Authenticated: ${socket.user.username}`);
+  // Clean up on disconnect
+  socket.on("disconnect", (reason) => {
+    onlineUsers.delete(username);
+    io.emit("updateOnlineUsers", Array.from(onlineUsers));
+    console.warn(`🔴 ${username} disconnected (${reason})`);
+    socket.removeAllListeners();
+  });
 
 
     socket.on("requestDNDStatus", async () => {
@@ -381,11 +379,6 @@ socket.on("dndUpdate", async ({ roomNumber, status }) => {
     console.log(`✅ Resetting Cleaning Status for Room ${roomNumber}`);
     io.emit("resetCleaning", { roomNumber, status: "available" });
 });
-
-    socket.on("disconnect", (reason) => {
-        console.warn(`🔴 WebSocket Client Disconnected: ${reason}`);
-        socket.removeAllListeners(); // ✅ Removes all event listeners
-    });
 });
 
 // ✅ Store `io` in Express
