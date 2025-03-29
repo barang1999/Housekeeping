@@ -3072,6 +3072,7 @@ async function showAllUsers() {
         <button class="minimal-menu-button" onclick="handleUserAccount()">👤 User Account</button>
         <button class="minimal-menu-button" onclick="showAllUsers()">👥 All Users</button>
         <button class="minimal-menu-button" onclick="showTopCleanersLeaderboard()">🏆 View Top 3</button>
+        <button class="minimal-menu-button" onclick="showLeaderboard()">🏅 Board</button>
         <button class="minimal-menu-button" onclick="exportLogs()">📄 Export Cleaning Logs</button>
         <button class="minimal-menu-button" onclick="exportInspectionPDF()">📝 Export Inspection Logs</button>
         <button class="minimal-menu-button" onclick="clearLocalStorage()">🧹 Clear Local Storage</button>
