@@ -70,6 +70,7 @@ const userSchema = new mongoose.Schema({
     password: { type: String }, // Optional if using OAuth in future
     refreshToken: { type: String },
     phone: String,
+    position: String, // ✅ <-- Add this line
     profileImage: String,
     score: { type: Number, default: 0 },
     lastUpdated: Date
@@ -925,7 +926,7 @@ app.post("/logs/check", async (req, res) => {
 app.post("/user/update-profile", authenticateToken, upload.single("profileImage"), async (req, res) => {
   try {
     const username = req.user.username;
-    const phone = req.body.phone;
+    const { phone, position, password } = req.body;
     let filename;
 
     // ✅ Step 1: Generate and save new image if uploaded
@@ -940,6 +941,12 @@ app.post("/user/update-profile", authenticateToken, upload.single("profileImage"
     // ✅ Step 2: Prepare fields to update
     const updateFields = {};
     if (phone) updateFields.phone = phone;
+    if (position) updateFields.position = position;
+    if (password) {
+      const hashed = await bcrypt.hash(password, 10);
+      updateFields.password = hashed;
+    }
+
     if (filename) updateFields.profileImage = filename;
 
     // ✅ Step 3: Delete old profile image if new one is uploaded
@@ -981,7 +988,8 @@ app.get("/user/profile", authenticateToken, async (req, res) => {
     }
 
     // Extract safe profile data
-    const { phone = "", profileImage = "", username: name } = user;
+    const { phone = "", position = "", profileImage = "", username: name } = user;
+
 
     // Get score for current month
     const now = new Date();
@@ -997,9 +1005,11 @@ app.get("/user/profile", authenticateToken, async (req, res) => {
       success: true,
       username: name,
       phone,
+      position,
       profileImage,
       score: scores.length
     });
+
 
   } catch (error) {
     console.error("❌ Error fetching profile:", error);

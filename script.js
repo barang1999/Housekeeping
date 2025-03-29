@@ -2741,17 +2741,17 @@ async function handleUserAccount() {
   });
 }
 
-// ✏️ Separate function for edit mode
-function showEditProfileForm({ username, phone, profileImage, score }) {
+function showEditProfileForm({ username, phone, profileImage, score, position }) {
   const stars = "⭐".repeat(score || 0);
 
   Swal.fire({
-    title: "✏️ Edit Profile",
+    title: "Edit Profile",
     html: `
       <form id="edit-profile-form" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
         <img id="edit-profile-preview" src="${profileImage || "https://via.placeholder.com/80"}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #ccc;" />
         <input type="file" id="edit-profile-upload" accept="image/*" />
         <input id="edit-phone" type="tel" value="${phone || ""}" placeholder="Phone" style="padding: 6px; width: 100%;" />
+        <input id="edit-position" type="text" value="${position || ""}" placeholder="Position" style="padding: 6px; width: 100%;" />
         <input id="edit-password" type="password" placeholder="New Password (optional)" style="padding: 6px; width: 100%;" />
         <p><strong>Username:</strong> ${username}</p>
         <p>Score: ${stars} (${score})</p>
@@ -2761,48 +2761,47 @@ function showEditProfileForm({ username, phone, profileImage, score }) {
     confirmButtonText: "Save",
     cancelButtonText: "Cancel",
     preConfirm: async () => {
-  const phone = document.getElementById("edit-phone").value;
-  const password = document.getElementById("edit-password").value;
-  const file = document.getElementById("edit-profile-upload").files[0];
+      const phone = document.getElementById("edit-phone").value;
+      const position = document.getElementById("edit-position").value;
+      const password = document.getElementById("edit-password").value;
+      const file = document.getElementById("edit-profile-upload").files[0];
 
-  const formData = new FormData();
-  formData.append("phone", phone);
-  if (password) formData.append("password", password);
-  if (file) formData.append("profileImage", file);
-  Swal.showLoading();
+      const formData = new FormData();
+      formData.append("phone", phone);
+      formData.append("position", position);
+      if (password) formData.append("password", password);
+      if (file) formData.append("profileImage", file);
+      Swal.showLoading();
 
-  const res = await fetch(`${apiUrl}/user/update-profile`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${getToken()}` // ✅ Don't set Content-Type!
+      const res = await fetch(`${apiUrl}/user/update-profile`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${getToken()}`
+        },
+        body: formData
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        console.error("❌ Failed to update profile:", err);
+        throw new Error(err.message || "Failed to update profile.");
+      }
+
+      const updated = await res.json();
+
+      updateHeaderProfile({
+        username: updated.username,
+        profileImage: updated.profileImage?.startsWith("data:image/")
+          ? updated.profileImage
+          : updated.profileImage
+            ? `${apiUrl}/uploads/${updated.profileImage}`
+            : "default-avatar.png"
+      });
+
+      Swal.fire("✅ Saved", "Your profile has been updated.", "success");
+
+      await showDashboard(updated.username);
     },
-    body: formData
-  });
-
-  if (!res.ok) {
-    const err = await res.json();
-    console.error("❌ Failed to update profile:", err);
-    throw new Error(err.message || "Failed to update profile.");
-  }
-
-  const updated = await res.json();
-
-  // ✅ Refresh UI with new profile image
-  updateHeaderProfile({
-    username: updated.username,
-    profileImage: updated.profileImage?.startsWith("data:image/")
-      ? updated.profileImage
-      : updated.profileImage
-        ? `${apiUrl}/uploads/${updated.profileImage}`
-        : "default-avatar.png"
-  });
-
-  Swal.fire("✅ Saved", "Your profile has been updated.", "success");
-
-
-  // Optional: Refresh dashboard stats
-  await showDashboard(updated.username);
-},
     didOpen: () => {
       document.getElementById("edit-profile-upload").addEventListener("change", (event) => {
         const file = event.target.files[0];
@@ -2817,6 +2816,7 @@ function showEditProfileForm({ username, phone, profileImage, score }) {
     customClass: { popup: "minimal-popup-menu" }
   });
 }
+
 
 async function showLeaderboard() {
   try {
@@ -2877,6 +2877,56 @@ async function showLeaderboard() {
   }
 }
 
+async function showAllUsers() {
+  try {
+    Swal.fire({
+      title: "Loading Users...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading()
+    });
+
+    const res = await fetch(`${apiUrl}/user/all`, {
+      headers: {
+        Authorization: `Bearer ${getToken()}`
+      }
+    });
+
+    const users = await res.json();
+
+    if (!res.ok || !Array.isArray(users)) {
+      throw new Error("Failed to fetch users.");
+    }
+
+    // HTML for user cards
+    const userCards = users.map(user => {
+      const imageUrl = getFullImageURL(user.profileImage);
+      return `
+        <div style="display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #ddd; padding: 10px 0;">
+          <img src="${imageUrl}" alt="${user.username}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 1px solid #ccc;" />
+          <div style="flex-grow: 1;">
+            <strong>${user.username}</strong><br/>
+            <small>📞 ${user.phone || "Not set"}</small><br/>
+            <small>📌 ${user.position || "Unknown Position"}</small>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    Swal.fire({
+      title: "👥 All Users",
+      html: `<div style="max-height: 400px; overflow-y: auto;">${userCards}</div>`,
+      confirmButtonText: "Close",
+      customClass: { popup: "minimal-popup-menu" },
+      width: 400
+    });
+
+  } catch (err) {
+    console.error("❌ Failed to show users:", err);
+    Swal.fire("Error", "Unable to fetch user list.", "error");
+  }
+}
+
+
 
     function clearLocalStorage() {
       localStorage.clear();
@@ -2892,6 +2942,7 @@ async function showLeaderboard() {
     html: `
       <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
         <button class="minimal-menu-button" onclick="handleUserAccount()">👤 User Account</button>
+        <button class="minimal-menu-button" onclick="showAllUsers()">👥 All Users</button>
         <button class="minimal-menu-button" onclick="showLeaderboard()">🏅 Board</button>
         <button class="minimal-menu-button" onclick="exportLogs()">📄 Export Cleaning Logs</button>
         <button class="minimal-menu-button" onclick="exportInspectionPDF()">📝 Export Inspection Logs</button>
