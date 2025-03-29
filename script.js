@@ -2875,6 +2875,43 @@ function showEditProfileForm({ username, phone, profileImage, score, position })
   });
 }
 
+async function showTopCleanersLeaderboard() {
+  try {
+    const res = await fetch(`${apiUrl}/score/leaderboard`);
+    const data = await res.json();
+
+    if (!Array.isArray(data) || data.length === 0) {
+      return Swal.fire({
+        icon: "info",
+        title: "🤷‍♂️ No scores yet!",
+        text: "No cleaner has been rewarded this month."
+
+      });
+    }
+
+    // Build HTML content
+    let html = `<ul style="list-style: none; padding: 0;">`;
+    data.forEach((entry, index) => {
+      const emoji = ["🥇", "🥈", "🥉"][index] || "⭐";
+      html += `<li style="margin: 8px 0;">${emoji} <b>${entry._id}</b> - ${entry.count} point${entry.count > 1 ? "s" : ""}</li>`;
+    });
+    html += `</ul>`;
+
+    Swal.fire({
+      icon: "success",
+      title: "☀️ Top 3 Cleaners",
+      html,
+      confirmButtonText: "Close"
+    });
+  } catch (error) {
+    console.error("❌ Failed to load leaderboard:", error);
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "Couldn't load leaderboard."
+    });
+  }
+}
 
 async function showLeaderboard() {
   try {
@@ -3008,6 +3045,7 @@ async function showAllUsers() {
       <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
         <button class="minimal-menu-button" onclick="handleUserAccount()">👤 User Account</button>
         <button class="minimal-menu-button" onclick="showAllUsers()">👥 All Users</button>
+        <button class="minimal-menu-button" onclick="showTopCleanersLeaderboard()">🏆 View Top 3</button>
         <button class="minimal-menu-button" onclick="showLeaderboard()">🏅 Board</button>
         <button class="minimal-menu-button" onclick="exportLogs()">📄 Export Cleaning Logs</button>
         <button class="minimal-menu-button" onclick="exportInspectionPDF()">📝 Export Inspection Logs</button>
