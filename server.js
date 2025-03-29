@@ -96,7 +96,7 @@ const InspectionLog = mongoose.model('InspectionLog', InspectionLogSchema);
 
 const scoreLogSchema = new mongoose.Schema({
   username: String,
-  date: String, // YYYY-MM-DD
+  date: Date, // YYYY-MM-DD
   score: Number,
   isFastest: Boolean,
 });
@@ -1007,9 +1007,17 @@ app.get("/user/profile", authenticateToken, async (req, res) => {
 app.post("/score/add", authenticateToken, async (req, res) => {
   const username = req.user.username; // ✅ Always use token-based username
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date();
 
-  const existing = await ScoreLog.findOne({ username, date: today });
+  const start = new Date();
+start.setHours(0, 0, 0, 0);
+const end = new Date();
+end.setHours(23, 59, 59, 999);
+
+const existing = await ScoreLog.findOne({
+  username,
+  date: { $gte: start, $lte: end }
+});
   if (existing) return res.status(409).json({ message: "Already rewarded" });
 
   const log = new ScoreLog({ username, date: today });
