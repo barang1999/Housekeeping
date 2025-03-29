@@ -2914,7 +2914,7 @@ async function showTopCleanersLeaderboard() {
       html += `
         <li style="display: flex; align-items: center; margin: 10px 0;">
           <img src="${imageUrl}" style="width: 30px; height: 30px; border-radius: 50%; margin-right: 10px;" />
-          ${emoji} <b>${_id}</b> - ${count} point${count > 1 ? "s" : ""}
+          ${emoji} <b>${_id}</b> - 🌟 x${count}
         </li>`;
     });
 
