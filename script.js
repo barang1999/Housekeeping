@@ -2884,34 +2884,60 @@ async function showTopCleanersLeaderboard() {
       return Swal.fire({
         icon: "info",
         title: "🤷‍♂️ No scores yet!",
-        text: "No cleaner has been rewarded this month."
-
+        text: "No cleaner has been rewarded this month.",
+        customClass: { popup: "minimal-popup-menu" }
       });
     }
 
-    // Build HTML content
-    let html = `<ul style="list-style: none; padding: 0;">`;
-    data.forEach((entry, index) => {
-      const emoji = ["🥇", "🥈", "🥉"][index] || "⭐";
-      html += `<li style="margin: 8px 0;">${emoji} <b>${entry._id}</b> - ${entry.count} point${entry.count > 1 ? "s" : ""}</li>`;
+    // 🧠 Fetch user profile images for the top scorers
+    const profileRes = await fetch(`${apiUrl}/user/all`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`
+      }
     });
+
+    const allUsers = await profileRes.json(); // [{ username, profileImage }, ...]
+
+    const getFullImageURL = (base64) =>
+      base64.startsWith("data:image") ? base64 : `${apiUrl}/uploads/${base64}`;
+
+    // 🧱 Build HTML leaderboard
+    let html = `<ul style="list-style: none; padding: 0;">`;
+
+    data.forEach(({ _id, count }, index) => {
+      const emoji = ["🥇", "🥈", "🥉"][index] || "⭐";
+      const user = allUsers.find(u => u.username === _id);
+      const imageUrl = user?.profileImage
+        ? getFullImageURL(user.profileImage)
+        : "https://via.placeholder.com/40";
+
+      html += `
+        <li style="display: flex; align-items: center; margin: 10px 0;">
+          <img src="${imageUrl}" style="width: 30px; height: 30px; border-radius: 50%; margin-right: 10px;" />
+          ${emoji} <b>${_id}</b> - ${count} point${count > 1 ? "s" : ""}
+        </li>`;
+    });
+
     html += `</ul>`;
 
     Swal.fire({
       icon: "success",
       title: "☀️ Top 3 Cleaners",
       html,
-      confirmButtonText: "Close"
+      confirmButtonText: "Close",
+      customClass: { popup: "minimal-popup-menu" }
     });
   } catch (error) {
     console.error("❌ Failed to load leaderboard:", error);
     Swal.fire({
       icon: "error",
       title: "Error",
-      text: "Couldn't load leaderboard."
+      text: "Couldn't load leaderboard.",
+      customClass: { popup: "minimal-popup-menu" }
     });
   }
 }
+
 
 async function showLeaderboard() {
   try {
@@ -3046,7 +3072,6 @@ async function showAllUsers() {
         <button class="minimal-menu-button" onclick="handleUserAccount()">👤 User Account</button>
         <button class="minimal-menu-button" onclick="showAllUsers()">👥 All Users</button>
         <button class="minimal-menu-button" onclick="showTopCleanersLeaderboard()">🏆 View Top 3</button>
-        <button class="minimal-menu-button" onclick="showLeaderboard()">🏅 Board</button>
         <button class="minimal-menu-button" onclick="exportLogs()">📄 Export Cleaning Logs</button>
         <button class="minimal-menu-button" onclick="exportInspectionPDF()">📝 Export Inspection Logs</button>
         <button class="minimal-menu-button" onclick="clearLocalStorage()">🧹 Clear Local Storage</button>
