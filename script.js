@@ -2836,6 +2836,11 @@ async function showLeaderboard() {
 
     const data = await res.json();
 
+     // 🛑 Show fallback if no one is on the leaderboard
+    if (!data.length) {
+      return Swal.fire("🌟 Top 3 Cleaners", "<p>No scores yet. Start cleaning to earn stars!</p>", "info");
+    }
+
     // Define medals
     const medals = ["🥇", "🥈", "🥉"];
 
