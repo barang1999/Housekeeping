@@ -1052,6 +1052,16 @@ app.get("/score/leaderboard", async (req, res) => {
   res.json(scores);
 });
 
+app.get("/user/all", authenticateToken, async (req, res) => {
+  try {
+    const users = await User.find({}, "username phone position profileImage");
+    res.json(users);
+  } catch (err) {
+    console.error("❌ Error fetching users:", err);
+    res.status(500).json({ message: "Failed to retrieve users" });
+  }
+});
+
 
 app.get("/logs", async (req, res) => {
     try {
