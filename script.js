@@ -2,7 +2,6 @@
 
     let reconnectAttempts = 0;
     let inspectionLogs = []; // Declare it at the top
-    let onlineUsernames = [];
     const MAX_RECONNECT_ATTEMPTS = 3;
     window.socket = null;
 
@@ -165,15 +164,7 @@ async function connectWebSocket() {
              restoreAllInspectionButtons();  // 🟢 Make sure borders reapply
         });
 
-
-        window.socket.on("updateOnlineUsers", (usernames) => {
-          onlineUsernames = usernames.map(name => name.toLowerCase());
-          console.log("🟢 Online users from socket:", onlineUsernames);
-
-          // ✅ only call this AFTER we receive the updated list
-          showAllUsers();
-        });
-
+    
     
         window.socket.on("checkedRoomsStatus", (checkedRooms) => {
                 checkedRooms.forEach(roomNumber => {
@@ -2712,27 +2703,6 @@ try {
     : "https://via.placeholder.com/80";
 }
 
-function updateOnlineIndicators() {
-  document.querySelectorAll(".user-card").forEach(card => {
-    const username = card.dataset.username;
-    const isOnline = onlineUsernames.includes(username);
-
-    const existingDot = card.querySelector(".online-dot");
-    if (isOnline) {
-      if (!existingDot) {
-        const dot = document.createElement("span");
-        dot.className = "online-dot";
-        dot.style = "position: absolute; bottom: 2px; right: 2px; width: 12px; height: 12px; background-color: #0f0; border: 2px solid white; border-radius: 50%;";
-        const container = card.querySelector("div[style*='position: relative']");
-        if (container) container.appendChild(dot);
-      }
-    } else {
-      if (existingDot) {
-        existingDot.remove();
-      }
-    }
-  });
-}
 
 // 🧠 Load user profile and display modal
 async function handleUserAccount() {
@@ -2931,30 +2901,22 @@ async function showAllUsers() {
     users.sort((a, b) => {
       if (a.username === currentUsername) return -1;
       if (b.username === currentUsername) return 1;
-      return a.username.localeCompare(b.username);
+      return a.username.localeCompare(b.username); // optional: alphabetical
     });
 
-    console.log("Online users inside showAllUsers:", onlineUsernames);
-
-    // Build user cards with online indicator
+    // HTML for user cards
     const userCards = users.map(user => {
       const imageUrl = getFullImageURL(user.profileImage);
-      const isOnline = onlineUsernames.includes(user.username.toLowerCase());
-      const onlineDot = isOnline ? `<span class="online-dot" style="display:inline-block; width:10px; height:10px; border-radius:50%; background-color:#0f0; margin-right:6px;"></span>` : "";
-
       return `
-      <div class="user-card" data-username="${user.username}" style="display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #ddd; padding: 10px 0;">
-        <div style="position: relative; display: inline-block;">
+        <div style="display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #ddd; padding: 10px 0;">
           <img src="${imageUrl}" alt="${user.username}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 1px solid #ccc;" />
-          ${isOnline ? `<span style="position: absolute; bottom: 2px; right: 2px; width: 12px; height: 12px; background-color: #0f0; border: 2px solid white; border-radius: 50%;"></span>` : ""}
+          <div style="flex-grow: 1;">
+            <strong>${user.username}</strong><br/>
+            <small>📞 ${user.phone || "Not set"}</small><br/>
+            <small> ${user.position || "Unknown Position"}</small>
+          </div>
         </div>
-        <div style="flex-grow: 1;">
-          <strong>${user.username}</strong><br/>
-          <small>📞 ${user.phone || "Not set"}</small><br/>
-          <small>${user.position || "Unknown Position"}</small>
-        </div>
-      </div>
-    `;
+      `;
     }).join('');
 
     Swal.fire({
@@ -2970,6 +2932,7 @@ async function showAllUsers() {
     Swal.fire("Error", "Unable to fetch user list.", "error");
   }
 }
+
 
 
     function clearLocalStorage() {
