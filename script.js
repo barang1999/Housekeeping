@@ -546,6 +546,9 @@ function updateHeaderProfile({ username, profileImage }) {
                     localStorage.setItem("token", data.token);
                     localStorage.setItem("username", data.username);
 
+                    // 🏅 Check if we should reward the fastest cleaner
+                    setTimeout(rewardFastestCleanerIfNeeded, 2000);
+
                     // 🔽 FETCH FULL PROFILE to update header
                     const profileRes = await fetch("https://housekeeping-production.up.railway.app/user/profile", {
                         method: "GET",
@@ -2477,6 +2480,41 @@ try {
         };
     }
 
+    async function rewardFastestCleanerIfNeeded() {
+    const now = new Date();
+    const currentHour = now.getHours();
+
+    // Only trigger after 5PM
+    if (currentHour < 17) return;
+
+    const lastRewardKey = "lastScoreRewardDate";
+    const today = now.toISOString().slice(0, 10);
+
+    // Prevent rewarding multiple times per day
+    if (localStorage.getItem(lastRewardKey) === today) return;
+
+    const stats = await calculateUserCleaningStats();
+    if (!stats || !stats.fastestUser) return;
+
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    const response = await fetch(`${apiUrl}/score/add`, {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${token}`
+        }
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+        console.log(`🏆 Score rewarded to ${stats.fastestUser}`);
+        localStorage.setItem(lastRewardKey, today);
+    } else {
+        console.warn("⚠️ Failed to reward score:", result.message);
+    }
+}
 
 
     function updateDNDStatus(roomNumber, status) {
