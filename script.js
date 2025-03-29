@@ -163,8 +163,12 @@ async function connectWebSocket() {
              // ✅ ADD this AFTER everything:
              restoreAllInspectionButtons();  // 🟢 Make sure borders reapply
         });
+       let onlineUsernames = [];
 
-    
+        window.socket.on("updateOnlineUsers", (usernames) => {
+          onlineUsernames = usernames;
+          updateOnlineIndicators(); // refresh the UI
+        });
     
         window.socket.on("checkedRoomsStatus", (checkedRooms) => {
                 checkedRooms.forEach(roomNumber => {
@@ -2703,6 +2707,14 @@ try {
     : "https://via.placeholder.com/80";
 }
 
+function updateOnlineIndicators() {
+  document.querySelectorAll(".user-card").forEach(card => {
+    const username = card.getAttribute("data-username");
+    const isOnline = onlineUsernames.includes(username);
+    card.classList.toggle("online", isOnline);
+  });
+}
+
 
 // 🧠 Load user profile and display modal
 async function handleUserAccount() {
@@ -2901,19 +2913,23 @@ async function showAllUsers() {
     users.sort((a, b) => {
       if (a.username === currentUsername) return -1;
       if (b.username === currentUsername) return 1;
-      return a.username.localeCompare(b.username); // optional: alphabetical
+      return a.username.localeCompare(b.username);
     });
 
-    // HTML for user cards
+    // Build user cards with online indicator
     const userCards = users.map(user => {
       const imageUrl = getFullImageURL(user.profileImage);
+      const isOnline = onlineUsernames.includes(user.username);
+      const onlineDot = isOnline ? `<span class="online-dot" style="display:inline-block; width:10px; height:10px; border-radius:50%; background-color:#0f0; margin-right:6px;"></span>` : "";
+
       return `
-        <div style="display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #ddd; padding: 10px 0;">
+        <div class="user-card" data-username="${user.username}" style="display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #ddd; padding: 10px 0;">
+          ${onlineDot}
           <img src="${imageUrl}" alt="${user.username}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 1px solid #ccc;" />
           <div style="flex-grow: 1;">
             <strong>${user.username}</strong><br/>
             <small>📞 ${user.phone || "Not set"}</small><br/>
-            <small> ${user.position || "Unknown Position"}</small>
+            <small>${user.position || "Unknown Position"}</small>
           </div>
         </div>
       `;
@@ -2932,7 +2948,6 @@ async function showAllUsers() {
     Swal.fire("Error", "Unable to fetch user list.", "error");
   }
 }
-
 
 
     function clearLocalStorage() {
