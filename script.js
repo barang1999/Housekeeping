@@ -2931,6 +2931,8 @@ async function showAllUsers() {
       return a.username.localeCompare(b.username);
     });
 
+    console.log("Online users inside showAllUsers:", onlineUsernames);
+
     // Build user cards with online indicator
     const userCards = users.map(user => {
       const imageUrl = getFullImageURL(user.profileImage);
