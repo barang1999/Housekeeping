@@ -2897,6 +2897,18 @@ async function showAllUsers() {
       throw new Error("Failed to fetch users.");
     }
 
+    // Get current username (from decoded token or stored session)
+    const token = getToken();
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    const currentUsername = payload.username;
+
+    // Sort: current user on top
+    users.sort((a, b) => {
+      if (a.username === currentUsername) return -1;
+      if (b.username === currentUsername) return 1;
+      return a.username.localeCompare(b.username); // optional: alphabetical
+    });
+
     // HTML for user cards
     const userCards = users.map(user => {
       const imageUrl = getFullImageURL(user.profileImage);
@@ -2906,7 +2918,7 @@ async function showAllUsers() {
           <div style="flex-grow: 1;">
             <strong>${user.username}</strong><br/>
             <small>📞 ${user.phone || "Not set"}</small><br/>
-            <small>📌 ${user.position || "Unknown Position"}</small>
+            <small> ${user.position || "Unknown Position"}</small>
           </div>
         </div>
       `;
