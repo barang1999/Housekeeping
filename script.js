@@ -5,119 +5,122 @@
     const MAX_RECONNECT_ATTEMPTS = 3;
     window.socket = null;
 
-    document.addEventListener("DOMContentLoaded", async () => {
-        console.log("🔄 Initializing housekeeping system...");
+document.addEventListener("DOMContentLoaded", async () => {
+  Swal.fire({
+    title: "Loading...",
+    allowOutsideClick: false,
+    didOpen: () => {
+      Swal.showLoading();
+    }
+  });
 
-        // === Restore Inspection Logs from LocalStorage ===
-        const savedLogs = JSON.parse(localStorage.getItem("inspectionLogs"));
-        if (savedLogs) {
-            inspectionLogs = savedLogs;
-            restoreAllInspectionButtons();
-            console.log("✅ Restored inspection logs from localStorage.");
-        }
+  console.log("🔄 Initializing housekeeping system...");
 
-        // ✅ Restore Priority Buttons From LocalStorage (before rooms load)
-        document.querySelectorAll(".priority-toggle").forEach(button => {
-            const roomNumber = button.id.replace("selected-priority-", "");
-            const savedPriority = localStorage.getItem(`priority-${roomNumber}`);
-            const allowTime = localStorage.getItem(`allowTime-${roomNumber}`);
-        
-            if (savedPriority === 'allow' && allowTime) {
-                button.innerHTML = `🔵 ${allowTime}`;
-            } else {
-                updateSelectedPriorityDisplay(roomNumber, savedPriority || "default");
-            }
-        });
+  try {
+    // === Restore Inspection Logs from LocalStorage ===
+    const savedLogs = JSON.parse(localStorage.getItem("inspectionLogs"));
+    if (savedLogs) {
+      inspectionLogs = savedLogs;
+      restoreAllInspectionButtons();
+      console.log("✅ Restored inspection logs from localStorage.");
+    }
 
-        document.querySelectorAll(".floor-tab").forEach(tab => {
-            let holdTimeout;
+    // ✅ Restore Priority Buttons From LocalStorage
+    document.querySelectorAll(".priority-toggle").forEach(button => {
+      const roomNumber = button.id.replace("selected-priority-", "");
+      const savedPriority = localStorage.getItem(`priority-${roomNumber}`);
+      const allowTime = localStorage.getItem(`allowTime-${roomNumber}`);
+    
+      if (savedPriority === 'allow' && allowTime) {
+        button.innerHTML = `🔵 ${allowTime}`;
+      } else {
+        updateSelectedPriorityDisplay(roomNumber, savedPriority || "default");
+      }
+    });
 
-            const startHold = () => {
-                holdTimeout = setTimeout(() => {
-                    const floorId = tab.dataset.floor;
-                    toggleFloorLock(floorId);
-                }, 1000); // Hold for 1 second
-            };
+    // 🛗 Floor Lock Hold Events
+    document.querySelectorAll(".floor-tab").forEach(tab => {
+      let holdTimeout;
+      const startHold = () => {
+        holdTimeout = setTimeout(() => {
+          const floorId = tab.dataset.floor;
+          toggleFloorLock(floorId);
+        }, 1000);
+      };
+      const cancelHold = () => clearTimeout(holdTimeout);
+      tab.addEventListener("mousedown", startHold);
+      tab.addEventListener("mouseup", cancelHold);
+      tab.addEventListener("mouseleave", cancelHold);
+      tab.addEventListener("touchstart", startHold);
+      tab.addEventListener("touchend", cancelHold);
+      tab.addEventListener("touchcancel", cancelHold);
+    });
 
-            const cancelHold = () => {
-                clearTimeout(holdTimeout);
-            };
+    // 🔐 Auth and Token Checks
+    await ensureValidToken();
+    await checkAuth();
 
-            // 🖱 Desktop support
-            tab.addEventListener("mousedown", startHold);
-            tab.addEventListener("mouseup", cancelHold);
-            tab.addEventListener("mouseleave", cancelHold);
+    // 📥 Fetch initial housekeeping data
+    await loadDNDStatus();
+    await loadLogs();
+    await restoreCleaningStatus();
+    await restorePriorities();
 
-            // 📱 Mobile support
-            tab.addEventListener("touchstart", startHold);
-            tab.addEventListener("touchend", cancelHold);
-            tab.addEventListener("touchcancel", cancelHold);
-        });
+    // 🔌 WebSocket Connection
+    await connectWebSocket();
 
-
-        // ✅ Validate Token & Authentication
-        await ensureValidToken();
-        await checkAuth();
-
-        // ✅ Fetch DND, Logs, Rooms
-        await loadDNDStatus();
-        await loadLogs();
-        await restoreCleaningStatus();
-        await restorePriorities();
-
-        // ✅ WebSocket Connection
-        await connectWebSocket();
-
-        // ✅ Ensure WebSocket emits priority request
+    if (window.socket) {
+      window.socket.emit("requestPriorityStatus");
+    } else {
+      console.warn("⚠️ WebSocket not ready. Retrying...");
+      setTimeout(() => {
         if (window.socket) {
-            window.socket.emit("requestPriorityStatus");
+          window.socket.emit("requestPriorityStatus");
         } else {
-            console.warn("⚠️ WebSocket is not initialized. Retrying...");
-            setTimeout(() => {
-                if (window.socket) {
-                    window.socket.emit("requestPriorityStatus");
-                } else {
-                    console.error("❌ WebSocket still not initialized. Check connection setup.");
-                }
-            }, 1000);
+          console.error("❌ WebSocket still failed.");
         }
+      }, 1000);
+    }
 
-        console.log("🎯 Cleaning status restored successfully.");
+    console.log("🎯 Cleaning status restored successfully.");
 
-        // ✅ Fetch Additional Room Status Data (Previously in window.onload)
-        await fetchRoomStatuses();
+    // 🧠 Fetch Room Status
+    await fetchRoomStatuses();
 
+    // 👤 Handle Login or Show Login Form
+    const token = localStorage.getItem("token");
+    const username = localStorage.getItem("username");
 
-        // ✅ Check Token for Login/Logout Flow
-        const token = localStorage.getItem("token");
-        const username = localStorage.getItem("username");
+    if (token && username) {
+      console.log("✅ Token and username found. Authenticating...");
+      const validToken = await ensureValidToken();
 
-        if (token && username) {
-            console.log("✅ Token and username found. Attempting authentication...");
-            const validToken = await ensureValidToken();
+      if (validToken) {
+        console.log("✅ Token valid. Showing dashboard...");
+        setTimeout(() => showDashboard(username), 500);
+      } else {
+        console.warn("❌ Invalid token. Logging out...");
+        logout();
+      }
+    } else {
+      console.log("❌ No token found. Showing login form...");
+      document.getElementById("auth-section").style.display = "block";
+      document.getElementById("dashboard").style.display = "none";
+    }
 
-            if (validToken) {
-                console.log("✅ Token is valid. Redirecting to dashboard...");
-                setTimeout(() => {
-                    showDashboard(username);
-                }, 500);
-            } else {
-                console.warn("❌ Invalid or expired token. Showing login form.");
-                logout();
-            }
-        } else {
-            console.log("❌ No token found. Showing login form.");
-            document.getElementById("auth-section").style.display = "block";
-            document.getElementById("dashboard").style.display = "none";
-        }
-        // ✅ Set lock icons based on current state
+    // 🔒 Restore Floor Lock UI
     updateFloorTabIcons();
 
+  } catch (err) {
+    console.error("🚨 Initialization error:", err);
+    Swal.fire("Error", "Something went wrong during initialization.", "error");
+  } finally {
+    Swal.close(); // ✅ Hide loading spinner
+  }
 });
 
-
     /** ✅ WebSocket Connection & Event Handling */
-    async function connectWebSocket() {
+async function connectWebSocket() {
         if (window.socket) {
             window.socket.removeAllListeners();
             window.socket.disconnect();
