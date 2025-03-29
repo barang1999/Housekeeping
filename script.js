@@ -167,6 +167,7 @@ async function connectWebSocket() {
 
 
         window.socket.on("updateOnlineUsers", (usernames) => {
+          console.log("🟢 Online users:", usernames);  // DEBUG
           onlineUsernames = usernames;
           updateOnlineIndicators(); // refresh the UI
         });
@@ -2927,6 +2928,7 @@ async function showAllUsers() {
         <div class="user-card" data-username="${user.username}" style="display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #ddd; padding: 10px 0;">
           ${onlineDot}
           <img src="${imageUrl}" alt="${user.username}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 1px solid #ccc;" />
+          ${isOnline ? `<span class="online-dot" style="position: absolute; bottom: 2px; right: 2px; width: 12px; height: 12px; background-color: #0f0; border: 2px solid white; border-radius: 50%;"></span>` : ""}
           <div style="flex-grow: 1;">
             <strong>${user.username}</strong><br/>
             <small>📞 ${user.phone || "Not set"}</small><br/>
