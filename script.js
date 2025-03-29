@@ -2914,7 +2914,13 @@ async function showTopCleanersLeaderboard() {
       html += `
         <li style="display: flex; align-items: center; margin: 10px 0;">
           <img src="${imageUrl}" style="width: 30px; height: 30px; border-radius: 50%; margin-right: 10px;" />
-          ${emoji} <b>${_id}</b> - 🌟 x${count}
+          ${emoji} <b>${_id}</b>
+          <span style="margin-left: 8px; display: flex; align-items: center;">
+            <svg class="star-glow" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="gold" viewBox="0 0 24 24">
+              <path d="M12 .587l3.668 7.571L24 9.75l-6 5.847 1.417 8.26L12 19.771l-7.417 4.086L6 15.597 0 9.75l8.332-1.592z"/>
+            </svg>
+            <span style="margin-left: 4px;">x${count}</span>
+          </span>
         </li>`;
     });
 
