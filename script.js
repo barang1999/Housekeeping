@@ -86,6 +86,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // 🧠 Fetch Room Status
     await fetchRoomStatuses();
+  
+
 
     // 👤 Handle Login or Show Login Form
     const token = localStorage.getItem("token");
@@ -962,6 +964,19 @@ try {
         <div>🕒 ល្បឿនសម្អាតរបស់អ្នកជាមធ្យម: <strong>${avgDuration} min</strong></div>
         <div>⚡ អ្នកសម្អាតបានលឿនជាងគេ: <strong>${fastestCleaner}</strong></div>
     `;
+
+    const rewardBtn = document.createElement("button");
+    rewardBtn.innerText = "🎖️Reward Fastest Cleaner";
+    rewardBtn.style.marginTop = "10px";
+    rewardBtn.style.backgroundColor = "gold";
+    rewardBtn.style.border = "none";
+    rewardBtn.style.padding = "6px 12px";
+    rewardBtn.style.borderRadius = "6px";
+    rewardBtn.style.fontWeight = "bold";
+    rewardBtn.style.cursor = "pointer";
+    rewardBtn.onclick = rewardFastestCleanerIfNeeded;
+
+    statsContainer.appendChild(rewardBtn);
 } catch (err) {
     console.error("❌ Failed to load cleaning stats:", err);
 }
