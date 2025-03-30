@@ -425,48 +425,56 @@ async function connectWebSocket() {
         window.socket.emit(event, data);
     }
 
-    async function rewardFastestCleanerIfNeeded() {
+async function rewardFastestCleanerIfNeeded() {
     const now = new Date();
+    const today = now.toISOString().split("T")[0]; // "YYYY-MM-DD"
     const currentHour = now.getHours();
-    const today = now.toISOString().slice(0, 10);
+    const lastRewardKey = "lastScoreRewardDate";
+    const currentUser = localStorage.getItem("username");
+    const token = localStorage.getItem("token");
 
     console.log("🕐 Checking if score should be rewarded...");
 
+    // ⏰ Must be after 5PM
     if (currentHour < 17) {
         console.log("⏳ It's not 5PM yet. Skipping score reward.");
         return;
     }
 
-    const lastRewardKey = "lastScoreRewardDate";
+    // 🛑 Already rewarded today?
     if (localStorage.getItem(lastRewardKey) === today) {
         console.log("🛑 Score already rewarded today. Skipping.");
         return;
     }
 
+    // 🧠 Get cleaning stats
     const stats = await calculateUserCleaningStats();
     if (!stats || !stats.fastestUser) {
-        console.warn("⚠️ No fastest user found in stats.");
+        console.warn("⚠️ No fastest user found.");
         return;
     }
 
-    console.log("⚡ Fastest cleaner is:", stats.fastestUser);
+    console.log(`⚡ Fastest cleaner is: ${stats.fastestUser}`);
 
-    const currentUser = localStorage.getItem("username");
+    // 👤 Check if current user is the fastest
     if (stats.fastestUser !== currentUser) {
         console.log(`👤 Logged in user (${currentUser}) is not the fastest.`);
         return;
     }
 
-    const token = localStorage.getItem("token");
     if (!token) {
         console.warn("⚠️ No auth token found.");
         return;
     }
 
+    // 📨 Attempt reward
     try {
         const res = await fetch(`${apiUrl}/score/add`, {
             method: "POST",
-            headers: { Authorization: `Bearer ${token}` }
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`
+            }
         });
 
         const result = await res.json();
@@ -478,9 +486,10 @@ async function connectWebSocket() {
             console.warn("⚠️ Backend rejected score reward:", result.message);
         }
     } catch (err) {
-        console.error("❌ Error sending score reward request:", err);
+        console.error("❌ Error while rewarding score:", err);
     }
 }
+
 
     /** ✅ Ensure WebSocket is Properly Connected Before Usage */
     function ensureWebSocketConnection() {
