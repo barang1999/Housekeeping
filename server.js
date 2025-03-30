@@ -1005,43 +1005,29 @@ app.get("/user/profile", authenticateToken, async (req, res) => {
 });
 
 app.post("/score/reward-fastest", authenticateToken, async (req, res) => {
-  const now = new Date();
-  const start = new Date(now.setHours(0, 0, 0, 0));
-  const end = new Date();
-  end.setHours(23, 59, 59, 999);
-
   try {
-    // Fetch cleaning logs for today
-    const logs = await CleaningLog.find({
-      startTime: { $gte: start, $lte: end },
-      finishTime: { $exists: true }
-    });
-
-    if (!logs.length) {
-      return res.status(404).json({ message: "No cleaning logs found." });
+    const logs = await CleaningLog.find();
+    if (!logs || logs.length === 0) {
+      return res.status(404).json({ success: false, message: "No cleaning logs found." });
     }
 
-    // Calculate duration per user
     const userDurations = {};
-
     logs.forEach(log => {
-      const duration = (new Date(log.finishTime) - new Date(log.startTime)) / 60000;
-      if (duration > 0) {
-        const user = log.finishedBy || "Unknown";
-        if (!userDurations[user]) {
-          userDurations[user] = [];
+      if (log.startTime && log.finishTime) {
+        const duration = (new Date(log.finishTime) - new Date(log.startTime)) / 60000;
+        if (duration > 0) {
+          const user = log.finishedBy;
+          if (!userDurations[user]) userDurations[user] = [];
+          userDurations[user].push(duration);
         }
-        userDurations[user].push(duration);
       }
     });
 
-    // Find user with shortest average
     let fastestUser = null;
     let fastestAvg = Infinity;
 
     for (const user in userDurations) {
-      const times = userDurations[user];
-      const avg = times.reduce((a, b) => a + b) / times.length;
+      const avg = userDurations[user].reduce((a, b) => a + b, 0) / userDurations[user].length;
       if (avg < fastestAvg) {
         fastestAvg = avg;
         fastestUser = user;
@@ -1049,28 +1035,29 @@ app.post("/score/reward-fastest", authenticateToken, async (req, res) => {
     }
 
     if (!fastestUser) {
-      return res.status(404).json({ message: "No fastest cleaner found." });
+      return res.status(404).json({ success: false, message: "No fastest user determined." });
     }
 
-    // Check if already rewarded today
-    const alreadyRewarded = await ScoreLog.findOne({
+    const today = new Date();
+    const start = new Date(today.setHours(0, 0, 0, 0));
+    const end = new Date(today.setHours(23, 59, 59, 999));
+
+    const existing = await ScoreLog.findOne({
       username: fastestUser,
       date: { $gte: start, $lte: end }
     });
 
-    if (alreadyRewarded) {
-      return res.status(409).json({ message: "Already rewarded today." });
+    if (existing) {
+      return res.status(409).json({ success: false, message: "Already rewarded today." });
     }
 
-    // Save reward
-    const scoreLog = new ScoreLog({ username: fastestUser, date: new Date() });
-    await scoreLog.save();
+    const log = new ScoreLog({ username: fastestUser, date: new Date() });
+    await log.save();
 
-    res.json({ success: true, message: `Score rewarded to ${fastestUser}`, fastestUser });
-
+    res.json({ success: true, fastestUser, message: "Score added to fastest user" });
   } catch (err) {
-    console.error("❌ Error in reward-fastest:", err);
-    res.status(500).json({ message: "Internal server error" });
+    console.error("❌ Server error:", err);
+    res.status(500).json({ success: false, message: "Server error." });
   }
 });
 
