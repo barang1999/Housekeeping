@@ -965,18 +965,54 @@ try {
         <div>⚡ អ្នកសម្អាតបានលឿនជាងគេ: <strong>${fastestCleaner}</strong></div>
     `;
 
-    const rewardBtn = document.createElement("button");
-    rewardBtn.innerText = "🎖️Reward Fastest Cleaner";
-    rewardBtn.style.marginTop = "10px";
-    rewardBtn.style.backgroundColor = "gold";
-    rewardBtn.style.border = "none";
-    rewardBtn.style.padding = "6px 12px";
-    rewardBtn.style.borderRadius = "6px";
-    rewardBtn.style.fontWeight = "bold";
-    rewardBtn.style.cursor = "pointer";
-    rewardBtn.onclick = rewardFastestCleanerIfNeeded;
+    const currentUser = localStorage.getItem("username");
+if (currentUser === "Bale") {
+  const rewardBtn = document.createElement("button");
+  rewardBtn.innerText = "🎖️ Reward";
+  rewardBtn.style.marginTop = "10px";
+  rewardBtn.style.backgroundColor = "transparent";
+  rewardBtn.style.border = "none";
+  rewardBtn.style.padding = "6px 12px";
+  rewardBtn.style.borderRadius = "6px";
+  rewardBtn.style.fontWeight = "bold";
+  rewardBtn.style.cursor = "pointer";
+  rewardBtn.style.color = "#f5c518";
 
-    statsContainer.appendChild(rewardBtn);
+  rewardBtn.onclick = async () => {
+    try {
+      const res = await fetch(`${apiUrl}/score/reward-fastest`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`
+        }
+      });
+
+      const result = await res.json();
+
+      if (res.ok && result.success) {
+        Swal.fire({
+          icon: "success",
+          title: "🥇ធ្វើបានល្អ!",
+          html: `<b>${result.fastestUser}</b> គឺជាអ្នកសម្អាតបានលឿនជាងគេថ្ងៃនេះ 🎉`,
+          confirmButtonText: "👏 អបអរសាទរ",
+          customClass: {
+            popup: "minimal-popup-menu"
+          }
+        });
+        console.log(`🏅 Score rewarded to: ${result.fastestUser}`);
+      } else {
+        console.warn("⚠️ Reward failed:", result.message);
+        Swal.fire("⚠️", result.message || "Reward failed", "warning");
+      }
+    } catch (error) {
+      console.error("❌ Error during reward process:", error);
+      Swal.fire("អរ​សោ", "មានបញ្ហាក្នុងការផ្ញើសំណើ", "error");
+    }
+  };
+
+  statsContainer.appendChild(rewardBtn);
+}
+
 } catch (err) {
     console.error("❌ Failed to load cleaning stats:", err);
 }
