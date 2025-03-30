@@ -1004,6 +1004,77 @@ app.get("/user/profile", authenticateToken, async (req, res) => {
   }
 });
 
+app.post("/score/reward-fastest", authenticateToken, async (req, res) => {
+  const now = new Date();
+  const start = new Date(now.setHours(0, 0, 0, 0));
+  const end = new Date();
+  end.setHours(23, 59, 59, 999);
+
+  try {
+    // Fetch cleaning logs for today
+    const logs = await CleaningLog.find({
+      startTime: { $gte: start, $lte: end },
+      finishTime: { $exists: true }
+    });
+
+    if (!logs.length) {
+      return res.status(404).json({ message: "No cleaning logs found." });
+    }
+
+    // Calculate duration per user
+    const userDurations = {};
+
+    logs.forEach(log => {
+      const duration = (new Date(log.finishTime) - new Date(log.startTime)) / 60000;
+      if (duration > 0) {
+        const user = log.finishedBy || "Unknown";
+        if (!userDurations[user]) {
+          userDurations[user] = [];
+        }
+        userDurations[user].push(duration);
+      }
+    });
+
+    // Find user with shortest average
+    let fastestUser = null;
+    let fastestAvg = Infinity;
+
+    for (const user in userDurations) {
+      const times = userDurations[user];
+      const avg = times.reduce((a, b) => a + b) / times.length;
+      if (avg < fastestAvg) {
+        fastestAvg = avg;
+        fastestUser = user;
+      }
+    }
+
+    if (!fastestUser) {
+      return res.status(404).json({ message: "No fastest cleaner found." });
+    }
+
+    // Check if already rewarded today
+    const alreadyRewarded = await ScoreLog.findOne({
+      username: fastestUser,
+      date: { $gte: start, $lte: end }
+    });
+
+    if (alreadyRewarded) {
+      return res.status(409).json({ message: "Already rewarded today." });
+    }
+
+    // Save reward
+    const scoreLog = new ScoreLog({ username: fastestUser, date: new Date() });
+    await scoreLog.save();
+
+    res.json({ success: true, message: `Score rewarded to ${fastestUser}`, fastestUser });
+
+  } catch (err) {
+    console.error("❌ Error in reward-fastest:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+
 app.post("/score/add", authenticateToken, async (req, res) => {
   const username = req.user.username; // ✅ Always use token-based username
 

@@ -427,52 +427,34 @@ async function connectWebSocket() {
 
 async function rewardFastestCleanerIfNeeded() {
     const now = new Date();
-    const today = now.toISOString().split("T")[0]; // "YYYY-MM-DD"
     const currentHour = now.getHours();
+    const today = now.toISOString().slice(0, 10);
     const lastRewardKey = "lastScoreRewardDate";
-    const currentUser = localStorage.getItem("username");
-    const token = localStorage.getItem("token");
 
     console.log("🕐 Checking if score should be rewarded...");
 
-    // ⏰ Must be after 5PM
+    // Only after 5 PM
     if (currentHour < 17) {
         console.log("⏳ It's not 5PM yet. Skipping score reward.");
         return;
     }
 
-    // 🛑 Already rewarded today?
+    // Skip if already rewarded today
     if (localStorage.getItem(lastRewardKey) === today) {
         console.log("🛑 Score already rewarded today. Skipping.");
         return;
     }
 
-    // 🧠 Get cleaning stats
-    const stats = await calculateUserCleaningStats();
-    if (!stats || !stats.fastestUser) {
-        console.warn("⚠️ No fastest user found.");
-        return;
-    }
-
-    console.log(`⚡ Fastest cleaner is: ${stats.fastestUser}`);
-
-    // 👤 Check if current user is the fastest
-    if (stats.fastestUser !== currentUser) {
-        console.log(`👤 Logged in user (${currentUser}) is not the fastest.`);
-        return;
-    }
-
+    const token = localStorage.getItem("token");
     if (!token) {
         console.warn("⚠️ No auth token found.");
         return;
     }
 
-    // 📨 Attempt reward
     try {
-        const res = await fetch(`${apiUrl}/score/add`, {
+        const res = await fetch(`${apiUrl}/score/reward-fastest`, {
             method: "POST",
             headers: {
-                "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`
             }
         });
@@ -480,16 +462,15 @@ async function rewardFastestCleanerIfNeeded() {
         const result = await res.json();
 
         if (res.ok && result.success) {
-            console.log(`🏅 Score successfully rewarded to ${stats.fastestUser}`);
+            console.log(`🏅 Score rewarded to: ${result.fastestUser}`);
             localStorage.setItem(lastRewardKey, today);
         } else {
-            console.warn("⚠️ Backend rejected score reward:", result.message);
+            console.warn("⚠️ Reward failed:", result.message);
         }
     } catch (err) {
-        console.error("❌ Error while rewarding score:", err);
+        console.error("❌ Error rewarding score:", err);
     }
 }
-
 
     /** ✅ Ensure WebSocket is Properly Connected Before Usage */
     function ensureWebSocketConnection() {
