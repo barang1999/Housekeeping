@@ -437,11 +437,15 @@ async function connectWebSocket() {
       didOpen: () => Swal.showLoading()
     });
 
-       const res = await fetch(`${apiUrl}/score/leaderboard`, {
+       const token = localStorage.getItem("token");
+        console.log("🔑 Token used for leaderboard:", token);
+
+        const res = await fetch(`${apiUrl}/score/leaderboard`, {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`
-          }
+            Authorization: `Bearer ${token}`
+        }
         });
+
 
     const data = await res.json();
 
