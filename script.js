@@ -483,45 +483,46 @@ async function connectWebSocket() {
 }
 
 async function rewardFastestCleanerIfNeeded() {
-    const now = new Date();
-    const currentHour = now.getHours();
-    const today = now.toISOString().slice(0, 10);
-    const lastRewardKey = "lastScoreRewardDate";
+  const now = new Date();
+  const cambodiaOffset = 7 * 60; // UTC+7 in minutes
+  const cambodiaTime = new Date(now.getTime() + cambodiaOffset * 60000);
+  const today = cambodiaTime.toISOString().slice(0, 10);
+  const lastRewardKey = "lastScoreRewardDate";
 
-    console.log("🕐 Checking if score should be rewarded...");
+  console.log("🕐 Cambodia Time:", cambodiaTime);
 
-    // Skip if already rewarded today
-    if (localStorage.getItem(lastRewardKey) === today) {
-        console.log("🛑 Score already rewarded today. Skipping.");
-        return;
+  if (localStorage.getItem(lastRewardKey) === today) {
+    console.log("🛑 Score already rewarded today. Skipping.");
+    return;
+  }
+
+  const token = localStorage.getItem("token");
+  if (!token) {
+    console.warn("⚠️ No auth token found.");
+    return;
+  }
+
+  try {
+    const res = await fetch(`${apiUrl}/score/reward-fastest`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    const result = await res.json();
+
+    if (res.ok && result.success) {
+      localStorage.setItem(lastRewardKey, today);
+      console.log(`🏅 Score rewarded to: ${result.fastestUser}`);
+    } else {
+      console.warn("⚠️ Reward failed:", result.message);
     }
-
-    const token = localStorage.getItem("token");
-    if (!token) {
-        console.warn("⚠️ No auth token found.");
-        return;
-    }
-
-    try {
-        const res = await fetch(`${apiUrl}/score/reward-fastest`, {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
-
-        const result = await res.json();
-
-        if (res.ok && result.success) {
-            console.log(`🏅 Score rewarded to: ${result.fastestUser}`);
-            localStorage.setItem(lastRewardKey, today);
-        } else {
-            console.warn("⚠️ Reward failed:", result.message);
-        }
-    } catch (err) {
-        console.error("❌ Error rewarding score:", err);
-    }
+  } catch (err) {
+    console.error("❌ Error rewarding score:", err);
+  }
 }
+
 
     /** ✅ Ensure WebSocket is Properly Connected Before Usage */
     function ensureWebSocketConnection() {

@@ -10,6 +10,7 @@ const axios = require("axios");
 const telegramRoutes = require("./telegram.js");
 const multer = require("multer");
 const sharp = require('sharp'); // For image compression
+const moment = require("moment-timezone");
 
 const fs = require("fs");
 const path = require("path");
@@ -1005,124 +1006,132 @@ app.get("/user/profile", authenticateToken, async (req, res) => {
 });
 
 app.post("/score/reward-fastest", authenticateToken, async (req, res) => {
-  try {
-    const logs = await CleaningLog.find();
-    if (!logs || logs.length === 0) {
-      return res.status(404).json({ success: false, message: "No cleaning logs found." });
-    }
+  const now = moment.tz("Asia/Phnom_Penh");
+  const start = now.clone().startOf("day").toDate();
+  const end = now.clone().endOf("day").toDate();
 
-    const userDurations = {};
-    logs.forEach(log => {
-      if (log.startTime && log.finishTime) {
-        const duration = (new Date(log.finishTime) - new Date(log.startTime)) / 60000;
-        if (duration > 0) {
-          const user = log.finishedBy;
-          if (!userDurations[user]) userDurations[user] = [];
-          userDurations[user].push(duration);
-        }
-      }
-    });
+  const logs = await CleaningLog.find({
+    startTime: { $ne: null },
+    finishTime: { $ne: null }
+  });
 
-    let fastestUser = null;
-    let fastestAvg = Infinity;
-
-    for (const user in userDurations) {
-      const avg = userDurations[user].reduce((a, b) => a + b, 0) / userDurations[user].length;
-      if (avg < fastestAvg) {
-        fastestAvg = avg;
-        fastestUser = user;
-      }
-    }
-
-    if (!fastestUser) {
-      return res.status(404).json({ success: false, message: "No fastest user determined." });
-    }
-
-    const today = new Date();
-    const start = new Date(today.setHours(0, 0, 0, 0));
-    const end = new Date(today.setHours(23, 59, 59, 999));
-
-    const existing = await ScoreLog.findOne({
-      username: fastestUser,
-      date: { $gte: start, $lte: end }
-    });
-
-    if (existing) {
-      return res.status(409).json({ success: false, message: "Already rewarded today." });
-    }
-
-    const log = new ScoreLog({ username: fastestUser, date: new Date() });
-    await log.save();
-
-    res.json({ success: true, fastestUser, message: "Score added to fastest user" });
-  } catch (err) {
-    console.error("❌ Server error:", err);
-    res.status(500).json({ success: false, message: "Server error." });
+  if (!logs || logs.length === 0) {
+    return res.status(404).json({ message: "No completed cleaning logs." });
   }
-});
 
+  // Calculate duration per user
+  const userStats = {};
+  logs.forEach(log => {
+    const startTime = new Date(log.startTime);
+    const finishTime = new Date(log.finishTime);
+    const duration = (finishTime - startTime) / 60000; // in minutes
+
+    if (log.finishedBy && duration > 0) {
+      if (!userStats[log.finishedBy]) {
+        userStats[log.finishedBy] = { total: 0, count: 0 };
+      }
+      userStats[log.finishedBy].total += duration;
+      userStats[log.finishedBy].count++;
+    }
+  });
+
+  let fastestUser = null;
+  let bestAvg = Infinity;
+
+  for (let user in userStats) {
+    const avg = userStats[user].total / userStats[user].count;
+    if (avg < bestAvg) {
+      bestAvg = avg;
+      fastestUser = user;
+    }
+  }
+
+  if (!fastestUser) {
+    return res.status(404).json({ message: "No eligible user found." });
+  }
+
+  // Check if already rewarded
+  const alreadyRewarded = await ScoreLog.findOne({
+    username: fastestUser,
+    date: { $gte: start, $lte: end }
+  });
+
+  if (alreadyRewarded) {
+    return res.status(409).json({ message: "Already rewarded today." });
+  }
+
+  await new ScoreLog({
+    username: fastestUser,
+    date: now.toDate(),
+    isFastest: true
+  }).save();
+
+  return res.json({ success: true, fastestUser });
+});
 
 app.post("/score/add", authenticateToken, async (req, res) => {
-  const username = req.user.username; // ✅ Always use token-based username
+  const username = req.user.username;
 
-  const today = new Date();
+  // Define start and end of today in Cambodia time
+  const start = moment.tz("Asia/Phnom_Penh").startOf("day").toDate();
+  const end = moment.tz("Asia/Phnom_Penh").endOf("day").toDate();
 
-  const start = new Date();
-start.setHours(0, 0, 0, 0);
-const end = new Date();
-end.setHours(23, 59, 59, 999);
+  const existing = await ScoreLog.findOne({
+    username,
+    date: { $gte: start, $lte: end }
+  });
 
-const existing = await ScoreLog.findOne({
-  username,
-  date: { $gte: start, $lte: end }
-});
-  if (existing) return res.status(409).json({ message: "Already rewarded" });
+  if (existing) {
+    return res.status(409).json({ message: "Already rewarded" });
+  }
 
-  const log = new ScoreLog({ username, date: today });
+  const now = moment.tz("Asia/Phnom_Penh").toDate();
+  const log = new ScoreLog({ username, date: now });
   await log.save();
+
   res.json({ success: true, message: "Score added" });
 });
 
-app.get("/score/leaderboard", async (req, res) => {
-  const start = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-  const end = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+app.get("/score/leaderboard", authenticateToken, async (req, res) => {
+  const startOfMonth = moment.tz("Asia/Phnom_Penh").startOf("month").toDate();
+  const endOfMonth = moment.tz("Asia/Phnom_Penh").endOf("month").toDate();
 
   const scores = await ScoreLog.aggregate([
     {
       $match: {
-        date: { $gte: start, $lte: end },
-      },
+        date: { $gte: startOfMonth, $lte: endOfMonth }
+      }
     },
     {
       $group: {
         _id: "$username",
-        count: { $sum: 1 },
-      },
+        count: { $sum: 1 }
+      }
     },
     {
-      $sort: { count: -1 },
+      $sort: { count: -1 }
     },
     {
-      $limit: 3,
+      $limit: 3
     },
     {
       $lookup: {
-        from: "users",           // must match your actual MongoDB collection name
+        from: "users",
         localField: "_id",
         foreignField: "username",
-        as: "userDetails",
-      },
+        as: "userDetails"
+      }
     },
     {
-      $unwind: "$userDetails",
+      $unwind: "$userDetails"
     },
     {
       $project: {
         _id: 1,
         count: 1,
-        profileImage: "$userDetails.profileImage",
-      },
-    },
+        profileImage: "$userDetails.profileImage"
+      }
+    }
   ]);
 
   res.json(scores);
