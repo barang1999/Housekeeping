@@ -428,37 +428,43 @@ async function connectWebSocket() {
     }
 
 
- async function showLeaderboard() {
+async function showLeaderboard() {
   try {
-    // Show loading while fetching
     Swal.fire({
       title: "Loading leaderboard...",
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading()
     });
 
-       const token = localStorage.getItem("token");
-        console.log("🔑 Token used for leaderboard:", token);
+    const token = localStorage.getItem("token");
+    console.log("🔑 Token used for leaderboard:", token);
 
-        const res = await fetch(`${apiUrl}/score/leaderboard`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-        }
-        });
-
+    const res = await fetch(`${apiUrl}/score/leaderboard`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
 
     const data = await res.json();
 
-    // Define medals
-    const medals = ["🥇", "🥈", "🥉"];
+    if (!Array.isArray(data) || data.length === 0) {
+      return Swal.fire({
+        icon: "info",
+        title: "🤷‍♂️ No scores yet!",
+        text: "No cleaner has been rewarded this month.",
+        customClass: { popup: "minimal-popup-menu" }
+      });
+    }
 
-    // Create leaderboard HTML
+    const medals = ["🥇", "🥈", "🥉"];
     let html = "<ol style='text-align: left; padding-left: 0;'>";
 
     data.forEach(({ _id, count, profileImage }, index) => {
-      const imageUrl = profileImage
-        ? getFullImageURL(profileImage)
-        : "https://via.placeholder.com/40";
+      const imageUrl = profileImage?.startsWith("data:image")
+        ? profileImage
+        : profileImage
+          ? `${apiUrl}/uploads/${profileImage}`
+          : "https://via.placeholder.com/40";
 
       html += `
         <li style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
@@ -466,7 +472,12 @@ async function connectWebSocket() {
           <img src="${imageUrl}" alt="Profile" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #ccc; object-fit: cover;" />
           <div>
             <strong>${_id}</strong><br/>
-            <small>⭐ x${count}</small>
+            <span style="display: flex; align-items: center;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="gold" viewBox="0 0 24 24">
+                <path d="M12 .587l3.668 7.571L24 9.75l-6 5.847 1.417 8.26L12 19.771l-7.417 4.086L6 15.597 0 9.75l8.332-1.592z"/>
+              </svg>
+              <span style="margin-left: 4px;">x${count}</span>
+            </span>
           </div>
         </li>`;
     });
@@ -474,14 +485,21 @@ async function connectWebSocket() {
     html += "</ol>";
 
     Swal.fire({
-      title: "🌟 Top 3 Cleaners",
+      icon: "success",
+      title: "☀️ Top 3 Cleaners",
       html,
       confirmButtonText: "Close",
       customClass: { popup: "minimal-popup-menu" }
     });
+
   } catch (err) {
     console.error("❌ Error loading leaderboard:", err);
-    Swal.fire("Error", "Unable to load leaderboard.", "error");
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "Couldn't load leaderboard.",
+      customClass: { popup: "minimal-popup-menu" }
+    });
   }
 }
 
@@ -2969,74 +2987,6 @@ function showEditProfileForm({ username, phone, profileImage, score, position })
   });
 }
 
-async function showTopCleanersLeaderboard() {
-  try {
-    const res = await fetch(`${apiUrl}/score/leaderboard`);
-    const data = await res.json();
-
-    if (!Array.isArray(data) || data.length === 0) {
-      return Swal.fire({
-        icon: "info",
-        title: "🤷‍♂️ No scores yet!",
-        text: "No cleaner has been rewarded this month.",
-        customClass: { popup: "minimal-popup-menu" }
-      });
-    }
-
-    // 🧠 Fetch user profile images for the top scorers
-    const profileRes = await fetch(`${apiUrl}/user/all`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`
-      }
-    });
-
-    const allUsers = await profileRes.json(); // [{ username, profileImage }, ...]
-
-    const getFullImageURL = (base64) =>
-      base64.startsWith("data:image") ? base64 : `${apiUrl}/uploads/${base64}`;
-
-    // 🧱 Build HTML leaderboard
-    let html = `<ul style="list-style: none; padding: 0;">`;
-
-    data.forEach(({ _id, count }, index) => {
-      const emoji = ["🥇", "🥈", "🥉"][index] || "⭐";
-      const user = allUsers.find(u => u.username === _id);
-      const imageUrl = user?.profileImage
-        ? getFullImageURL(user.profileImage)
-        : "https://via.placeholder.com/40";
-
-      html += `
-        <li style="display: flex; align-items: center; margin: 10px 0;">
-          <img src="${imageUrl}" style="width: 30px; height: 30px; border-radius: 50%; margin-right: 10px;" />
-          ${emoji} <b>${_id}</b>
-          <span style="margin-left: 8px; display: flex; align-items: center;">
-            <svg class="star-glow" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="gold" viewBox="0 0 24 24">
-              <path d="M12 .587l3.668 7.571L24 9.75l-6 5.847 1.417 8.26L12 19.771l-7.417 4.086L6 15.597 0 9.75l8.332-1.592z"/>
-            </svg>
-            <span style="margin-left: 4px;">x${count}</span>
-          </span>
-        </li>`;
-    });
-
-    html += `</ul>`;
-
-    Swal.fire({
-      icon: "success",
-      title: "☀️ Top 3 Cleaners",
-      html,
-      confirmButtonText: "Close",
-      customClass: { popup: "minimal-popup-menu" }
-    });
-  } catch (error) {
-    console.error("❌ Failed to load leaderboard:", error);
-    Swal.fire({
-      icon: "error",
-      title: "Error",
-      text: "Couldn't load leaderboard.",
-      customClass: { popup: "minimal-popup-menu" }
-    });
-  }
-}
 
 async function showAllUsers() {
   try {
