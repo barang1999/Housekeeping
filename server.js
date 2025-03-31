@@ -1089,17 +1089,40 @@ app.get("/score/leaderboard", async (req, res) => {
 
   const scores = await ScoreLog.aggregate([
     {
-      $match: { date: { $gte: start, $lte: end } }
+      $match: {
+        date: { $gte: start, $lte: end },
+      },
     },
     {
-      $group: { _id: "$username", count: { $sum: 1 } }
+      $group: {
+        _id: "$username",
+        count: { $sum: 1 },
+      },
     },
     {
-      $sort: { count: -1 }
+      $sort: { count: -1 },
     },
     {
-      $limit: 3
-    }
+      $limit: 3,
+    },
+    {
+      $lookup: {
+        from: "users",           // must match your actual MongoDB collection name
+        localField: "_id",
+        foreignField: "username",
+        as: "userDetails",
+      },
+    },
+    {
+      $unwind: "$userDetails",
+    },
+    {
+      $project: {
+        _id: 1,
+        count: 1,
+        profileImage: "$userDetails.profileImage",
+      },
+    },
   ]);
 
   res.json(scores);

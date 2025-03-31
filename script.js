@@ -427,6 +427,61 @@ async function connectWebSocket() {
         window.socket.emit(event, data);
     }
 
+
+ async function showLeaderboard() {
+  try {
+    // Show loading while fetching
+    Swal.fire({
+      title: "Loading leaderboard...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading()
+    });
+
+    const res = await fetch(`${apiUrl}/score/leaderboard`, {
+      headers: {
+        Authorization: `Bearer ${getToken()}`
+      }
+    });
+
+
+    const data = await res.json();
+
+    // Define medals
+    const medals = ["🥇", "🥈", "🥉"];
+
+    // Create leaderboard HTML
+    let html = "<ol style='text-align: left; padding-left: 0;'>";
+
+    data.forEach(({ _id, count, profileImage }, index) => {
+      const imageUrl = profileImage
+        ? getFullImageURL(profileImage)
+        : "https://via.placeholder.com/40";
+
+      html += `
+        <li style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+          <span style="font-size: 20px;">${medals[index] || "⭐"}</span>
+          <img src="${imageUrl}" alt="Profile" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #ccc; object-fit: cover;" />
+          <div>
+            <strong>${_id}</strong><br/>
+            <small>⭐ x${count}</small>
+          </div>
+        </li>`;
+    });
+
+    html += "</ol>";
+
+    Swal.fire({
+      title: "🌟 Top 3 Cleaners",
+      html,
+      confirmButtonText: "Close",
+      customClass: { popup: "minimal-popup-menu" }
+    });
+  } catch (err) {
+    console.error("❌ Error loading leaderboard:", err);
+    Swal.fire("Error", "Unable to load leaderboard.", "error");
+  }
+}
+
 async function rewardFastestCleanerIfNeeded() {
     const now = new Date();
     const currentHour = now.getHours();
@@ -434,12 +489,6 @@ async function rewardFastestCleanerIfNeeded() {
     const lastRewardKey = "lastScoreRewardDate";
 
     console.log("🕐 Checking if score should be rewarded...");
-
-    // Only after 5 PM
-    if (currentHour < 17) {
-        console.log("⏳ It's not 5PM yet. Skipping score reward.");
-        return;
-    }
 
     // Skip if already rewarded today
     if (localStorage.getItem(lastRewardKey) === today) {
@@ -2982,61 +3031,6 @@ async function showTopCleanersLeaderboard() {
       text: "Couldn't load leaderboard.",
       customClass: { popup: "minimal-popup-menu" }
     });
-  }
-}
-
-
-async function showLeaderboard() {
-  try {
-    // Show loading while fetching
-    Swal.fire({
-      title: "Loading leaderboard...",
-      allowOutsideClick: false,
-      didOpen: () => Swal.showLoading()
-    });
-
-    const res = await fetch(`${apiUrl}/score/leaderboard`, {
-      headers: {
-        Authorization: `Bearer ${getToken()}`
-      }
-    });
-
-
-    const data = await res.json();
-
-    // Define medals
-    const medals = ["🥇", "🥈", "🥉"];
-
-    // Create leaderboard HTML
-    let html = "<ol style='text-align: left; padding-left: 0;'>";
-
-    data.forEach(({ _id, count, profileImage }, index) => {
-      const imageUrl = profileImage
-        ? getFullImageURL(profileImage)
-        : "https://via.placeholder.com/40";
-
-      html += `
-        <li style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-          <span style="font-size: 20px;">${medals[index] || "⭐"}</span>
-          <img src="${imageUrl}" alt="Profile" style="width: 40px; height: 40px; border-radius: 50%; border: 1px solid #ccc; object-fit: cover;" />
-          <div>
-            <strong>${_id}</strong><br/>
-            <small>⭐ x${count}</small>
-          </div>
-        </li>`;
-    });
-
-    html += "</ol>";
-
-    Swal.fire({
-      title: "🌟 Top 3 Cleaners",
-      html,
-      confirmButtonText: "Close",
-      customClass: { popup: "minimal-popup-menu" }
-    });
-  } catch (err) {
-    console.error("❌ Error loading leaderboard:", err);
-    Swal.fire("Error", "Unable to load leaderboard.", "error");
   }
 }
 
