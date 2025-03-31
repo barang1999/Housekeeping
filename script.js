@@ -438,12 +438,10 @@ async function connectWebSocket() {
     });
 
        const res = await fetch(`${apiUrl}/score/leaderboard`, {
-      headers: {
-        Authorization: `Bearer ${getToken()}`
-      }
-    });
-
-
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`
+          }
+        });
 
     const data = await res.json();
 
