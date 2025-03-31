@@ -1006,9 +1006,10 @@ app.get("/user/profile", authenticateToken, async (req, res) => {
 });
 
 app.post("/score/reward-fastest", authenticateToken, async (req, res) => {
-  const now = moment.tz("Asia/Phnom_Penh").toDate();
-  const start = now.clone().startOf("day").toDate();
-  const end = now.clone().endOf("day").toDate();
+  const cambodiaNow = moment.tz("Asia/Phnom_Penh").toDate();
+  const start = moment(cambodiaNow).startOf("month").toDate();
+const end = moment(cambodiaNow).endOf("month").toDate();
+
 
   const logs = await CleaningLog.find({
     startTime: { $ne: null },
@@ -1060,11 +1061,11 @@ app.post("/score/reward-fastest", authenticateToken, async (req, res) => {
     return res.status(409).json({ message: "Already rewarded today." });
   }
 
-  await new ScoreLog({
-    username: fastestUser,
-    date: now.toDate(),
-    isFastest: true
-  }).save();
+ await new ScoreLog({
+  username: fastestUser,
+  date: cambodiaNow,
+  isFastest: true
+}).save();
 
   return res.json({ success: true, fastestUser });
 });
@@ -1073,9 +1074,10 @@ app.post("/score/reward-fastest", authenticateToken, async (req, res) => {
 app.post("/score/add", authenticateToken, async (req, res) => {
   const username = req.user.username;
 
-   const now = DateTime.now().setZone("Asia/Phnom_Penh");
-  const start = now.startOf("month").toJSDate();
-  const end = now.endOf("month").toJSDate();
+   const cambodiaNow = moment.tz("Asia/Phnom_Penh").toDate();
+  const start = moment(cambodiaNow).startOf("month").toDate();
+const end = moment(cambodiaNow).endOf("month").toDate();
+
 
   const existing = await ScoreLog.findOne({
     username,
@@ -1094,9 +1096,10 @@ app.post("/score/add", authenticateToken, async (req, res) => {
 });
 
 app.get("/score/leaderboard", authenticateToken, async (req, res) => {
-  const now = DateTime.now().setZone("Asia/Phnom_Penh");
-  const start = now.startOf("month").toJSDate();
-  const end = now.endOf("month").toJSDate();
+  const cambodiaNow = moment.tz("Asia/Phnom_Penh").toDate();
+  const start = moment(cambodiaNow).startOf("month").toDate();
+const end = moment(cambodiaNow).endOf("month").toDate();
+
 
   try {
     const scores = await ScoreLog.aggregate([
