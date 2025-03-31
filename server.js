@@ -1006,9 +1006,9 @@ app.get("/user/profile", authenticateToken, async (req, res) => {
 });
 
 app.post("/score/reward-fastest", authenticateToken, async (req, res) => {
-  const now = moment.tz("Asia/Phnom_Penh");
-  const start = now.clone().startOf("day").toDate();
-  const end = now.clone().endOf("day").toDate();
+   const now = DateTime.now().setZone("Asia/Phnom_Penh");
+  const start = now.startOf("month").toJSDate();
+  const end = now.endOf("month").toJSDate();
 
   const logs = await CleaningLog.find({
     startTime: { $ne: null },
@@ -1072,9 +1072,9 @@ app.post("/score/reward-fastest", authenticateToken, async (req, res) => {
 app.post("/score/add", authenticateToken, async (req, res) => {
   const username = req.user.username;
 
-  // Define start and end of today in Cambodia time
-  const start = moment.tz("Asia/Phnom_Penh").startOf("day").toDate();
-  const end = moment.tz("Asia/Phnom_Penh").endOf("day").toDate();
+   const now = DateTime.now().setZone("Asia/Phnom_Penh");
+  const start = now.startOf("month").toJSDate();
+  const end = now.endOf("month").toJSDate();
 
   const existing = await ScoreLog.findOne({
     username,
@@ -1093,48 +1093,57 @@ app.post("/score/add", authenticateToken, async (req, res) => {
 });
 
 app.get("/score/leaderboard", authenticateToken, async (req, res) => {
-  const startOfMonth = moment.tz("Asia/Phnom_Penh").startOf("month").toDate();
-  const endOfMonth = moment.tz("Asia/Phnom_Penh").endOf("month").toDate();
+  const now = DateTime.now().setZone("Asia/Phnom_Penh");
+  const start = now.startOf("month").toJSDate();
+  const end = now.endOf("month").toJSDate();
 
-  const scores = await ScoreLog.aggregate([
-    {
-      $match: {
-        date: { $gte: startOfMonth, $lte: endOfMonth }
-      }
-    },
-    {
-      $group: {
-        _id: "$username",
-        count: { $sum: 1 }
-      }
-    },
-    {
-      $sort: { count: -1 }
-    },
-    {
-      $limit: 3
-    },
-    {
-      $lookup: {
-        from: "users",
-        localField: "_id",
-        foreignField: "username",
-        as: "userDetails"
-      }
-    },
-    {
-      $unwind: "$userDetails"
-    },
-    {
-      $project: {
-        _id: 1,
-        count: 1,
-        profileImage: "$userDetails.profileImage"
-      }
-    }
-  ]);
+  try {
+    const scores = await ScoreLog.aggregate([
+      {
+        $match: {
+          date: {
+            $gte: start,
+            $lte: end,
+          },
+        },
+      },
+      {
+        $group: {
+          _id: "$username",
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $sort: { count: -1 },
+      },
+      {
+        $limit: 3,
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "username",
+          as: "userDetails",
+        },
+      },
+      {
+        $unwind: "$userDetails",
+      },
+      {
+        $project: {
+          _id: 1,
+          count: 1,
+          profileImage: "$userDetails.profileImage",
+        },
+      },
+    ]);
 
-  res.json(scores);
+    res.json(scores);
+  } catch (err) {
+    console.error("❌ Error generating leaderboard:", err);
+    res.status(500).json({ message: "Failed to generate leaderboard" });
+  }
 });
 
 app.get("/user/all", authenticateToken, async (req, res) => {
