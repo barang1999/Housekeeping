@@ -1006,9 +1006,9 @@ app.get("/user/profile", authenticateToken, async (req, res) => {
 });
 
 app.post("/score/reward-fastest", authenticateToken, async (req, res) => {
-   const now = DateTime.now().setZone("Asia/Phnom_Penh");
-  const start = now.startOf("month").toJSDate();
-  const end = now.endOf("month").toJSDate();
+  const now = moment.tz("Asia/Phnom_Penh").toDate();
+  const start = now.clone().startOf("day").toDate();
+  const end = now.clone().endOf("day").toDate();
 
   const logs = await CleaningLog.find({
     startTime: { $ne: null },
@@ -1068,6 +1068,7 @@ app.post("/score/reward-fastest", authenticateToken, async (req, res) => {
 
   return res.json({ success: true, fastestUser });
 });
+
 
 app.post("/score/add", authenticateToken, async (req, res) => {
   const username = req.user.username;
