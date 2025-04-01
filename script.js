@@ -1514,7 +1514,7 @@ if (currentUser === "Bale") {
 
         } catch (error) {
             console.error("❌ Error fetching room statuses, priorities, or inspections:", error);
-            alert("Failed to fetch room data. Check console for details.");
+   
         }
     }
 
