@@ -1,10 +1,13 @@
 {
+  "id": "/",
   "name": "Housekeeping Manager",
   "short_name": "Housekeeping",
+  "description": "A smart housekeeping management system for hotels and resorts.",
   "start_url": "/Index",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#007AFF",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "icon-192.png",
@@ -16,5 +19,17 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  "screenshots": [
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["productivity", "business", "utilities"],
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  "form_factor": "wide"
 }
