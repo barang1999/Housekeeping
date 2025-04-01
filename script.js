@@ -665,8 +665,6 @@ function updateHeaderProfile({ username, profileImage }) {
                     localStorage.setItem("token", data.token);
                     localStorage.setItem("username", data.username);
 
-                    // 🏅 Check if we should reward the fastest cleaner
-                    setTimeout(rewardFastestCleanerIfNeeded, 2000);
 
                     // 🔽 FETCH FULL PROFILE to update header
                     const profileRes = await fetch("https://housekeeping-production.up.railway.app/user/profile", {
