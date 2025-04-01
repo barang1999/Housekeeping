@@ -6,7 +6,7 @@
   "start_url": "/Index",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#007AFF",
+  "theme_color": "#DCDCDC",
   "orientation": "portrait",
   "icons": [
     {
