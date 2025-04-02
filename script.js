@@ -538,7 +538,7 @@ async function rewardFastestCleanerIfNeeded() {
       console.log(`🏅 Score rewarded to: ${result.fastestUser}`);
 
       // ✅ Refresh leaderboard view
-      showLeaderboard();
+      await showLeaderboard(); // 👈 ✅ This updates the leaderboard view immediately
     } else {
       console.warn("⚠️ Reward failed:", result.message);
     }
@@ -996,7 +996,12 @@ async function showDashboard(username) {
             profileImage: fullImageURL
         });
 
+
         console.log("✅ Header profile updated from showDashboard()");
+                // 🎖️ Try rewarding the fastest cleaner (Bale only, once per day)
+        if (username === "Bale") {
+          rewardFastestCleanerIfNeeded();
+        }
     } catch (error) {
         console.error("❌ Failed to fetch or update header profile:", error);
     }

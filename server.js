@@ -1096,46 +1096,41 @@ app.post("/score/add", authenticateToken, async (req, res) => {
 });
 
 app.get("/score/leaderboard", authenticateToken, async (req, res) => {
-  const cambodiaNow = moment.tz("Asia/Phnom_Penh");
-  const start = cambodiaNow.clone().startOf("month").toDate();
-  const end = cambodiaNow.clone().endOf("month").toDate();
+  const now = moment.tz("Asia/Phnom_Penh");
+  const start = now.clone().startOf("month").toDate();
+  const end = now.clone().endOf("month").toDate();
 
-  const scores = await ScoreLog.aggregate([
+  const leaderboard = await ScoreLog.aggregate([
     {
       $match: {
-        date: {
-          $gte: start,
-          $lte: end,
-        },
-      },
+        date: { $gte: start, $lte: end }
+      }
     },
     {
       $group: {
         _id: "$username",
-        count: { $sum: 1 },
-      },
+        count: { $sum: 1 }
+      }
     },
-    { $sort: { count: -1 } },
-    { $limit: 3 },
     {
-      $lookup: {
-        from: "users",
-        localField: "_id",
-        foreignField: "username",
-        as: "userDetails",
-      },
+      $sort: { count: -1 }
     },
-    { $unwind: "$userDetails" },
     {
-      $project: {
-        _id: 1,
-        count: 1,
-        profileImage: "$userDetails.profileImage",
-      },
-    },
+      $limit: 3
+    }
   ]);
 
-  res.json(scores);
+  const users = await User.find({ username: { $in: leaderboard.map(e => e._id) } });
+
+  const enriched = leaderboard.map(entry => {
+    const user = users.find(u => u.username === entry._id);
+    return {
+      ...entry,
+      profileImage: user?.profileImage || null
+    };
+  });
+
+  res.json(enriched);
 });
 
 app.get("/user/all", authenticateToken, async (req, res) => {
