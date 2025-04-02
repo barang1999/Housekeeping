@@ -1,34 +1,31 @@
 const config = {
   type: Phaser.AUTO,
-  width: 640,
+  width: 960,
   height: 640,
-  backgroundColor: "#c2f0c2",
+  parent: 'game-container',
   scene: {
     preload,
-    create,
+    create
   }
 };
 
 const game = new Phaser.Game(config);
 
 function preload() {
-  // In the future: load assets like tiles/buildings here
+  this.load.image('tile', 'assets/tile.png');
 }
 
 function create() {
-  const tileSize = 64;
-  const cols = 10;
-  const rows = 10;
+  const tileWidth = 64;
+  const tileHeight = 32;
+  const mapWidth = 10;
+  const mapHeight = 10;
 
-  // Draw grid
-  for (let y = 0; y < rows; y++) {
-    for (let x = 0; x < cols; x++) {
-      this.add.rectangle(x * tileSize + tileSize/2, y * tileSize + tileSize/2, tileSize, tileSize, 0xffffff).setStrokeStyle(1, 0xcccccc);
+  for (let x = 0; x < mapWidth; x++) {
+    for (let y = 0; y < mapHeight; y++) {
+      const screenX = (x - y) * tileWidth / 2 + 480;
+      const screenY = (x + y) * tileHeight / 2 + 50;
+      this.add.image(screenX, screenY, 'tile');
     }
   }
-
-  this.add.text(20, 20, "🏡 Welcome to Eightfold Town", {
-    font: "20px Arial",
-    fill: "#333",
-  });
 }
