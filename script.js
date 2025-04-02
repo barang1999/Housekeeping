@@ -3068,6 +3068,7 @@ async function showAllUsers() {
         <button class="minimal-menu-button" onclick="exportLogs()">📄 Export Cleaning Logs</button>
         <button class="minimal-menu-button" onclick="exportInspectionPDF()">📝 Export Inspection Logs</button>
         <button class="minimal-menu-button" onclick="clearLocalStorage()">🧹 Clear Local Storage</button>
+        <button class="minimal-menu-button" onclick="window.location.href='town.html'">🏘️ Visit Eightfold Town</button>
         <button class="minimal-menu-button" onclick="logout()">🔓 Logout</button>
         <button class="minimal-menu-button" onclick="clearLogs()">🗑️ Clear Logs</button>
       </div>
