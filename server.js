@@ -1096,42 +1096,34 @@ app.post("/score/add", authenticateToken, async (req, res) => {
 });
 
 app.get("/score/leaderboard", authenticateToken, async (req, res) => {
-  const now = moment.tz("Asia/Phnom_Penh");
-  const start = now.clone().startOf("month").toDate();
-  const end = now.clone().endOf("month").toDate();
+  try {
+    const leaderboard = await ScoreLog.aggregate([
+      {
+        $match: { isFastest: true } // ✅ Only include fastest rewards
+      },
+      {
+        $group: {
+          _id: "$username",
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { count: -1 } },
+      { $limit: 3 }
+    ]);
 
-  const leaderboard = await ScoreLog.aggregate([
-    {
-      $match: {
-        date: { $gte: start, $lte: end }
-      }
-    },
-    {
-      $group: {
-        _id: "$username",
-        count: { $sum: 1 }
-      }
-    },
-    {
-      $sort: { count: -1 }
-    },
-    {
-      $limit: 3
+    // 🔄 Add profileImage for each user
+    for (const entry of leaderboard) {
+      const user = await User.findOne({ username: entry._id });
+      entry.profileImage = user?.profileImage || null;
     }
-  ]);
 
-  const users = await User.find({ username: { $in: leaderboard.map(e => e._id) } });
-
-  const enriched = leaderboard.map(entry => {
-    const user = users.find(u => u.username === entry._id);
-    return {
-      ...entry,
-      profileImage: user?.profileImage || null
-    };
-  });
-
-  res.json(enriched);
+    res.json(leaderboard);
+  } catch (err) {
+    console.error("❌ Leaderboard error:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
 });
+
 
 app.get("/user/all", authenticateToken, async (req, res) => {
   try {
