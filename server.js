@@ -1096,58 +1096,46 @@ app.post("/score/add", authenticateToken, async (req, res) => {
 });
 
 app.get("/score/leaderboard", authenticateToken, async (req, res) => {
-  const cambodiaNow = moment.tz("Asia/Phnom_Penh").toDate();
-  const start = moment(cambodiaNow).startOf("month").toDate();
-const end = moment(cambodiaNow).endOf("month").toDate();
+  const cambodiaNow = moment.tz("Asia/Phnom_Penh");
+  const start = cambodiaNow.clone().startOf("month").toDate();
+  const end = cambodiaNow.clone().endOf("month").toDate();
 
+  const scores = await ScoreLog.aggregate([
+    {
+      $match: {
+        date: {
+          $gte: start,
+          $lte: end,
+        },
+      },
+    },
+    {
+      $group: {
+        _id: "$username",
+        count: { $sum: 1 },
+      },
+    },
+    { $sort: { count: -1 } },
+    { $limit: 3 },
+    {
+      $lookup: {
+        from: "users",
+        localField: "_id",
+        foreignField: "username",
+        as: "userDetails",
+      },
+    },
+    { $unwind: "$userDetails" },
+    {
+      $project: {
+        _id: 1,
+        count: 1,
+        profileImage: "$userDetails.profileImage",
+      },
+    },
+  ]);
 
-  try {
-    const scores = await ScoreLog.aggregate([
-      {
-        $match: {
-          date: {
-            $gte: start,
-            $lte: end,
-          },
-        },
-      },
-      {
-        $group: {
-          _id: "$username",
-          count: { $sum: 1 },
-        },
-      },
-      {
-        $sort: { count: -1 },
-      },
-      {
-        $limit: 3,
-      },
-      {
-        $lookup: {
-          from: "users",
-          localField: "_id",
-          foreignField: "username",
-          as: "userDetails",
-        },
-      },
-      {
-        $unwind: "$userDetails",
-      },
-      {
-        $project: {
-          _id: 1,
-          count: 1,
-          profileImage: "$userDetails.profileImage",
-        },
-      },
-    ]);
-
-    res.json(scores);
-  } catch (err) {
-    console.error("❌ Error generating leaderboard:", err);
-    res.status(500).json({ message: "Failed to generate leaderboard" });
-  }
+  res.json(scores);
 });
 
 app.get("/user/all", authenticateToken, async (req, res) => {
