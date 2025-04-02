@@ -1,16 +1,65 @@
-<!DOCTYPE html>
-<html lang="en">
+﻿<!DOCTYPE html>
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Eightfold Town</title>
+  <meta charset="UTF-8">
+  <title>🏘️ Eightfold Town - Isometric View</title>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
   <style>
-    body { margin: 0; background: #e6f7e6; }
-    canvas { display: block; margin: 0 auto; }
+    body {
+      margin: 0;
+      background: #e6f7eb;
+    }
+    canvas {
+      display: block;
+      margin: auto;
+    }
   </style>
 </head>
 <body>
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.js"></script>
-  <script src="./town.js"></script>
+<script>
+class TownScene extends Phaser.Scene {
+  constructor() {
+    super('TownScene');
+  }
+
+  preload() {
+    // Placeholder tile
+    this.load.image('tile', 'https://i.imgur.com/lKJiT77.png'); // rhombus tile
+  }
+
+  create() {
+    this.drawIsometricGrid(10, 10, 64);
+
+    this.add.text(20, 20, '🏘️ Welcome to Eightfold Town', {
+      fontFamily: 'Arial',
+      fontSize: '22px',
+      fill: '#333'
+    });
+  }
+
+  drawIsometricGrid(cols, rows, tileSize) {
+    const offsetX = this.cameras.main.width / 2;
+    const offsetY = 100;
+
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        const isoX = (x - y) * tileSize / 2;
+        const isoY = (x + y) * tileSize / 4;
+        this.add.image(offsetX + isoX, offsetY + isoY, 'tile').setAlpha(0.9);
+      }
+    }
+  }
+}
+
+const config = {
+  type: Phaser.AUTO,
+  width: 900,
+  height: 700,
+  backgroundColor: '#e6f7eb',
+  scene: TownScene
+};
+
+new Phaser.Game(config);
+</script>
 </body>
 </html>
