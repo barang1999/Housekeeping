@@ -536,6 +536,9 @@ async function rewardFastestCleanerIfNeeded() {
     if (res.ok && result.success) {
       localStorage.setItem(lastRewardKey, today);
       console.log(`🏅 Score rewarded to: ${result.fastestUser}`);
+
+      // ✅ Refresh leaderboard view
+      showLeaderboard();
     } else {
       console.warn("⚠️ Reward failed:", result.message);
     }
@@ -543,7 +546,6 @@ async function rewardFastestCleanerIfNeeded() {
     console.error("❌ Error rewarding score:", err);
   }
 }
-
 
     /** ✅ Ensure WebSocket is Properly Connected Before Usage */
     function ensureWebSocketConnection() {
