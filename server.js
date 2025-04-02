@@ -1007,9 +1007,10 @@ app.get("/user/profile", authenticateToken, async (req, res) => {
 
 app.post("/score/reward-fastest", authenticateToken, async (req, res) => {
   const cambodiaNow = moment.tz("Asia/Phnom_Penh").toDate();
-  const start = moment(cambodiaNow).startOf("month").toDate();
-const end = moment(cambodiaNow).endOf("month").toDate();
 
+  // ✅ Allow one reward per DAY instead
+  const startOfDay = moment(cambodiaNow).startOf("day").toDate();
+  const endOfDay = moment(cambodiaNow).endOf("day").toDate();
 
   const logs = await CleaningLog.find({
     startTime: { $ne: null },
@@ -1051,21 +1052,21 @@ const end = moment(cambodiaNow).endOf("month").toDate();
     return res.status(404).json({ message: "No eligible user found." });
   }
 
-  // Check if already rewarded
+  // ✅ Check if already rewarded today
   const alreadyRewarded = await ScoreLog.findOne({
     username: fastestUser,
-    date: { $gte: start, $lte: end }
+    date: { $gte: startOfDay, $lte: endOfDay }
   });
 
   if (alreadyRewarded) {
     return res.status(409).json({ message: "Already rewarded today." });
   }
 
- await new ScoreLog({
-  username: fastestUser,
-  date: cambodiaNow,
-  isFastest: true
-}).save();
+  await new ScoreLog({
+    username: fastestUser,
+    date: cambodiaNow,
+    isFastest: true
+  }).save();
 
   return res.json({ success: true, fastestUser });
 });
@@ -1073,23 +1074,22 @@ const end = moment(cambodiaNow).endOf("month").toDate();
 
 app.post("/score/add", authenticateToken, async (req, res) => {
   const username = req.user.username;
+  const cambodiaNow = moment.tz("Asia/Phnom_Penh").toDate();
 
-   const cambodiaNow = moment.tz("Asia/Phnom_Penh").toDate();
-  const start = moment(cambodiaNow).startOf("month").toDate();
-const end = moment(cambodiaNow).endOf("month").toDate();
-
+  // ✅ Allow one reward per DAY instead
+  const startOfDay = moment(cambodiaNow).startOf("day").toDate();
+  const endOfDay = moment(cambodiaNow).endOf("day").toDate();
 
   const existing = await ScoreLog.findOne({
     username,
-    date: { $gte: start, $lte: end }
+    date: { $gte: startOfDay, $lte: endOfDay }
   });
 
   if (existing) {
-    return res.status(409).json({ message: "Already rewarded" });
+    return res.status(409).json({ message: "Already rewarded today." });
   }
 
-  const now = moment.tz("Asia/Phnom_Penh").toDate();
-  const log = new ScoreLog({ username, date: now });
+  const log = new ScoreLog({ username, date: cambodiaNow });
   await log.save();
 
   res.json({ success: true, message: "Score added" });
