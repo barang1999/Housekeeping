@@ -18,31 +18,31 @@ const buildingOptions = [
 ];
 
 const buildingScales = {
-  house: 0.6,
-  hotel: 0.5,
-  school: 0.5,
-  hospital: 0.5,
-  policestation: 0.5,
-  firestation: 0.5,
-  manufacture: 0.45,
-  museum: 0.5,
-  nuclear: 0.45,
-  supermarket: 0.5,
-  university: 0.5,
-  whitehouse: 0.5,
-  tvstation: 0.48,
-  tree: 0.17, // Reduced scale
-  Tree2: 0.17, // Reduced scale
-  Tree3: 0.17, // Reduced scale
-  Tree4: 0.17, // Reduced scale
-  Tree5: 0.17, // Reduced scale
-  rock: 0.17, // Reduced scale
-  rock2: 0.17, // Reduced scale
-  rock3: 0.17, // Reduced scale
-  rock4: 0.17, // Reduced scale
-  deer: 0.17, // Reduced scale
-  direction: 0.17, // Reduced scale
-  pond: 0.17 // Reduced scale
+  house: 0.8, // Further increased scale for mobile
+  hotel: 0.7, // Further increased scale for mobile
+  school: 0.7, // Further increased scale for mobile
+  hospital: 0.7, // Further increased scale for mobile
+  policestation: 0.7, // Further increased scale for mobile
+  firestation: 0.7, // Further increased scale for mobile
+  manufacture: 0.65, // Further increased scale for mobile
+  museum: 0.7, // Further increased scale for mobile
+  nuclear: 0.65, // Further increased scale for mobile
+  supermarket: 0.7, // Further increased scale for mobile
+  university: 0.7, // Further increased scale for mobile
+  whitehouse: 0.7, // Further increased scale for mobile
+  tvstation: 0.68, // Further increased scale for mobile
+  tree: 0.25, // Further increased scale for mobile
+  Tree2: 0.25, // Further increased scale for mobile
+  Tree3: 0.25, // Further increased scale for mobile
+  Tree4: 0.25, // Further increased scale for mobile
+  Tree5: 0.25, // Further increased scale for mobile
+  rock: 0.25, // Further increased scale for mobile
+  rock2: 0.25, // Further increased scale for mobile
+  rock3: 0.25, // Further increased scale for mobile
+  rock4: 0.25, // Further increased scale for mobile
+  deer: 0.25, // Further increased scale for mobile
+  direction: 0.25, // Further increased scale for mobile
+  pond: 0.25 // Further increased scale for mobile
 };
 
 const buildingOffsets = {
@@ -251,13 +251,48 @@ window.changeBuilding = function(x, y) {
         src="assets/isometric/${name}.png" 
         alt="${name}" 
         title="${name}" 
-        style="width: 64px; height: 64px; margin: 4px; cursor: pointer;" 
+        style="width: 120px; height: 120px; margin: 10px; cursor: pointer;" 
         onclick="selectBuilding('${name}', ${x}, ${y})"
       />
     `).join(''),
-    showConfirmButton: false
+    showConfirmButton: false,
+    customClass: {
+      popup: 'swal2-fullscreen-popup' // Add a custom class for fullscreen popup
+    }
   });
 };
+
+// Update the custom style for the fullscreen popup
+const style = document.createElement('style');
+style.innerHTML = `
+  .swal2-fullscreen-popup {
+    width: 100% !important; /* Full width */
+    height: 100% !important; /* Full height */
+    max-width: none !important; /* Remove max-width restriction */
+    margin: 0 !important; /* Remove margin */
+    border-radius: 0 !important; /* Remove border radius */
+  }
+  .swal2-title {
+    font-size: 24px !important; /* Larger title font size */
+  }
+  .swal2-html-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 10px; /* Add spacing between items */
+    height: calc(100% - 80px); /* Adjust height to fit content */
+    overflow-y: auto; /* Enable scrolling if content overflows */
+  }
+  .swal2-actions {
+    position: absolute;
+    bottom: 20px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+`;
+document.head.appendChild(style);
 
 const birds = []; // Array to store bird positions and velocities
 const clouds = []; // Array to store cloud positions and velocities
