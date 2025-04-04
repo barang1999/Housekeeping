@@ -1,4 +1,4 @@
-﻿const TILE_SIZE = 64;
+﻿const TILE_SIZE = 80; // Adjusted tile size for better visibility without breaking layout
 const gridWidth = 40; // Increased grid width
 const gridHeight = 40; // Increased grid height
 const gridOffsetX = 0; // Removed horizontal offset
@@ -18,31 +18,31 @@ const buildingOptions = [
 ];
 
 const buildingScales = {
-  house: 0.8, // Further increased scale for mobile
-  hotel: 0.7, // Further increased scale for mobile
-  school: 0.7, // Further increased scale for mobile
-  hospital: 0.7, // Further increased scale for mobile
-  policestation: 0.7, // Further increased scale for mobile
-  firestation: 0.7, // Further increased scale for mobile
-  manufacture: 0.65, // Further increased scale for mobile
-  museum: 0.7, // Further increased scale for mobile
-  nuclear: 0.65, // Further increased scale for mobile
-  supermarket: 0.7, // Further increased scale for mobile
-  university: 0.7, // Further increased scale for mobile
-  whitehouse: 0.7, // Further increased scale for mobile
-  tvstation: 0.68, // Further increased scale for mobile
-  tree: 0.25, // Further increased scale for mobile
-  Tree2: 0.25, // Further increased scale for mobile
-  Tree3: 0.25, // Further increased scale for mobile
-  Tree4: 0.25, // Further increased scale for mobile
-  Tree5: 0.25, // Further increased scale for mobile
-  rock: 0.25, // Further increased scale for mobile
-  rock2: 0.25, // Further increased scale for mobile
-  rock3: 0.25, // Further increased scale for mobile
-  rock4: 0.25, // Further increased scale for mobile
-  deer: 0.25, // Further increased scale for mobile
-  direction: 0.25, // Further increased scale for mobile
-  pond: 0.25 // Further increased scale for mobile
+  house: 0.9, // Adjusted scale for better visibility
+  hotel: 0.85, // Adjusted scale for better visibility
+  school: 0.85, // Adjusted scale for better visibility
+  hospital: 0.85, // Adjusted scale for better visibility
+  policestation: 0.85, // Adjusted scale for better visibility
+  firestation: 0.85, // Adjusted scale for better visibility
+  manufacture: 0.8, // Adjusted scale for better visibility
+  museum: 0.85, // Adjusted scale for better visibility
+  nuclear: 0.8, // Adjusted scale for better visibility
+  supermarket: 0.85, // Adjusted scale for better visibility
+  university: 0.85, // Adjusted scale for better visibility
+  whitehouse: 0.85, // Adjusted scale for better visibility
+  tvstation: 0.83, // Adjusted scale for better visibility
+  tree: 0.3, // Adjusted scale for better visibility
+  Tree2: 0.3, // Adjusted scale for better visibility
+  Tree3: 0.3, // Adjusted scale for better visibility
+  Tree4: 0.3, // Adjusted scale for better visibility
+  Tree5: 0.3, // Adjusted scale for better visibility
+  rock: 0.3, // Adjusted scale for better visibility
+  rock2: 0.3, // Adjusted scale for better visibility
+  rock3: 0.3, // Adjusted scale for better visibility
+  rock4: 0.3, // Adjusted scale for better visibility
+  deer: 0.3, // Adjusted scale for better visibility
+  direction: 0.3, // Adjusted scale for better visibility
+  pond: 0.3 // Adjusted scale for better visibility
 };
 
 const buildingOffsets = {
@@ -262,27 +262,35 @@ window.changeBuilding = function(x, y) {
   });
 };
 
-// Update the custom style for the fullscreen popup
+// Update the custom style for the fullscreen popup to ensure it works properly
 const style = document.createElement('style');
 style.innerHTML = `
   .swal2-fullscreen-popup {
+    position: fixed !important; /* Ensure the popup is fixed to the viewport */
+    top: 0 !important; /* Align to the top of the screen */
+    left: 0 !important; /* Align to the left of the screen */
     width: 100% !important; /* Full width */
     height: 100% !important; /* Full height */
     max-width: none !important; /* Remove max-width restriction */
     margin: 0 !important; /* Remove margin */
     border-radius: 0 !important; /* Remove border radius */
+    overflow: hidden !important; /* Prevent content overflow */
+    background-color: white !important; /* Ensure a consistent background color */
   }
   .swal2-title {
-    font-size: 24px !important; /* Larger title font size */
+    font-size: 28px !important; /* Larger title font size for mobile */
+    text-align: center; /* Center the title */
+    margin-top: 20px !important; /* Add spacing above the title */
   }
   .swal2-html-container {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     align-items: center;
-    gap: 10px; /* Add spacing between items */
-    height: calc(100% - 80px); /* Adjust height to fit content */
+    gap: 15px; /* Add spacing between items */
+    height: calc(100% - 120px); /* Adjust height to fit content */
     overflow-y: auto; /* Enable scrolling if content overflows */
+    padding: 20px; /* Add padding for better spacing */
   }
   .swal2-actions {
     position: absolute;
@@ -290,6 +298,11 @@ style.innerHTML = `
     width: 100%;
     display: flex;
     justify-content: center;
+  }
+  .swal2-popup img {
+    max-width: 120px; /* Increase image size for better visibility */
+    max-height: 120px;
+    cursor: pointer;
   }
 `;
 document.head.appendChild(style);
