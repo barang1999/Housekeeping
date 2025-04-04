@@ -10,15 +10,18 @@
       background-color: #eafbe9;
     }
     #game-container {
-      margin: 0 auto;
+      margin: to;
       width: 100%;
       max-width: 960px;
     }
   </style>
 </head>
 <body>
-  <canvas id="gameCanvas" width="800" height="600"></canvas>
+  <div id="scoreDisplay" style="padding: 10px; font-weight: bold;">Score: 0</div>
+  <canvas id="gameCanvas" width="1600" height="1000"></canvas>
   <div id="game-container"></div>
+  <link rel="stylesheet" href="swal/sweetalert2.min.css">
+  <script src="swal/sweetalert2.all.min.js"></script>
   <script src="town.js"></script>
 </body>
 </html>
