@@ -1,6 +1,6 @@
-﻿const TILE_SIZE = 80; // Adjusted tile size for better visibility without breaking layout
-const gridWidth = 40; // Increased grid width
-const gridHeight = 40; // Increased grid height
+﻿const TILE_SIZE = 80; // Adjusted tile size for better visibility
+const gridWidth = Math.ceil(window.innerWidth / (TILE_SIZE / 2)) + 8; // Add extra tiles to fully cover the screen width
+const gridHeight = Math.ceil(window.innerHeight / (TILE_SIZE / 4)) + 8; // Add extra tiles to fully cover the screen height
 const gridOffsetX = 0; // Removed horizontal offset
 const gridOffsetY = 0; // Removed vertical offset
 
@@ -106,6 +106,17 @@ function drawTile(ctx, x, y, imgName, imageMap, highlight = false) {
     }
   }
 
+  // Add a light green border to the tile
+  ctx.strokeStyle = 'lightgreen';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo((x - y) * TILE_SIZE / 2, (x + y) * TILE_SIZE / 4 - TILE_SIZE / 4);
+  ctx.lineTo((x - y) * TILE_SIZE / 2 + TILE_SIZE / 2, (x + y) * TILE_SIZE / 4);
+  ctx.lineTo((x - y) * TILE_SIZE / 2, (x + y) * TILE_SIZE / 4 + TILE_SIZE / 4);
+  ctx.lineTo((x - y) * TILE_SIZE / 2 - TILE_SIZE / 2, (x + y) * TILE_SIZE / 4);
+  ctx.closePath();
+  ctx.stroke();
+
   if (highlight) {
     ctx.strokeStyle = 'yellow';
     ctx.lineWidth = 2;
@@ -121,83 +132,40 @@ function drawTile(ctx, x, y, imgName, imageMap, highlight = false) {
 
 const landData = [];
 function drawEmptyLand(ctx, imageMap, hoverTile) {
-  const width = gridWidth; // Use updated grid width
-  const height = gridHeight; // Use updated grid height
+  const width = gridWidth; // Use dynamically calculated grid width
+  const height = gridHeight; // Use dynamically calculated grid height
+
+  // Ensure landData is initialized only once
   if (landData.length === 0) {
-    // Draw ground
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const highlight =
-          hoverTile &&
-          hoverTile.x === x &&
-          hoverTile.y === y &&
-          hoverTile.x >= 0 && hoverTile.x < width &&
-          hoverTile.y >= 0 && hoverTile.y < height;
-
-        if (highlight) {
-          drawTile(ctx, x, y, null, {}, true); // draw only highlight with no image
-        }
-
-        if (!landData.find(tile => tile.x === x && tile.y === y)) {
-          landData.push({ x, y });
-        }
+    for (let y = -4; y < height + 4; y++) { // Add buffer to ensure full vertical coverage
+      for (let x = -4; x < width + 4; x++) { // Add buffer to ensure full horizontal coverage
+        landData.push({ x, y });
       }
     }
   }
 
-  // Add static objects (trees, rocks, pond, etc.) to renderQueue for proper depth sorting
-  const staticObjects = [
-    { x: 2, y: 3, type: "tree" },
-    { x: 4, y: 2, type: "Tree2" },
-    { x: 3, y: 4, type: "Tree3" },
-    { x: 8, y: 6, type: "Tree4" },
-    { x: 9, y: 3, type: "Tree5" },
-    { x: 10, y: 4, type: "rock" },
-    { x: 11, y: 5, type: "rock2" },
-    //{ x: 12, y: 2, type: "rock3" },
-   // { x: 13, y: 6, type: "rock4" },
-    { x: 14, y: 7, type: "deer" },
-    //{ x: 15, y: 4, type: "direction" },
-    //{ x: 17, y: 6, type: "pond" }, // Include pond
-    { x: 6, y: 9, type: "pine" }
-  ];
+  // Draw ground
+  for (let y = -4; y < height + 4; y++) {
+    for (let x = -4; x < width + 4; x++) {
+      const tile = landData.find(t => t.x === x && t.y === y);
+      const highlight = hoverTile && hoverTile.x === x && hoverTile.y === y;
 
-  const renderQueue = [...landData.map(tile => ({ ...tile, isBuilding: true })), ...staticObjects];
-
-  // Sort renderQueue by y-coordinate and prioritize buildings over static objects
-  renderQueue.sort((a, b) => {
-    if (a.y !== b.y) return a.y - b.y; // Sort by y-coordinate
-    if (a.isBuilding && !b.isBuilding) return 1; // Buildings render after static objects on the same tile
-    if (!a.isBuilding && b.isBuilding) return -1; // Static objects render before buildings on the same tile
-    return a.x - b.x; // Tiebreaker: sort by x-coordinate
-  });
-
-  // Render all objects in sorted order
-  for (const obj of renderQueue) {
-    if (obj.isBuilding) {
-      drawTile(ctx, obj.x, obj.y, obj.building, imageMap);
-    } else if (obj.type) {
-      drawTile(ctx, obj.x, obj.y, obj.type, imageMap);
-    }
-  }
-
-  // Render hover highlight
-  for (const pos of landData) {
-    if (hoveredBuilding && hoveredBuilding.x === pos.x && hoveredBuilding.y === pos.y) {
-      ctx.strokeStyle = 'rgba(255, 255, 0, 0.9)';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      const screenX = (pos.x - pos.y) * TILE_SIZE / 2;
-      const screenY = (pos.x + pos.y) * TILE_SIZE / 4;
-      ctx.moveTo(screenX, screenY - TILE_SIZE / 2);
-      ctx.lineTo(screenX + TILE_SIZE / 2, screenY);
-      ctx.lineTo(screenX, screenY + TILE_SIZE / 2);
-      ctx.lineTo(screenX - TILE_SIZE / 2, screenY);
-      ctx.closePath();
-      ctx.stroke();
+      drawTile(ctx, x, y, tile?.building || null, imageMap, highlight);
     }
   }
 }
+
+function adjustCanvasSize() {
+  const canvas = document.getElementById("gameCanvas");
+  canvas.width = window.innerWidth; // Match canvas width to the screen width
+  canvas.height = window.innerHeight; // Match canvas height to the screen height
+}
+
+window.addEventListener("resize", () => {
+  adjustCanvasSize(); // Adjust canvas size on window resize
+  const ctx = document.getElementById("gameCanvas").getContext("2d");
+  drawEmptyLand(ctx, window.imageMapGlobal, null); // Redraw the grid
+});
 
 function preloadImages(names, path, callback) {
   const images = {};
@@ -219,17 +187,64 @@ function preloadImages(names, path, callback) {
 function selectBuilding(name, x, y) {
   const pos = landData.find(tile => tile.x === x && tile.y === y);
   if (pos) {
-    pos.building = name;
-    document.querySelector('.swal2-container')?.remove(); // Close the modal
+    pos.building = name; // Assign the selected building to the tile
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
-    drawEmptyLand(ctx, imageMapGlobal, { x, y }); // show highlight
-    setTimeout(() => {
-      drawEmptyLand(ctx, imageMapGlobal, null); // remove highlight after short delay
-    }, 200);
+    drawEmptyLand(ctx, window.imageMapGlobal, null); // Redraw the grid to reflect the change
+    Swal.close(); // Close the modal after placing the building
+  } else {
+    console.error(`Tile at (${x}, ${y}) not found in landData.`);
   }
 }
-window.selectBuilding = selectBuilding;
+
+function handleTileClick(mouseX, mouseY) {
+  if (Swal.isVisible()) {
+    // Prevent triggering another Swal if one is already open
+    return;
+  }
+
+  const iso = screenToIso(mouseX, mouseY); // Convert screen coordinates to isometric coordinates
+  const tile = landData.find(t => t.x === iso.x && t.y === iso.y); // Find the clicked tile
+  if (tile) {
+    if (tile.building) {
+      // If the tile already has a building, show options to change or remove it
+      Swal.fire({
+        title: `Current: ${tile.building}`,
+        html: `
+          <img 
+            src="assets/isometric/${tile.building}.png" 
+            alt="${tile.building}" 
+            style="width: 64px; height: 64px; display: block; margin: auto;" 
+          />
+          <div style="margin-top: 12px;">
+            <button onclick="removeBuilding(${tile.x}, ${tile.y})" class="swal2-confirm swal2-styled" style="margin-right: 10px;">Remove</button>
+            <button onclick="changeBuilding(${tile.x}, ${tile.y})" class="swal2-cancel swal2-styled">Change</button>
+          </div>
+        `,
+        showConfirmButton: false,
+        showCancelButton: false
+      });
+    } else {
+      // If the tile is empty, show the building selection modal
+      Swal.fire({
+        title: 'Choose an item',
+        showCancelButton: true,
+        html: buildingOptions.map(name => `
+          <img 
+            src="assets/isometric/${name}.png" 
+            alt="${name}" 
+            title="${name}" 
+            style="width: 64px; height: 64px; margin: 4px; cursor: pointer;" 
+            onclick="selectBuilding('${name}', ${tile.x}, ${tile.y})"
+          />
+        `).join(''),
+        showConfirmButton: false
+      });
+    }
+  } else {
+    console.error(`No tile found at screen coordinates (${mouseX}, ${mouseY}).`);
+  }
+}
 
 window.removeBuilding = function(x, y) {
   const pos = landData.find(tile => tile.x === x && tile.y === y);
@@ -387,6 +402,8 @@ window.addEventListener("DOMContentLoaded", () => {
   const canvas = document.getElementById("gameCanvas");
   const ctx = canvas.getContext("2d");
 
+  adjustCanvasSize(); // Adjust canvas size on initial load
+
   preloadImages([
     "tree", "Tree2", "Tree3", "Tree4", "Tree5", "bale", "house", "hotel", "school", "hospital",
     "policestation", "firestation", "manufacture", "museum", "nuclear", "supermarket", "university",
@@ -484,57 +501,7 @@ window.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      const pos = [...landData].reverse().find(tile => {
-        if (!tile.building) return false;
-        const img = imageMapGlobal[tile.building];
-        const scale = buildingScales[tile.building] || 0.5;
-        const offsetY = buildingOffsets[tile.building] || 0;
-        const screen = isoToScreen(tile.x, tile.y);
-        const dx = mouseX - (screen.x - (img.width * scale) / 2);
-        const dy = mouseY - (screen.y - (img.height * scale) / 2 + offsetY);
-        return dx >= 0 && dx <= img.width * scale && dy >= 0 && dy <= img.height * scale;
-      });
-
-      let finalTile = pos;
-      if (!finalTile) {
-        const iso = screenToIso(mouseX, mouseY);
-        finalTile = landData.find(tile => tile.x === iso.x && tile.y === iso.y);
-      }
-      if (!finalTile) return;
-
-      if (finalTile.building) {
-        Swal.fire({
-          title: `Current: ${finalTile.building}`,
-          html: `
-            <img 
-              src="assets/isometric/${finalTile.building}.png" 
-              alt="${finalTile.building}" 
-              style="width: 64px; height: 64px; display: block; margin: auto;" 
-            />
-            <div style="margin-top: 12px;">
-              <button onclick="removeBuilding(${finalTile.x}, ${finalTile.y})" class="swal2-confirm swal2-styled" style="margin-right: 10px;">Remove</button>
-              <button onclick="changeBuilding(${finalTile.x}, ${finalTile.y})" class="swal2-cancel swal2-styled">Change</button>
-            </div>
-          `,
-          showConfirmButton: false,
-          showCancelButton: false
-        });
-      } else {
-        Swal.fire({
-          title: 'Choose an item',
-          showCancelButton: true,
-          html: buildingOptions.map(name => `
-            <img 
-              src="assets/isometric/${name}.png" 
-              alt="${name}" 
-              title="${name}" 
-              style="width: 64px; height: 64px; margin: 4px; cursor: pointer;" 
-              onclick="selectBuilding('${name}', ${finalTile.x}, ${finalTile.y})"
-            />
-          `).join(''),
-          showConfirmButton: false
-        });
-      }
+      handleTileClick(mouseX, mouseY); // Handle tile click to place or modify buildings
     });
 
     // Add touch event listeners for mobile support
@@ -568,3 +535,10 @@ window.addEventListener("DOMContentLoaded", () => {
     animate(); // Start the animation loop
   }); // end of preloadImages callback
 }); // end of DOMContentLoaded event
+
+window.addEventListener("click", (e) => {
+  const rect = document.getElementById("gameCanvas").getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+  const mouseY = e.clientY - rect.top;
+  handleTileClick(mouseX, mouseY); // Handle tile click to place or modify buildings
+});
