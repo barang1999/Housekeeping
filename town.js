@@ -485,6 +485,27 @@ style.innerHTML = `
       height: calc(100% - 160px);
     }
   }
+  .item-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 12px;
+    padding: 12px;
+    justify-items: center;
+  }
+  .item-tile {
+    background-color: #f9f9f9;
+    border-radius: 12px;
+    padding: 10px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease;
+  }
+  .item-tile:hover {
+    transform: scale(1.05);
+  }
+  .item-tile img {
+    max-width: 64px;
+    max-height: 64px;
+  }
 `;
 document.head.appendChild(style);
 
