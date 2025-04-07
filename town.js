@@ -385,7 +385,7 @@ function handleTileClick(mouseX, mouseY) {
         />
       `).join(''),
       customClass: {
-        popup: 'swal-custom-popup'
+        popup: 'swal2-fullscreen-popup'
       }
     });
     return; // Exit the function after showing the "Choose an item" menu
