@@ -468,14 +468,21 @@ style.innerHTML = `
   }
   @media (max-width: 768px) {
     .swal2-title {
-      font-size: 28px !important; /* Adjusted font size for smaller screens */
+      font-size: 24px !important;
+      text-align: center;
     }
     .swal2-popup img {
-      max-width: 400px; /* Larger images for mobile */
-      max-height: 400px;
+      max-width: 120px;
+      max-height: 120px;
+      margin: 8px;
     }
     .swal2-html-container {
-      gap: 20px; /* Adjust spacing between items */
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      overflow-y: auto;
+      padding: 10px;
+      height: calc(100% - 160px);
     }
   }
 `;
