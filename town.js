@@ -4,20 +4,42 @@ const gridHeight = Math.ceil(window.innerHeight / (TILE_SIZE / 4)) + 8; // Add e
 const gridOffsetX = 0; // Removed horizontal offset
 const gridOffsetY = 0; // Removed vertical offset
 
+let hasDragged = false;
+let smoothCursor = { x: 0, y: 0 };
 let selectedBuilding = "house"; // Default building to place
 let userScore = 1; // For now, just a placeholder score
 let hoveredBuilding = null;
+let heldTile = null; // Declare heldTile globally
+let cursorPosition = null; // Tracks the cursor position during dragging
+let dragStart = null;
+let relocationInProgress = false; 
+
+// Disable the context menu on the canvas
+const canvas = document.getElementById("gameCanvas");
+canvas.addEventListener("contextmenu", (e) => {
+  e.preventDefault(); // Prevent the default context menu from appearing
+});
 
 const buildingOptions = [
-  "house", "hotel", "school", "hospital",
-  "policestation", "firestation", "manufacture", "museum",
-  "nuclear", "supermarket", "university", "whitehouse", "tvstation",
-  "tree", "Tree2", "Tree3", "Tree4", "Tree5", // Add all tree types
-  "rock", "rock2", "rock3", "rock4", // Add all rock types
-  "pond", "deer", "direction" // Add pond, deer, and direction
+  "Tree2", "Tree3", "Tree4", "Tree5", "Tree6", "Tree7", "Tree8", "Tree9",
+    "rock", "rock2", "rock3", "rock4","road1","road2","road3","road4","road5","road6","road7","fen","trafficlight","roadlight", "stop","car1","car2","policecar1","policecar2","shop","condo",
+    "pond", "deer", "direction", "bbq", "beer", "campchair", "camping",
+    "decor1", "deergrass", "grassdecor1", "grassdecor2", "grassdecor3",
+    "grassdecor4", "grassdecor5", "grassdecor6", "human1", "human2",
+    "mushroom", "plant1", "plant2", "plant3",  "plant4", "plant5", "pine", "butterfly", "pool",
+    "house", "hotel", "school", "hospital",
+    "policestation", "firestation", "manufacture", "museum",
+    "nuclear", "supermarket", "university", "whitehouse", "tvstation"
 ];
 
 const buildingScales = {
+  road1: 0.26,
+  road2: 0.5,
+  road3: 0.5,
+  road4: 0.5,
+  road5: 0.3,
+  road6: 0.3,
+  road7: 0.5,
   house: 0.9, // Adjusted scale for better visibility
   hotel: 0.85, // Adjusted scale for better visibility
   school: 0.85, // Adjusted scale for better visibility
@@ -35,14 +57,41 @@ const buildingScales = {
   Tree2: 0.3, // Adjusted scale for better visibility
   Tree3: 0.3, // Adjusted scale for better visibility
   Tree4: 0.3, // Adjusted scale for better visibility
-  Tree5: 0.3, // Adjusted scale for better visibility
+  Tree5: 0.3,
+  Tree6: 0.3,
+  Tree7: 0.3,
+  Tree8: 0.3, // Adjusted scale for better visibility
   rock: 0.3, // Adjusted scale for better visibility
   rock2: 0.3, // Adjusted scale for better visibility
   rock3: 0.3, // Adjusted scale for better visibility
   rock4: 0.3, // Adjusted scale for better visibility
   deer: 0.3, // Adjusted scale for better visibility
   direction: 0.3, // Adjusted scale for better visibility
+  bbq: 0.25, // Adjusted scale for new object
+  beer: 0.25, // Adjusted scale for new object
+  campchair: 0.25, // Adjusted scale for new object
+  camping: 0.45, // Adjusted scale for new object
+  decor1: 0.25, // Adjusted scale for new object
+  deergrass: 0.25, // Adjusted scale for new object
+  grassdecor1: 0.25, // Adjusted scale for new object
+  grassdecor2: 0.25, // Adjusted scale for new object
+  grassdecor3: 0.25, // Adjusted scale for new object
+  grassdecor4: 0.25, // Adjusted scale for new object
+  grassdecor5: 0.25, // Adjusted scale for new object
+  grassdecor6: 0.25, // Adjusted scale for new object
+  human1: 0.25, // Adjusted scale for new object
+  human2: 0.25, // Adjusted scale for new object
+  mushroom: 0.25, // Adjusted scale for new object
+  plant1: 0.25,
+  plant2: 0.35,
+  plant3: 0.35,
+  plant4: 0.35,
+  plant5: 0.35, // Adjusted scale for new object
+  pine: 0.25, // Adjusted scale for new object
+  butterfly: 0.25, // Adjusted scale for new object
+  bale: 0.5, // Existing scale for bale
   pond: 0.3 // Adjusted scale for better visibility
+
 };
 
 const buildingOffsets = {
@@ -58,8 +107,54 @@ const buildingOffsets = {
   supermarket: 0,
   university: 0,
   whitehouse: 0,
-  tvstation: 8
+  tvstation: 8,
+  road1: -2,
+  road2: 10,
+  road3: 10,
+  road4: 10,
+  road5: -2,
+  road6: -2,
+  road7: 10
 };
+
+const particles = [];
+
+function createParticles(x, y) {
+  for (let i = 0; i < 10; i++) {
+    particles.push({
+      x,
+      y,
+      vx: (Math.random() - 0.5) * 4,
+      vy: (Math.random() - 0.5) * 4,
+      life: 30 + Math.random() * 10,
+      alpha: 1
+    });
+  }
+}
+
+function updateParticles() {
+  for (const p of particles) {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life -= 1;
+    p.alpha = p.life / 40;
+  }
+  // Remove dead ones
+  for (let i = particles.length - 1; i >= 0; i--) {
+    if (particles[i].life <= 0) particles.splice(i, 1);
+  }
+}
+
+function drawParticles(ctx) {
+  for (const p of particles) {
+    ctx.globalAlpha = p.alpha;
+    ctx.fillStyle = "gold";
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
 
 function isoToScreen(x, y) {
   return {
@@ -75,38 +170,7 @@ function screenToIso(mouseX, mouseY) {
 }
 
 function drawTile(ctx, x, y, imgName, imageMap, highlight = false) {
-  const img = imgName ? imageMap[imgName] : null;
-  if (img) {
-    ctx.imageSmoothingEnabled = false;
-
-    if (imgName === "bale") {
-      const scale = 0.5;
-      ctx.drawImage(
-        img,
-        (x - y) * TILE_SIZE / 2 - (img.width * scale) / 2,
-        (x + y) * TILE_SIZE / 4 - (img.height * scale) / 2,
-        img.width * scale,
-        img.height * scale
-      );
-    } else {
-      let scale = buildingScales[imgName] || 0.5;
-      const offsetY = buildingOffsets[imgName] || 0;
-
-      if (hoveredBuilding && hoveredBuilding.x === x && hoveredBuilding.y === y) {
-        scale *= 1.1; // increase by 10%
-      }
-
-      ctx.drawImage(
-        img,
-        (x - y) * TILE_SIZE / 2 - (img.width * scale) / 2,
-        (x + y) * TILE_SIZE / 4 - (img.height * scale) / 2 + offsetY,
-        img.width * scale,
-        img.height * scale
-      );
-    }
-  }
-
-  // Add a light green border to the tile
+  // Draw the green border first
   ctx.strokeStyle = 'lightgreen';
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -117,6 +181,42 @@ function drawTile(ctx, x, y, imgName, imageMap, highlight = false) {
   ctx.closePath();
   ctx.stroke();
 
+  const img = imgName ? imageMap[imgName] : null;
+  if (img) {
+    ctx.imageSmoothingEnabled = false;
+
+    if (imgName === "bale") {
+      const scale = 0.5;
+      ctx.globalAlpha = heldTile && heldTile.x === x && heldTile.y === y && heldTile.isTransparent ? 0.5 : 1; // Apply transparency
+      ctx.drawImage(
+        img,
+        (x - y) * TILE_SIZE / 2 - (img.width * scale) / 2,
+        (x + y) * TILE_SIZE / 4 - (img.height * scale) / 2,
+        img.width * scale,
+        img.height * scale
+      );
+      ctx.globalAlpha = 1; // Reset transparency
+    } else {
+      let scale = buildingScales[imgName] || 0.5;
+      const offsetY = buildingOffsets[imgName] || 0;
+
+      if (hoveredBuilding && hoveredBuilding.x === x && hoveredBuilding.y === y) {
+        scale *= 1.1; // increase by 10%
+      }
+
+      ctx.globalAlpha = heldTile && heldTile.x === x && heldTile.y === y && heldTile.isTransparent ? 0.5 : 1; // Apply transparency
+      ctx.drawImage(
+        img,
+        (x - y) * TILE_SIZE / 2 - (img.width * scale) / 2,
+        (x + y) * TILE_SIZE / 4 - (img.height * scale) / 2 + offsetY,
+        img.width * scale,
+        img.height * scale
+      );
+      ctx.globalAlpha = 1; // Reset transparency
+    }
+  }
+
+  // Draw the highlight border if needed
   if (highlight) {
     ctx.strokeStyle = 'yellow';
     ctx.lineWidth = 2;
@@ -137,7 +237,7 @@ function drawEmptyLand(ctx, imageMap, hoverTile) {
 
   // Ensure landData is initialized only once
   if (landData.length === 0) {
-    for (let y = -4; y < height + 4; y++) { // Add buffer to ensure full vertical coverage
+    for (let y = -4; y < height + 8; y++) { // Increased buffer for downward tiles
       for (let x = -4; x < width + 4; x++) { // Add buffer to ensure full horizontal coverage
         landData.push({ x, y });
       }
@@ -145,8 +245,8 @@ function drawEmptyLand(ctx, imageMap, hoverTile) {
   }
 
   // Draw ground
-  for (let y = -4; y < height + 4; y++) {
-    for (let x = -4; x < width + 4; x++) {
+  for (let y = -4; y < height + 12; y++) { // Increased buffer for downward tiles
+    for (let x = -4; x < width + 6; x++) {
       const tile = landData.find(t => t.x === x && t.y === y);
       const highlight = hoverTile && hoverTile.x === x && hoverTile.y === y;
 
@@ -179,6 +279,14 @@ function preloadImages(names, path, callback) {
         callback(images);
       }
     };
+    img.onerror = () => {
+      console.error(`Image not found: ${path}/${name}.png`);
+      loaded++;
+      if (loaded === names.length) {
+        window.imageMapGlobal = images; // Expose imageMapGlobal
+        callback(images);
+      }
+    };
     img.src = `${path}/${name}.png`;
     images[name] = img;
   }
@@ -198,54 +306,93 @@ function selectBuilding(name, x, y) {
 }
 
 function handleTileClick(mouseX, mouseY) {
+  if (relocationInProgress || heldTile) {
+    // Skip showing the popup if relocation or dragging is in progress
+    return;
+  }
+
   if (Swal.isVisible()) {
     // Prevent triggering another Swal if one is already open
     return;
   }
 
-  const iso = screenToIso(mouseX, mouseY); // Convert screen coordinates to isometric coordinates
-  const tile = landData.find(t => t.x === iso.x && t.y === iso.y); // Find the clicked tile
-  if (tile) {
-    if (tile.building) {
-      // If the tile already has a building, show options to change or remove it
-      Swal.fire({
-        title: `Current: ${tile.building}`,
-        html: `
-          <img 
-            src="assets/isometric/${tile.building}.png" 
-            alt="${tile.building}" 
-            style="width: 64px; height: 64px; display: block; margin: auto;" 
-          />
-          <div style="margin-top: 12px;">
-            <button onclick="removeBuilding(${tile.x}, ${tile.y})" class="swal2-confirm swal2-styled" style="margin-right: 10px;">Remove</button>
-            <button onclick="changeBuilding(${tile.x}, ${tile.y})" class="swal2-cancel swal2-styled">Change</button>
-          </div>
-        `,
-        showConfirmButton: false,
-        showCancelButton: false
-      });
-    } else {
-      // If the tile is empty, show the building selection modal
-      Swal.fire({
-        title: 'Choose an item',
-        showCancelButton: true,
-        html: buildingOptions.map(name => `
-          <img 
-            src="assets/isometric/${name}.png" 
-            alt="${name}" 
-            title="${name}" 
-            style="width: 64px; height: 64px; margin: 4px; cursor: pointer;" 
-            onclick="selectBuilding('${name}', ${tile.x}, ${tile.y})"
-          />
-        `).join(''),
-        showConfirmButton: false
-      });
-    }
-  } else {
-    console.error(`No tile found at screen coordinates (${mouseX}, ${mouseY}).`);
-  }
-}
+  // Check if the click is within the bounds of any building image
+  const clickedTile = landData.find(tile => {
+    if (!tile.building) return false;
 
+    const img = window.imageMapGlobal[tile.building];
+    const scale = buildingScales[tile.building] || 0.5;
+    const offsetY = buildingOffsets[tile.building] || 0;
+    const screen = isoToScreen(tile.x, tile.y);
+
+    const imgX = screen.x - (img.width * scale) / 2;
+    const imgY = screen.y - (img.height * scale) / 2 + offsetY;
+    const imgWidth = img.width * scale;
+    const imgHeight = img.height * scale;
+
+    return (
+      mouseX >= imgX &&
+      mouseX <= imgX + imgWidth &&
+      mouseY >= imgY &&
+      mouseY <= imgY + imgHeight
+    );
+  });
+
+  if (clickedTile) {
+    // Show the menu for the clicked object immediately
+    Swal.fire({
+      title: `Current: ${clickedTile.building}`,
+      html: `
+        <img 
+          src="assets/isometric/${clickedTile.building}.png" 
+          alt="${clickedTile.building}" 
+          style="width: 64px; height: 64px; display: block; margin: auto;" 
+        />
+        <div style="margin-top: 12px;">
+          <button id="removeBuildingBtn" class="swal2-confirm swal2-styled" style="margin-right: 10px;">Remove</button>
+          <button id="changeBuildingBtn" class="swal2-cancel swal2-styled">Change</button>
+        </div>
+      `,
+      showConfirmButton: false,
+      showCancelButton: false,
+      didRender: () => {
+        // Attach event listeners to the buttons after the Swal is rendered
+        document.getElementById('removeBuildingBtn').addEventListener('click', () => {
+          removeBuilding(clickedTile.x, clickedTile.y);
+        });
+        document.getElementById('changeBuildingBtn').addEventListener('click', () => {
+          changeBuilding(clickedTile.x, clickedTile.y);
+        });
+      }
+    });
+    return; // Exit the function after showing the menu
+  }
+
+  // If no object was clicked, handle empty tile or other logic
+  const iso = screenToIso(mouseX, mouseY); // Convert screen coordinates to isometric coordinates
+  const tile = landData.find(t => t.x === iso.x && t.y === iso.y);
+
+  if (tile && !tile.building) {
+    Swal.fire({
+      title: 'Choose an item',
+      showCancelButton: true,
+      html: buildingOptions.map(name => `
+        <img 
+          src="assets/isometric/${name}.png" 
+          alt="${name}" 
+          title="${name}" 
+          onclick="selectBuilding('${name}', ${tile.x}, ${tile.y})"
+        />
+      `).join(''),
+      customClass: {
+        popup: 'swal-custom-popup'
+      }
+    });
+    return; // Exit the function after showing the "Choose an item" menu
+  }
+
+  console.error(`No tile found at screen coordinates (${mouseX}, ${mouseY}).`);
+}
 window.removeBuilding = function(x, y) {
   const pos = landData.find(tile => tile.x === x && tile.y === y);
   if (pos) {
@@ -266,7 +413,7 @@ window.changeBuilding = function(x, y) {
         src="assets/isometric/${name}.png" 
         alt="${name}" 
         title="${name}" 
-        style="width: 120px; height: 120px; margin: 10px; cursor: pointer;" 
+        style="width: 400px; height: 400px; margin: 20px; cursor: pointer;" 
         onclick="selectBuilding('${name}', ${x}, ${y})"
       />
     `).join(''),
@@ -277,35 +424,35 @@ window.changeBuilding = function(x, y) {
   });
 };
 
-// Update the custom style for the fullscreen popup to ensure it works properly
+// Update the custom style for the fullscreen popup to ensure it works properly on mobile with larger popups
 const style = document.createElement('style');
 style.innerHTML = `
   .swal2-fullscreen-popup {
-    position: fixed !important; /* Ensure the popup is fixed to the viewport */
-    top: 0 !important; /* Align to the top of the screen */
-    left: 0 !important; /* Align to the left of the screen */
-    width: 100% !important; /* Full width */
-    height: 100% !important; /* Full height */
-    max-width: none !important; /* Remove max-width restriction */
-    margin: 0 !important; /* Remove margin */
-    border-radius: 0 !important; /* Remove border radius */
-    overflow: hidden !important; /* Prevent content overflow */
-    background-color: white !important; /* Ensure a consistent background color */
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    overflow: hidden !important;
+    background-color: white !important;
   }
   .swal2-title {
-    font-size: 28px !important; /* Larger title font size for mobile */
-    text-align: center; /* Center the title */
-    margin-top: 20px !important; /* Add spacing above the title */
+    font-size: 32px !important; /* Larger title font size */
+    text-align: center;
+    margin-top: 20px !important;
   }
   .swal2-html-container {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     align-items: center;
-    gap: 15px; /* Add spacing between items */
-    height: calc(100% - 120px); /* Adjust height to fit content */
-    overflow-y: auto; /* Enable scrolling if content overflows */
-    padding: 20px; /* Add padding for better spacing */
+    gap: 25px; /* Increased spacing between items */
+    height: calc(100% - 150px);
+    overflow-y: auto;
+    padding: 20px;
   }
   .swal2-actions {
     position: absolute;
@@ -315,9 +462,21 @@ style.innerHTML = `
     justify-content: center;
   }
   .swal2-popup img {
-    max-width: 120px; /* Increase image size for better visibility */
-    max-height: 120px;
+    max-width: 400px; /* Larger images for better visibility */
+    max-height: 400px;
     cursor: pointer;
+  }
+  @media (max-width: 768px) {
+    .swal2-title {
+      font-size: 28px !important; /* Adjusted font size for smaller screens */
+    }
+    .swal2-popup img {
+      max-width: 400px; /* Larger images for mobile */
+      max-height: 400px;
+    }
+    .swal2-html-container {
+      gap: 20px; /* Adjust spacing between items */
+    }
   }
 `;
 document.head.appendChild(style);
@@ -398,20 +557,25 @@ function updateClouds() {
 }
 
 window.addEventListener("DOMContentLoaded", () => {
-  Swal.fire('Hello, Eightfold Town!');
+
   const canvas = document.getElementById("gameCanvas");
   const ctx = canvas.getContext("2d");
 
   adjustCanvasSize(); // Adjust canvas size on initial load
 
   preloadImages([
-    "tree", "Tree2", "Tree3", "Tree4", "Tree5", "bale", "house", "hotel", "school", "hospital",
-    "policestation", "firestation", "manufacture", "museum", "nuclear", "supermarket", "university",
-    "whitehouse", "tvstation", "rock", "rock2", "rock3", "rock4", "deer", "direction", "pond", "pine"
+   "Tree2", "Tree3", "Tree4", "Tree5", "Tree6", "Tree7", "Tree8", "Tree9",
+    "rock", "rock2", "rock3", "rock4","road1","road2","road3","road4","road5","road6","road7","fen","trafficlight","roadlight", "stop","car1","car2","policecar1","policecar2","shop","condo",
+    "pond", "deer", "direction", "bbq", "beer", "campchair", "camping",
+    "decor1", "deergrass", "grassdecor1", "grassdecor2", "grassdecor3",
+    "grassdecor4", "grassdecor5", "grassdecor6", "human1", "human2",
+    "mushroom", "plant1", "plant2", "plant3",  "plant4", "plant5", "pine", "butterfly", "pool",
+    "house", "hotel", "school", "hospital",
+    "policestation", "firestation", "manufacture", "museum",
+    "nuclear", "supermarket", "university", "whitehouse", "tvstation"
   ], "assets/isometric", (images) => {
     let hoverTile = null;
     let holdTimer = null;
-    let heldTile = null;
 
     initializeBirds(); // Initialize bird positions
     initializeClouds(); // Initialize cloud positions
@@ -424,39 +588,91 @@ window.addEventListener("DOMContentLoaded", () => {
       drawBirds(ctx); // Draw the birds
       updateBirds(); // Update bird positions
       document.getElementById("scoreDisplay").innerText = `Score: ${userScore}`;
+    
+      // Draw the held object at the cursor position
+      if (heldTile && cursorPosition) {
+        // Smooth interpolation
+        smoothCursor.x += (cursorPosition.x - smoothCursor.x) * 0.2;
+        smoothCursor.y += (cursorPosition.y - smoothCursor.y) * 0.2;
+      
+        // Convert to isometric coords
+        const iso = screenToIso(smoothCursor.x, smoothCursor.y);
+        const snapTile = landData.find(t => t.x === iso.x && t.y === iso.y);
+      
+        let drawX = smoothCursor.x;
+        let drawY = smoothCursor.y;
+      
+        if (snapTile) {
+          const screen = isoToScreen(snapTile.x, snapTile.y);
+          drawX = screen.x;
+          drawY = screen.y;
+        }
+      
+        const img = imageMapGlobal[heldTile.building];
+        const scale = buildingScales[heldTile.building] || 0.5;
+        const offsetY = buildingOffsets[heldTile.building] || 0;
+      
+        ctx.globalAlpha = 0.7;
+        ctx.drawImage(
+          img,
+          drawX - (img.width * scale) / 2,
+          drawY - (img.height * scale) / 2 + offsetY,
+          img.width * scale,
+          img.height * scale
+        );
+        ctx.globalAlpha = 1;
+      }
+      drawParticles(ctx);
+      updateParticles();
     }
-
     function animate() {
       render();
       requestAnimationFrame(animate); // Continuously update the canvas
     }
 
     function handleHoldStart(x, y) {
-      const pos = [...landData].reverse().find(tile => {
-        if (!tile.building) return false;
-        const img = imageMapGlobal[tile.building];
-        const scale = buildingScales[tile.building] || 0.5;
-        const offsetY = buildingOffsets[tile.building] || 0;
-        const screen = isoToScreen(tile.x, tile.y);
-        const dx = x - (screen.x - (img.width * scale) / 2);
-        const dy = y - (screen.y - (img.height * scale) / 2 + offsetY);
-        return dx >= 0 && dx <= img.width * scale && dy >= 0 && dy <= img.height * scale;
-      });
-
-      if (pos) {
-        holdTimer = setTimeout(() => {
+      hasDragged = false; // Reset drag flag
+      holdTimer = setTimeout(() => {
+        const pos = [...landData].reverse().find(tile => {
+          if (!tile.building) return false;
+          const img = imageMapGlobal[tile.building];
+          const scale = buildingScales[tile.building] || 0.5;
+          const offsetY = buildingOffsets[tile.building] || 0;
+          const screen = isoToScreen(tile.x, tile.y);
+          const dx = x - (screen.x - (img.width * scale) / 2);
+          const dy = y - (screen.y - (img.height * scale) / 2 + offsetY);
+          return dx >= 0 && dx <= img.width * scale && dy >= 0 && dy <= img.height * scale;
+        });
+    
+        if (pos) {
           heldTile = pos;
-          Swal.fire({
-            icon: 'info',
-            title: 'Relocate Mode',
-            text: 'Click or tap another tile to move this building.'
-          });
-        }, 600); // long press duration (600ms)
-      }
+          heldTile.isTransparent = true; // Set transparency flag
+          cursorPosition = { x, y }; // Initialize cursor position
+          smoothCursor = { x, y }; // Initialize to prevent initial jump
+          render(); // Re-render to apply transparency
+        }
+      }, 200); // Delay of 200ms to differentiate between click and hold
+    
+      dragStart = { x, y };
     }
 
     function handleHoldEnd() {
-      clearTimeout(holdTimer);
+      clearTimeout(holdTimer); // Clear the hold timer
+      if (heldTile) {
+        const iso = screenToIso(cursorPosition.x, cursorPosition.y);
+        const targetTile = landData.find(tile => tile.x === iso.x && tile.y === iso.y);
+        if (targetTile && !targetTile.building) {
+          targetTile.building = heldTile.building;
+          delete heldTile.building;
+          heldTile.isTransparent = false; // Reset transparency flag
+          heldTile = null;
+          cursorPosition = null;
+          smoothCursor = { x: 0, y: 0 }; // Reset so it doesn't trail after release
+          render(); // Re-render to reflect changes
+        } else {
+          Swal.fire('Invalid Move', 'You can only relocate to an empty tile.', 'warning');
+        }
+      }
     }
 
     function handleRelocate(x, y) {
@@ -464,10 +680,16 @@ window.addEventListener("DOMContentLoaded", () => {
         const iso = screenToIso(x, y);
         const targetTile = landData.find(tile => tile.x === iso.x && tile.y === iso.y);
         if (targetTile && !targetTile.building) {
+          relocationInProgress = true; // Set the flag before relocation
           targetTile.building = heldTile.building;
+          const screen = isoToScreen(iso.x, iso.y); // Snap location
+          createParticles(screen.x, screen.y); // 💥 spark!
           delete heldTile.building;
+          heldTile.isTransparent = false;
           heldTile = null;
-          render();
+          cursorPosition = null;
+          render(); // Re-render to reflect changes
+          relocationInProgress = false; // Reset the flag after relocation
         } else {
           Swal.fire('Invalid Move', 'You can only relocate to an empty tile.', 'warning');
         }
@@ -476,53 +698,91 @@ window.addEventListener("DOMContentLoaded", () => {
 
     canvas.addEventListener("mousemove", (e) => {
       const rect = canvas.getBoundingClientRect();
-      const { x, y } = screenToIso(e.clientX - rect.left, e.clientY - rect.top);
-      hoverTile = {
-        x: Math.max(0, Math.min(gridWidth - 1, x)),
-        y: Math.max(0, Math.min(gridHeight - 1, y))
-      };
-      render();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+    
+      // Update position first
+      cursorPosition = { x: mouseX, y: mouseY };
+    
+      // Then check if actual drag occurred
+      if (heldTile && dragStart) {
+        const dx = Math.abs(cursorPosition.x - dragStart.x);
+        const dy = Math.abs(cursorPosition.y - dragStart.y);
+        if (dx > 5 || dy > 5) {
+          hasDragged = true;
+        }
+      }
+    
+      if (!heldTile) {
+        const { x, y } = screenToIso(mouseX, mouseY);
+        hoverTile = { x, y };
+      }
     });
-
+    
     canvas.addEventListener("mousedown", (e) => {
       const rect = canvas.getBoundingClientRect();
+      hasDragged = false;
       handleHoldStart(e.clientX - rect.left, e.clientY - rect.top);
-    });
+    }, { passive: true }); // Mark as passive
 
-    canvas.addEventListener("mouseup", handleHoldEnd);
-
+    canvas.addEventListener("mouseup", () => {
+      handleHoldEnd();
+    }, { passive: true });
+    
     canvas.addEventListener("click", (e) => {
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
-
+    
       if (heldTile) {
-        handleRelocate(mouseX, mouseY);
+        if (hasDragged) {
+          handleRelocate(mouseX, mouseY);
+        } else {
+          // Do nothing on click; allow menu only on normal tile click
+        }
         return;
       }
-
+    
       handleTileClick(mouseX, mouseY); // Handle tile click to place or modify buildings
-    });
+    }, { passive: true });
 
-    // Add touch event listeners for mobile support
+    // Optimize touch event listeners
     canvas.addEventListener("touchstart", (e) => {
       const rect = canvas.getBoundingClientRect();
       const touch = e.touches[0];
       handleHoldStart(touch.clientX - rect.left, touch.clientY - rect.top);
-    });
+    }, { passive: true }); // Mark as passive
 
-    canvas.addEventListener("touchend", handleHoldEnd);
+    canvas.addEventListener("touchend", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.changedTouches[0];
+      const mouseX = touch.clientX - rect.left;
+      const mouseY = touch.clientY - rect.top;
+    
+      if (heldTile) {
+        if (hasDragged) {
+          handleRelocate(mouseX, mouseY);
+        } else {
+          handleTileClick(mouseX, mouseY);
+        }
+      }
+    
+      handleHoldEnd();
+    }, { passive: true });
 
     canvas.addEventListener("touchmove", (e) => {
       const rect = canvas.getBoundingClientRect();
       const touch = e.touches[0];
-      const { x, y } = screenToIso(touch.clientX - rect.left, touch.clientY - rect.top);
-      hoverTile = {
-        x: Math.max(0, Math.min(gridWidth - 1, x)),
-        y: Math.max(0, Math.min(gridHeight - 1, y))
-      };
-      render();
-    });
+      const mouseX = touch.clientX - rect.left;
+      const mouseY = touch.clientY - rect.top;
+    
+      cursorPosition = { x: mouseX, y: mouseY };
+    
+      if (!heldTile) {
+        const { x, y } = screenToIso(mouseX, mouseY);
+        hoverTile = { x, y };
+      }
+    }, { passive: true });
 
     canvas.addEventListener("touchend", (e) => {
       const rect = canvas.getBoundingClientRect();
@@ -530,15 +790,10 @@ window.addEventListener("DOMContentLoaded", () => {
       if (heldTile) {
         handleRelocate(touch.clientX - rect.left, touch.clientY - rect.top);
       }
-    });
+    }, { passive: true }); // Mark as passive
 
     animate(); // Start the animation loop
   }); // end of preloadImages callback
 }); // end of DOMContentLoaded event
 
-window.addEventListener("click", (e) => {
-  const rect = document.getElementById("gameCanvas").getBoundingClientRect();
-  const mouseX = e.clientX - rect.left;
-  const mouseY = e.clientY - rect.top;
-  handleTileClick(mouseX, mouseY); // Handle tile click to place or modify buildings
-});
+
