@@ -13,6 +13,14 @@ let heldTile = null; // Declare heldTile globally
 let cursorPosition = null; // Tracks the cursor position during dragging
 let dragStart = null;
 let relocationInProgress = false; 
+let zoomLevel = 1;
+
+function setZoom(level) {
+  zoomLevel = level;
+  const canvas = document.getElementById("gameCanvas");
+  canvas.style.transform = `scale(${zoomLevel})`;
+  canvas.style.transformOrigin = "top left";
+}
 
 // Disable the context menu on the canvas
 const canvas = document.getElementById("gameCanvas");
@@ -198,21 +206,20 @@ function drawTile(ctx, x, y, imgName, imageMap, highlight = false) {
       ctx.globalAlpha = 1; // Reset transparency
     } else {
       let scale = buildingScales[imgName] || 0.5;
-      const offsetY = buildingOffsets[imgName] || 0;
 
       if (hoveredBuilding && hoveredBuilding.x === x && hoveredBuilding.y === y) {
-        scale *= 1.1; // increase by 10%
+        scale *= 1.1;
       }
 
-      ctx.globalAlpha = heldTile && heldTile.x === x && heldTile.y === y && heldTile.isTransparent ? 0.5 : 1; // Apply transparency
+      ctx.globalAlpha = heldTile && heldTile.x === x && heldTile.y === y && heldTile.isTransparent ? 0.5 : 1;
       ctx.drawImage(
         img,
         (x - y) * TILE_SIZE / 2 - (img.width * scale) / 2,
-        (x + y) * TILE_SIZE / 4 - (img.height * scale) / 2 + offsetY,
+        (x + y) * TILE_SIZE / 4 - (img.height * scale) / 2,
         img.width * scale,
         img.height * scale
       );
-      ctx.globalAlpha = 1; // Reset transparency
+      ctx.globalAlpha = 1;
     }
   }
 
@@ -232,28 +239,34 @@ function drawTile(ctx, x, y, imgName, imageMap, highlight = false) {
 
 const landData = [];
 function drawEmptyLand(ctx, imageMap, hoverTile) {
-  const width = gridWidth; // Use dynamically calculated grid width
-  const height = gridHeight; // Use dynamically calculated grid height
+  const screenW = window.innerWidth;
+  const screenH = window.innerHeight;
+  const buffer = 30;
 
-  // Ensure landData is initialized only once
-  if (landData.length === 0) {
-    for (let y = -4; y < height + 8; y++) { // Increased buffer for downward tiles
-      for (let x = -4; x < width + 4; x++) { // Add buffer to ensure full horizontal coverage
-        landData.push({ x, y });
+  const maxRange = Math.ceil((screenW + screenH) / TILE_SIZE) + buffer;
+
+  for (let d = -maxRange; d < maxRange; d++) {
+    for (let x = -maxRange; x < maxRange; x++) {
+      const y = x - d;
+      const screenX = (x - y) * TILE_SIZE / 2;
+      const screenY = (x + y) * TILE_SIZE / 4;
+
+      if (screenX >= -TILE_SIZE && screenX <= screenW + TILE_SIZE &&
+          screenY >= -TILE_SIZE && screenY <= screenH + TILE_SIZE) {
+
+        let tile = landData.find(t => t.x === x && t.y === y);
+        if (!tile) {
+          tile = { x, y, building: null };
+          landData.push(tile);
+        }
+
+        const highlight = hoverTile && hoverTile.x === x && hoverTile.y === y;
+        drawTile(ctx, x, y, tile.building, imageMap, highlight);
       }
     }
   }
-
-  // Draw ground
-  for (let y = -4; y < height + 12; y++) { // Increased buffer for downward tiles
-    for (let x = -4; x < width + 6; x++) {
-      const tile = landData.find(t => t.x === x && t.y === y);
-      const highlight = hoverTile && hoverTile.x === x && hoverTile.y === y;
-
-      drawTile(ctx, x, y, tile?.building || null, imageMap, highlight);
-    }
-  }
 }
+
 
 function adjustCanvasSize() {
   const canvas = document.getElementById("gameCanvas");
@@ -370,7 +383,11 @@ function handleTileClick(mouseX, mouseY) {
 
   // If no object was clicked, handle empty tile or other logic
   const iso = screenToIso(mouseX, mouseY); // Convert screen coordinates to isometric coordinates
-  const tile = landData.find(t => t.x === iso.x && t.y === iso.y);
+  let tile = landData.find(t => t.x === iso.x && t.y === iso.y);
+  if (!tile) {
+    tile = { x: iso.x, y: iso.y, building: null };
+    landData.push(tile);
+  }
 
   if (tile && !tile.building) {
     Swal.fire({
@@ -385,7 +402,7 @@ function handleTileClick(mouseX, mouseY) {
         />
       `).join(''),
       customClass: {
-        popup: 'swal2-fullscreen-popup'
+        popup: 'scrollable-grid-popup'
       }
     });
     return; // Exit the function after showing the "Choose an item" menu
@@ -410,104 +427,19 @@ window.changeBuilding = function(x, y) {
     showCancelButton: true,
     html: buildingOptions.map(name => `
       <img 
+        class="building-option"
         src="assets/isometric/${name}.png" 
         alt="${name}" 
         title="${name}" 
-        style="width: 400px; height: 400px; margin: 20px; cursor: pointer;" 
         onclick="selectBuilding('${name}', ${x}, ${y})"
       />
     `).join(''),
     showConfirmButton: false,
     customClass: {
-      popup: 'swal2-fullscreen-popup' // Add a custom class for fullscreen popup
+      popup: 'swal2-fullscreen-popup' // Use a scrollable, styled popup class
     }
   });
 };
-
-// Update the custom style for the fullscreen popup to ensure it works properly on mobile with larger popups
-const style = document.createElement('style');
-style.innerHTML = `
-  .swal2-fullscreen-popup {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    max-width: none !important;
-    margin: 0 !important;
-    border-radius: 0 !important;
-    overflow: hidden !important;
-    background-color: white !important;
-  }
-  .swal2-title {
-    font-size: 32px !important; /* Larger title font size */
-    text-align: center;
-    margin-top: 20px !important;
-  }
-  .swal2-html-container {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-    gap: 25px; /* Increased spacing between items */
-    height: calc(100% - 150px);
-    overflow-y: auto;
-    padding: 20px;
-  }
-  .swal2-actions {
-    position: absolute;
-    bottom: 20px;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-  }
-  .swal2-popup img {
-    max-width: 400px; /* Larger images for better visibility */
-    max-height: 400px;
-    cursor: pointer;
-  }
-  @media (max-width: 768px) {
-    .swal2-title {
-      font-size: 24px !important;
-      text-align: center;
-    }
-    .swal2-popup img {
-      max-width: 120px;
-      max-height: 120px;
-      margin: 8px;
-    }
-    .swal2-html-container {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
-      overflow-y: auto;
-      padding: 10px;
-      height: calc(100% - 160px);
-    }
-  }
-  .item-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 12px;
-    padding: 12px;
-    justify-items: center;
-  }
-  .item-tile {
-    background-color: #f9f9f9;
-    border-radius: 12px;
-    padding: 10px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-    transition: transform 0.2s ease;
-  }
-  .item-tile:hover {
-    transform: scale(1.05);
-  }
-  .item-tile img {
-    max-width: 64px;
-    max-height: 64px;
-  }
-`;
-document.head.appendChild(style);
 
 const birds = []; // Array to store bird positions and velocities
 const clouds = []; // Array to store cloud positions and velocities
@@ -726,8 +658,8 @@ window.addEventListener("DOMContentLoaded", () => {
 
     canvas.addEventListener("mousemove", (e) => {
       const rect = canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
+      const mouseX = (e.clientX - rect.left) / zoomLevel;
+      const mouseY = (e.clientY - rect.top) / zoomLevel;
     
       // Update position first
       cursorPosition = { x: mouseX, y: mouseY };
@@ -749,18 +681,22 @@ window.addEventListener("DOMContentLoaded", () => {
     
     canvas.addEventListener("mousedown", (e) => {
       const rect = canvas.getBoundingClientRect();
+      const mouseX = (e.clientX - rect.left) / zoomLevel;
+      const mouseY = (e.clientY - rect.top) / zoomLevel;
       hasDragged = false;
-      handleHoldStart(e.clientX - rect.left, e.clientY - rect.top);
+      handleHoldStart(mouseX, mouseY); // Already calculated above with zoomLevel
     }, { passive: true }); // Mark as passive
 
     canvas.addEventListener("mouseup", () => {
+      const mouseX = (e.clientX - rect.left) / zoomLevel;
+      const mouseY = (e.clientY - rect.top) / zoomLevel;
       handleHoldEnd();
     }, { passive: true });
     
     canvas.addEventListener("click", (e) => {
       const rect = canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
+      const mouseX = (e.clientX - rect.left) / zoomLevel;
+      const mouseY = (e.clientY - rect.top) / zoomLevel;
     
       if (heldTile) {
         if (hasDragged) {
@@ -778,14 +714,16 @@ window.addEventListener("DOMContentLoaded", () => {
     canvas.addEventListener("touchstart", (e) => {
       const rect = canvas.getBoundingClientRect();
       const touch = e.touches[0];
-      handleHoldStart(touch.clientX - rect.left, touch.clientY - rect.top);
+      const mouseX = (touch.clientX - rect.left) / zoomLevel;
+      const mouseY = (touch.clientY - rect.top) / zoomLevel;
+      handleHoldStart(mouseX, mouseY);
     }, { passive: true }); // Mark as passive
 
     canvas.addEventListener("touchend", (e) => {
       const rect = canvas.getBoundingClientRect();
       const touch = e.changedTouches[0];
-      const mouseX = touch.clientX - rect.left;
-      const mouseY = touch.clientY - rect.top;
+      const mouseX = (touch.clientX - rect.left) / zoomLevel;
+      const mouseY = (touch.clientY - rect.top) / zoomLevel;
     
       if (heldTile) {
         if (hasDragged) {
@@ -801,8 +739,8 @@ window.addEventListener("DOMContentLoaded", () => {
     canvas.addEventListener("touchmove", (e) => {
       const rect = canvas.getBoundingClientRect();
       const touch = e.touches[0];
-      const mouseX = touch.clientX - rect.left;
-      const mouseY = touch.clientY - rect.top;
+      const mouseX = (touch.clientX - rect.left) / zoomLevel;
+      const mouseY = (touch.clientY - rect.top) / zoomLevel;
     
       cursorPosition = { x: mouseX, y: mouseY };
     
@@ -822,6 +760,12 @@ window.addEventListener("DOMContentLoaded", () => {
 
     animate(); // Start the animation loop
   }); // end of preloadImages callback
-}); // end of DOMContentLoaded event
-
-
+  const zoomContainer = document.createElement("div");
+zoomContainer.id = "zoom-controls";
+zoomContainer.innerHTML = `
+  <button onclick="setZoom(1)">1x</button>
+  <button onclick="setZoom(2)">2x</button>
+  <button onclick="setZoom(3)">3x</button>
+`;
+document.body.appendChild(zoomContainer);
+});
